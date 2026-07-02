@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useTrips, type TripWithMembers } from "@/hooks/useTrips";
 import { PageShell } from "@/components/layout/PageShell";
+import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { Avatar } from "@/components/ui/Avatar";
 import { AvatarStack } from "@/components/ui/AvatarStack";
 import { CoverPhoto } from "@/components/ui/CoverPhoto";
@@ -110,7 +111,7 @@ export function Dashboard() {
         )}
       </div>
 
-      <div className="flex flex-col gap-3.5 pt-3.5">
+      <div className="flex flex-col gap-3.5 pt-3.5 pb-20">
         <GuestBanner />
 
         {loading && (
@@ -142,10 +143,13 @@ export function Dashboard() {
           </>
         )}
 
-        <Link to="/trips/new" className={buttonClasses("primary", true, "mt-2")}>
+      </div>
+
+      <StickyActionBar>
+        <Link to="/trips/new" className={buttonClasses("primary", true)}>
           + Create trip
         </Link>
-      </div>
+      </StickyActionBar>
     </PageShell>
   );
 }

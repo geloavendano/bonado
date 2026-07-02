@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
+import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Input } from "@/components/ui/Input";
 import { SectionLabel } from "@/components/ui/SectionLabel";
@@ -33,7 +34,7 @@ export function CreateTrip() {
     <PageShell>
       <ScreenHeader title="New trip" />
 
-      <div className="flex flex-col gap-3.5 pt-2.5 pb-6">
+      <div className="flex flex-col gap-3.5 pt-2.5 pb-24">
         <SectionLabel>Trip name</SectionLabel>
         <Input
           value={name}
@@ -128,10 +129,11 @@ export function CreateTrip() {
         {uploadError && <p className="text-owe text-[13px]">{uploadError}</p>}
 
         {error && <p className="text-owe text-[13px]">{error}</p>}
+      </div>
 
+      <StickyActionBar>
         <Button
           fullWidth
-          className="mt-2"
           disabled={!canSubmit}
           onClick={() =>
             void createTrip({
@@ -144,7 +146,7 @@ export function CreateTrip() {
         >
           {submitting ? "Creating…" : "Create trip"}
         </Button>
-      </div>
+      </StickyActionBar>
     </PageShell>
   );
 }

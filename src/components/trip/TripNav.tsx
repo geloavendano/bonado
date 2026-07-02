@@ -14,10 +14,10 @@ export function TripNav({ tripId }: { tripId: string }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-10 pointer-events-none">
       <div
-        className="mx-auto max-w-[430px] px-6 flex items-center justify-between"
+        className="mx-auto max-w-[430px] px-6 flex items-center justify-between gap-3"
         style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
       >
-        <div className="flex items-center bg-card rounded-pill p-[5px] shadow-floating pointer-events-auto">
+        <div className="flex items-center bg-card rounded-pill px-[5px] py-2 shadow-floating pointer-events-auto">
           {TABS.map((tab) => {
             const href = `${base}${tab.path}`;
             const active = location.pathname === href;
@@ -26,7 +26,7 @@ export function TripNav({ tripId }: { tripId: string }) {
                 key={tab.key}
                 to={href}
                 className={clsx(
-                  "flex items-center gap-1.5 rounded-pill px-3 py-2 text-[12.5px] leading-none",
+                  "flex items-center gap-1 rounded-pill px-2.5 py-2 text-[12.5px] leading-none",
                   active ? "bg-teal-tint text-teal-dark font-extrabold" : "text-secondary font-semibold",
                 )}
               >
