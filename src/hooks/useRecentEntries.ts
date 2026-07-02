@@ -15,6 +15,8 @@ export interface RecentEntry {
   created_at: string;
   last_edited_at: string | null;
   currency: string;
+  exchange_rate_to_trip_default: number;
+  rate_is_estimated: boolean;
   payee: string | null;
   category: { name: string; icon: string } | null;
   payments: {
@@ -87,7 +89,8 @@ export function useRecentEntries(tripId: string) {
         supabase
           .from("entries")
           .select(
-            `id, description, date, created_at, last_edited_at, currency, payee,
+            `id, description, date, created_at, last_edited_at, currency,
+             exchange_rate_to_trip_default, rate_is_estimated, payee,
              category:categories(name, icon),
              payments(amount_paid, user_id, user:users(id, name)),
              line_items(line_item_shares(user_id, owed_amount)),

@@ -19,6 +19,7 @@ import { TripTabHeader } from "@/components/trip/TripTabHeader";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "@/components/ui/ChevronDown";
+import { CurrencySelect } from "@/components/ui/CurrencySelect";
 
 interface SuggestedSettlement {
   fromUserId: string;
@@ -201,20 +202,12 @@ export function TripBalances() {
               </div>
             )}
           </div>
-          <div className="relative">
-            <select
-              value={displayCurrency}
-              disabled={ratesLoading}
-              onChange={(event) => setDisplayCurrency(event.target.value)}
-              className="appearance-none rounded-pill bg-card py-2 pl-3 pr-8 text-[13px] font-extrabold text-teal-dark shadow-card outline-none disabled:opacity-50"
-              aria-label="Display currency"
-            >
-              {(currencies.length > 0 ? currencies : [trip.default_currency]).map((currency) => (
-                <option key={currency} value={currency}>{currency}</option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-secondary" />
-          </div>
+          <CurrencySelect
+            value={displayCurrency}
+            onChange={setDisplayCurrency}
+            currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
+            disabled={ratesLoading}
+          />
         </div>
         {ratesError && (
           <div className="rounded-[14px] bg-owe-tint px-3 py-2 text-[11px] text-owe">
@@ -270,7 +263,7 @@ export function TripBalances() {
 
             {hasEstimatedRates && (
               <div className="rounded-[14px] bg-track px-3 py-2.5 text-[11.5px] text-secondary">
-                Includes estimated foreign-currency amounts. Automatic conversion lands in Phase 10.
+                Includes foreign-currency amounts converted with an estimated rate (the live rate wasn’t available when they were saved).
               </div>
             )}
 

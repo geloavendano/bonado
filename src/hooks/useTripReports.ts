@@ -7,6 +7,7 @@ export interface ReportTransaction {
   payee: string | null;
   date: string;
   currency: string;
+  exchange_rate_to_trip_default: number;
   groupAmount: number;
   userAmount: number;
   userPaid: number;
@@ -133,6 +134,7 @@ export function useTripReports(tripId: string, userId: string | undefined) {
         payee: entry.payee,
         date: entry.date,
         currency: entry.currency,
+        exchange_rate_to_trip_default: rate,
         groupAmount,
         userAmount,
         userPaid,

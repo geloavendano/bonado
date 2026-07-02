@@ -447,8 +447,8 @@ export function AddExpense() {
         </div>
         {currency !== trip.default_currency && (
           <p className="motion-reveal text-[11.5px] leading-relaxed text-secondary">
-            This expense will stay in {currency}. Conversion to the trip’s{" "}
-            {trip.default_currency} balance will be estimated until automatic rates land.
+            This expense will stay in {currency}. It'll convert to the trip’s{" "}
+            {trip.default_currency} using today’s exchange rate, saved with this expense.
           </p>
         )}
 

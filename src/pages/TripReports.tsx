@@ -12,16 +12,20 @@ import { TripTabHeader } from "@/components/trip/TripTabHeader";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { ChevronDown } from "@/components/ui/ChevronDown";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
+import { CurrencySelect } from "@/components/ui/CurrencySelect";
+import { convertEntryAmount } from "@/lib/convertEntryAmount";
 
 export function TripReports() {
   const trip = useTripLayout();
   const { user } = useAuth();
   const { report, loading, error } = useTripReports(trip.id, user?.id);
-  const { rates } = useCurrencyRates(trip.default_currency);
+  const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
+  const [pickedCurrency, setPickedCurrency] = useState("");
   const displayCurrency =
-    user?.preferred_currency && rates[user.preferred_currency]
+    pickedCurrency ||
+    (user?.preferred_currency && rates[user.preferred_currency]
       ? user.preferred_currency
-      : trip.default_currency;
+      : trip.default_currency);
   const displayRate = rates[displayCurrency] ?? 1;
   const expandedKey = `bonado:reports:${trip.id}:expanded`;
   const [expandedCategory, setExpandedCategory] = useState<string | null>(
@@ -51,6 +55,17 @@ export function TripReports() {
           </div>
         ) : (
           <>
+            <div className="flex items-center justify-between gap-3">
+              <SectionLabel className="mb-0">Spending in</SectionLabel>
+              <CurrencySelect
+                value={displayCurrency}
+                onChange={setPickedCurrency}
+                currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
+                disabled={ratesLoading}
+                aria-label="Reports display currency"
+              />
+            </div>
+
             <div className="grid grid-cols-2 divide-x divide-black/5 rounded-[20px] bg-card px-2 py-5 shadow-card">
               <div className="px-3 text-center">
                 <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-secondary">
@@ -130,7 +145,24 @@ export function TripReports() {
 
                     {expanded && (
                       <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] bg-bg px-3">
-                        {category.transactions.map((entry, transactionIndex) => (
+                        {category.transactions.map((entry, transactionIndex) => {
+                          const userDisplay = convertEntryAmount(
+                            entry.userAmount,
+                            entry.currency,
+                            entry.exchange_rate_to_trip_default,
+                            displayCurrency,
+                            trip.default_currency,
+                            rates,
+                          );
+                          const groupDisplay = convertEntryAmount(
+                            entry.groupAmount,
+                            entry.currency,
+                            entry.exchange_rate_to_trip_default,
+                            displayCurrency,
+                            trip.default_currency,
+                            rates,
+                          );
+                          return (
                           <Link
                             key={entry.id}
                             to={`/trips/${trip.id}/expenses/${entry.id}`}
@@ -151,7 +183,12 @@ export function TripReports() {
                             <div className="grid shrink-0 grid-cols-2 gap-3 text-right">
                               <div>
                                 <div className="text-[12.5px] font-extrabold text-teal-dark">
-                                  {formatMoney(entry.userAmount, entry.currency)}
+                                  {userDisplay.converted && (
+                                    <span className="mr-0.5 text-faint" title={`Converted from ${entry.currency}`}>
+                                      ≈
+                                    </span>
+                                  )}
+                                  {formatMoney(userDisplay.amount, userDisplay.currency)}
                                 </div>
                                 <div className="text-[9.5px] font-semibold text-secondary">
                                   Your share
@@ -159,7 +196,12 @@ export function TripReports() {
                               </div>
                               <div>
                                 <div className="text-[12.5px] font-extrabold">
-                                  {formatMoney(entry.groupAmount, entry.currency)}
+                                  {groupDisplay.converted && (
+                                    <span className="mr-0.5 text-faint" title={`Converted from ${entry.currency}`}>
+                                      ≈
+                                    </span>
+                                  )}
+                                  {formatMoney(groupDisplay.amount, groupDisplay.currency)}
                                 </div>
                                 <div className="text-[9.5px] font-semibold text-secondary">
                                   Group
@@ -168,7 +210,8 @@ export function TripReports() {
                             </div>
                             <span className="text-[12px] text-faint">›</span>
                           </Link>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

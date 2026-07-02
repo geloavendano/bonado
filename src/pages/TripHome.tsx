@@ -17,6 +17,8 @@ import { useRouteToast } from "@/hooks/useRouteToast";
 import { useBalances } from "@/hooks/useBalances";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
+import { CurrencySelect } from "@/components/ui/CurrencySelect";
+import { convertEntryAmount } from "@/lib/convertEntryAmount";
 
 export function TripHome() {
   const trip = useTripLayout();
@@ -24,8 +26,9 @@ export function TripHome() {
   const { entries, loading: entriesLoading, error: entriesError } =
     useRecentEntries(trip.id);
   const { balances } = useBalances(trip.id);
-  const { rates } = useCurrencyRates(trip.default_currency);
+  const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
   const [copied, setCopied] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState("");
   const toastMessage = useRouteToast();
   const [headerCompact, setHeaderCompact] = useState(false);
   const headerSentinelRef = useRef<HTMLDivElement>(null);
@@ -42,9 +45,10 @@ export function TripHome() {
     balances.find((balance) => balance.user_id === user?.id)?.balance ??
     trip.yourBalance;
   const balanceCurrency =
-    user?.preferred_currency && rates[user.preferred_currency]
+    displayCurrency ||
+    (user?.preferred_currency && rates[user.preferred_currency]
       ? user.preferred_currency
-      : trip.default_currency;
+      : trip.default_currency);
   const displayedBalance = yourBalance * (rates[balanceCurrency] ?? 1);
 
   const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
@@ -212,8 +216,18 @@ export function TripHome() {
           </svg>
         </Link>
 
-        <div className="mt-0.5 flex items-baseline justify-between">
+        <div className="mt-0.5 flex items-center justify-between">
           <SectionLabel>Transaction history</SectionLabel>
+          {entries.length > 0 && (
+            <CurrencySelect
+              value={displayCurrency}
+              onChange={setDisplayCurrency}
+              currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
+              disabled={ratesLoading}
+              allowOriginal
+              aria-label="Transaction display currency"
+            />
+          )}
         </div>
 
         {entriesLoading ? (
@@ -256,6 +270,14 @@ export function TripHome() {
               if (entry.type === "settlement") {
                 const isSender = entry.from_user_id === user?.id;
                 const isReceiver = entry.to_user_id === user?.id;
+                const settlementDisplay = convertEntryAmount(
+                  entry.amount,
+                  trip.default_currency,
+                  1,
+                  displayCurrency,
+                  trip.default_currency,
+                  rates,
+                );
                 return (
                   <Link
                     key={`settlement-${entry.id}`}
@@ -282,8 +304,13 @@ export function TripHome() {
                         isReceiver ? "text-owed" : isSender ? "text-owe" : "text-ink",
                       )}
                     >
+                      {settlementDisplay.converted && (
+                        <span className="mr-0.5 text-faint" title={`Converted from ${trip.default_currency}`}>
+                          ≈
+                        </span>
+                      )}
                       {isReceiver ? "+" : isSender ? "−" : ""}
-                      {formatMoney(entry.amount, trip.default_currency)}
+                      {formatMoney(settlementDisplay.amount, settlementDisplay.currency)}
                     </div>
                     <span className="size-2 flex-none" />
                   </Link>
@@ -316,6 +343,22 @@ export function TripHome() {
                 .flatMap((payment) => (payment.user ? [payment.user.name] : []))
                 .join(", ");
               const unread = Boolean(user && isEntryUnread(entry, user.id));
+              const shareDisplay = convertEntryAmount(
+                yourShare,
+                entry.currency,
+                entry.exchange_rate_to_trip_default,
+                displayCurrency,
+                trip.default_currency,
+                rates,
+              );
+              const paidDisplay = convertEntryAmount(
+                yourPaid,
+                entry.currency,
+                entry.exchange_rate_to_trip_default,
+                displayCurrency,
+                trip.default_currency,
+                rates,
+              );
 
               return (
                 <Link
@@ -337,11 +380,16 @@ export function TripHome() {
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="text-[14px] font-extrabold">
-                      {formatMoney(yourShare, entry.currency)}
+                      {shareDisplay.converted && (
+                        <span className="mr-0.5 text-faint" title={`Converted from ${entry.currency}`}>
+                          ≈
+                        </span>
+                      )}
+                      {formatMoney(shareDisplay.amount, shareDisplay.currency)}
                     </div>
                     {yourPaid > 0 && (
                       <div className="text-[10.5px] font-semibold text-secondary">
-                        {formatMoney(yourPaid, entry.currency)}
+                        {formatMoney(paidDisplay.amount, paidDisplay.currency)}
                       </div>
                     )}
                   </div>

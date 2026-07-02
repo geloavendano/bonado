@@ -66,6 +66,9 @@ out, expense vs transfer).
 
 Per-entry currency with rate snapshot, Frankfurter API integration,
 per-user display currency, daily rate caching (`exchange_rate_cache`).
+Editable display-currency switcher on Balances, Entries (defaults to each
+transaction's own currency, converts with a "≈" indicator when switched),
+and Reports (applies to both totals and the per-transaction drill-down).
 
 ## Phase 11 — Offline sync
 
