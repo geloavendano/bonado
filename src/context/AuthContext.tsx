@@ -94,16 +94,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let syncedUserId: string | null = null;
 
     async function syncUser(nextSession: Session | null) {
       setSession(nextSession);
       if (!nextSession) {
+        syncedUserId = null;
         setUser(null);
         setLoading(false);
         return;
       }
       const row = await loadOrCreateUserRow(nextSession);
       if (!cancelled) {
+        syncedUserId = nextSession.user.id;
         setUser(row);
         setLoading(false);
       }
@@ -113,8 +116,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, nextSession) => {
+        if (nextSession && nextSession.user.id === syncedUserId) {
+          // Supabase silently refreshes the token (and re-fires this event)
+          // whenever the tab regains focus, even with no real auth change.
+          // Update the session in place without touching `loading` — ProtectedRoute
+          // swaps its whole subtree for a skeleton while loading, which would
+          // otherwise unmount every open form and reset it on every tab switch.
+          setSession(nextSession);
+          return;
+        }
         setLoading(true);
-        syncUser(nextSession);
+        void syncUser(nextSession);
       },
     );
 
