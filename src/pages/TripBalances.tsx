@@ -16,6 +16,8 @@ import { useRecordSettlement } from "@/hooks/useRecordSettlement";
 import { useAuth } from "@/context/AuthContext";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
 import { TripTabHeader } from "@/components/trip/TripTabHeader";
+import { useCurrencyRates } from "@/hooks/useCurrencyRates";
+import { createPortal } from "react-dom";
 
 interface SuggestedSettlement {
   fromUserId: string;
@@ -77,6 +79,16 @@ export function TripBalances() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
   const [paymentLabel, setPaymentLabel] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState(trip.default_currency);
+  const {
+    rates,
+    currencies,
+    rateDate,
+    loading: ratesLoading,
+    error: ratesError,
+  } = useCurrencyRates(trip.default_currency);
+  const displayRate = rates[displayCurrency] ?? (displayCurrency === trip.default_currency ? 1 : 0);
+  const convert = (amount: number) => amount * displayRate;
 
   const memberBalances = useMemo(
     () =>
@@ -169,6 +181,38 @@ export function TripBalances() {
       <TripTabHeader tripId={trip.id} title="Balances" />
 
       <div className="flex flex-col gap-3.5 pb-24 pt-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-secondary">
+              Display currency
+            </div>
+            {displayCurrency !== trip.default_currency && displayRate > 0 && (
+              <div className="mt-0.5 text-[10px] text-faint">
+                1 {trip.default_currency} = {displayRate.toLocaleString(undefined, { maximumFractionDigits: 5 })} {displayCurrency}
+                {rateDate ? ` · ${rateDate}` : ""}
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <select
+              value={displayCurrency}
+              disabled={ratesLoading}
+              onChange={(event) => setDisplayCurrency(event.target.value)}
+              className="appearance-none rounded-pill bg-card py-2 pl-3 pr-8 text-[13px] font-extrabold text-teal-dark shadow-card outline-none disabled:opacity-50"
+              aria-label="Display currency"
+            >
+              {(currencies.length > 0 ? currencies : [trip.default_currency]).map((currency) => (
+                <option key={currency} value={currency}>{currency}</option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-secondary">▾</span>
+          </div>
+        </div>
+        {ratesError && (
+          <div className="rounded-[14px] bg-owe-tint px-3 py-2 text-[11px] text-owe">
+            {ratesError} Showing {trip.default_currency}.
+          </div>
+        )}
         {loading && balances.length === 0 ? (
           <>
             <Skeleton className="h-[112px] w-full rounded-[20px]" />
@@ -206,8 +250,8 @@ export function TripBalances() {
                 {Math.abs(yourBalance) < 0.005
                   ? "Settled up"
                   : yourBalance > 0
-                    ? `You're owed ${formatMoney(yourBalance, trip.default_currency)}`
-                    : `You owe ${formatMoney(-yourBalance, trip.default_currency)}`}
+                    ? `You're owed ${formatMoney(convert(yourBalance), displayCurrency)}`
+                    : `You owe ${formatMoney(convert(-yourBalance), displayCurrency)}`}
               </div>
               {isSettled && (
                 <div className="mt-1 text-[12px] font-semibold text-white/80">
@@ -253,7 +297,7 @@ export function TripBalances() {
                             : "text-secondary",
                       )}
                     >
-                      {formatSignedMoney(member.balance, trip.default_currency)}
+                      {formatSignedMoney(convert(member.balance), displayCurrency)}
                     </div>
                   </div>
                 ))}
@@ -279,7 +323,7 @@ export function TripBalances() {
                         </span>
                       </div>
                       <div className="text-[13px] font-extrabold text-teal-dark">
-                        {formatMoney(suggestion.amount, trip.default_currency)}
+                        {formatMoney(convert(suggestion.amount), displayCurrency)}
                       </div>
                     </button>
                   ))}
@@ -299,9 +343,19 @@ export function TripBalances() {
         )}
       </div>
 
-      {sheetOpen && (
-        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/20">
-          <div className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-sheet">
+      {sheetOpen && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/20"
+          onClick={() => setSheetOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-sheet"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Record settlement"
+          >
             <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-faint-2/60" />
             <div className="mb-4 flex items-center justify-between">
               <button
@@ -391,7 +445,8 @@ export function TripBalances() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
       <Toast message={toast} />
     </PageShell>
