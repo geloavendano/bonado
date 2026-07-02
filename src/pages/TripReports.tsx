@@ -43,7 +43,7 @@ export function TripReports() {
   }
 
   return (
-    <PageShell>
+    <PageShell wide>
       <TripTabHeader tripId={trip.id} title="Reports" />
 
       <div className="flex flex-col gap-3.5 pb-24 pt-2.5">

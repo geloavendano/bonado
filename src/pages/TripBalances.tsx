@@ -190,7 +190,7 @@ export function TripBalances() {
     trip.members.find((member) => member.id === id)?.name ?? "Member";
 
   return (
-    <PageShell>
+    <PageShell wide>
       <TripTabHeader tripId={trip.id} title="Balances" />
 
       <div className="flex flex-col gap-3.5 pb-24 pt-2.5">

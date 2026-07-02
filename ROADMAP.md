@@ -78,7 +78,17 @@ Local sync queue for mobile: create-only while offline (new entries +
 photos), edits/deletes disabled offline, estimated-rate resolution on
 reconnect.
 
-## Phase 12 — Desktop layout
+## Phase 12 — Desktop layout ✅ done
 
-Three-column desktop view (`4i`): trip list rail, wide entries view,
-balance rail.
+Three-column desktop view (`4i`), active at `lg:` (1024px+) widths on the
+three trip tabs (Entries/Balances/Reports): left trips rail (switch trips,
+`+ New trip`), center column with the existing tab content widened to fill
+the column, right balance rail (your position + per-person net + "Settle
+up") that stays visible regardless of which tab is active. Below `lg:`, or
+on Add expense/expense detail/settlement/trip settings/Dashboard/Create
+trip, layout is unchanged from the existing phone-width centered shell.
+
+## Phase 13 — Dark mode
+
+Configurable dark theme (device `prefers-color-scheme` by default, with an
+explicit override in account settings), covering the full design token set.

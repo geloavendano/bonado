@@ -90,7 +90,7 @@ export function TripHome() {
   }
 
   return (
-    <PageShell padded={false}>
+    <PageShell padded={false} wide>
       <div className="relative">
         <CoverPhoto
           url={trip.cover_photo_url}
