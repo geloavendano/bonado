@@ -154,16 +154,16 @@ export function Dashboard() {
                   <ChevronDown className={settingsOpen ? "rotate-180" : ""} />
                 </button>
                 {settingsOpen && (
-                  <label className="motion-reveal relative mb-2 grid gap-1 text-[10px] font-bold uppercase tracking-[0.06em] text-secondary">
+                  <label className="motion-reveal relative mb-2 grid w-full min-w-0 gap-1 text-[10px] font-bold uppercase tracking-[0.06em] text-secondary">
                     Display currency
                     <select
                       value={user.preferred_currency}
                       onChange={(event) => void updateProfile({ preferredCurrency: event.target.value })}
-                      className="appearance-none rounded-xl bg-tile py-2.5 pl-3 pr-9 font-bold text-ink outline-none"
+                      className="w-full min-w-0 appearance-none rounded-xl bg-tile py-2.5 pl-3 pr-9 text-[13px] font-bold text-ink outline-none"
                     >
                       {ALL_CURRENCIES.map((currency) => (
                         <option key={currency.code} value={currency.code}>
-                          {currency.code} · {currency.name}
+                          {currency.code}
                         </option>
                       ))}
                     </select>

@@ -77,6 +77,7 @@ export function TripBalances() {
   const [fromUserId, setFromUserId] = useState("");
   const [toUserId, setToUserId] = useState("");
   const [amount, setAmount] = useState("");
+  const [settlementCurrency, setSettlementCurrency] = useState(trip.default_currency);
   const [date, setDate] = useState(todayForInput);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
   const [paymentLabel, setPaymentLabel] = useState("");
@@ -118,6 +119,7 @@ export function TripBalances() {
 
   useEffect(() => {
     if (!sheetOpen) return;
+    setSettlementCurrency(trip.default_currency);
     const first = suggestions[0];
     if (first) {
       setFromUserId(first.fromUserId);
@@ -129,7 +131,7 @@ export function TripBalances() {
         current || trip.members.find((member) => member.id !== user?.id)?.id || "",
       );
     }
-  }, [sheetOpen, suggestions, trip.members, user?.id]);
+  }, [sheetOpen, suggestions, trip.members, user?.id, trip.default_currency]);
 
   useEffect(() => {
     if (fromUserId && fromUserId === toUserId) {
@@ -154,13 +156,22 @@ export function TripBalances() {
     setSheetOpen(true);
   }
 
+  const settlementRate =
+    settlementCurrency === trip.default_currency
+      ? 1
+      : rates[settlementCurrency]
+        ? 1 / rates[settlementCurrency]
+        : 0;
+  const convertedSettlementAmount = Number(amount) * settlementRate;
+
   async function handleSettlement() {
     const numericAmount = Number(amount);
     if (
       !fromUserId ||
       !toUserId ||
       fromUserId === toUserId ||
-      numericAmount <= 0
+      numericAmount <= 0 ||
+      settlementRate <= 0
     ) {
       return;
     }
@@ -168,7 +179,7 @@ export function TripBalances() {
       tripId: trip.id,
       fromUserId,
       toUserId,
-      amount: numericAmount,
+      amount: Math.round(numericAmount * settlementRate * 100) / 100,
       date,
       paymentMethod,
       paymentLabel,
@@ -407,9 +418,21 @@ export function TripBalances() {
               </div>
 
               <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-card">
-                <span className="text-[12px] font-bold text-secondary">
-                  {trip.default_currency}
-                </span>
+                <div className="relative mr-1 flex-none">
+                  <select
+                    value={settlementCurrency}
+                    onChange={(event) => setSettlementCurrency(event.target.value)}
+                    aria-label="Settlement currency"
+                    className="appearance-none bg-transparent py-2 pr-4 text-[12px] font-bold text-secondary outline-none"
+                  >
+                    {(currencies.length > 0 ? currencies : [trip.default_currency]).map((currency) => (
+                      <option key={currency} value={currency}>
+                        {currency}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[10px] text-secondary" />
+                </div>
                 <input
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
@@ -418,6 +441,13 @@ export function TripBalances() {
                   className="min-w-0 flex-1 bg-transparent text-right text-[24px] font-extrabold outline-none"
                 />
               </div>
+              {settlementCurrency !== trip.default_currency && (
+                <p className="-mt-2 text-right text-[11px] text-faint">
+                  {settlementRate > 0
+                    ? `≈ ${formatMoney(convertedSettlementAmount, trip.default_currency)} — settlements are recorded in ${trip.default_currency}`
+                    : "Loading exchange rate…"}
+                </p>
+              )}
 
               <input
                 type="date"
@@ -438,6 +468,7 @@ export function TripBalances() {
                 disabled={
                   saving ||
                   Number(amount) <= 0 ||
+                  settlementRate <= 0 ||
                   !fromUserId ||
                   !toUserId ||
                   fromUserId === toUserId
