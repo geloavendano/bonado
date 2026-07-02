@@ -24,7 +24,7 @@ export function CurrencySelect({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="appearance-none rounded-pill bg-card py-2 pl-3 pr-8 text-[13px] font-extrabold text-teal-dark shadow-card outline-none disabled:opacity-50"
+        className="appearance-none rounded-pill bg-card py-2 pl-3 pr-8 text-[13px] font-extrabold text-teal-dark shadow-[var(--shadow-card)] outline-none disabled:opacity-50"
         aria-label={ariaLabel}
       >
         {allowOriginal && <option value="">Original</option>}

@@ -22,7 +22,7 @@ export function TripNav({ tripId }: { tripId: string }) {
         style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
       >
         <nav
-          className="relative grid min-w-0 flex-1 grid-cols-3 items-center rounded-pill bg-card p-[5px] shadow-floating pointer-events-auto"
+          className="relative grid min-w-0 flex-1 grid-cols-3 items-center rounded-pill bg-card p-[5px] shadow-[var(--shadow-floating)] pointer-events-auto"
           aria-label="Trip sections"
         >
           <span
@@ -53,7 +53,7 @@ export function TripNav({ tripId }: { tripId: string }) {
         </nav>
         <Link
           to={`${base}/expenses/new`}
-          className="grid size-10 flex-none place-items-center rounded-full bg-teal text-white shadow-fab pointer-events-auto"
+          className="grid size-10 flex-none place-items-center rounded-full bg-teal text-white shadow-[var(--shadow-fab)] pointer-events-auto"
           aria-label="Add expense"
         >
           <svg

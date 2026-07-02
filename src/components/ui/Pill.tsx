@@ -7,7 +7,7 @@ interface PillProps extends HTMLAttributes<HTMLDivElement> {
 
 const tones: Record<NonNullable<PillProps["tone"]>, string> = {
   teal: "bg-teal-tint text-teal-dark",
-  neutral: "bg-card text-secondary shadow-card",
+  neutral: "bg-card text-secondary shadow-[var(--shadow-card)]",
   danger: "bg-owe-tint text-owe-dark",
 };
 

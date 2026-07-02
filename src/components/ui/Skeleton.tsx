@@ -8,7 +8,7 @@ export function DashboardSkeleton() {
   return (
     <div role="status" aria-label="Loading trips" className="flex flex-col gap-3.5">
       <Skeleton className="h-3 w-24" />
-      <div className="overflow-hidden rounded-[22px] bg-card shadow-card">
+      <div className="overflow-hidden rounded-[22px] bg-card shadow-[var(--shadow-card)]">
         <Skeleton className="h-[170px] w-full rounded-none" />
         <div className="flex flex-col gap-3 p-[18px]">
           <div className="flex items-center justify-between gap-4">
@@ -23,7 +23,7 @@ export function DashboardSkeleton() {
         </div>
       </div>
       <Skeleton className="mt-1 h-3 w-20" />
-      <div className="flex items-center gap-3 rounded-[18px] bg-card p-3 shadow-card">
+      <div className="flex items-center gap-3 rounded-[18px] bg-card p-3 shadow-[var(--shadow-card)]">
         <Skeleton className="size-14 rounded-[14px]" />
         <div className="flex flex-1 flex-col gap-2">
           <Skeleton className="h-4 w-28" />

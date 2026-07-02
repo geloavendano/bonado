@@ -59,7 +59,7 @@ function CurrentTripCard({ trip, displayCurrency }: { trip: TripWithMembers; dis
   const amount = trip.yourBalance * (rates[currency] ?? 1);
   return (
     <Link to={`/trips/${trip.id}`} className="block">
-      <Card className="rounded-[22px] overflow-hidden shadow-hero">
+      <Card className="rounded-[22px] overflow-hidden shadow-[var(--shadow-hero)]">
         <CoverPhoto
           url={trip.cover_photo_url}
           label={`trip cover — ${trip.location_name ?? trip.name}`}
@@ -146,7 +146,7 @@ export function Dashboard() {
               <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={38} />
             </button>
             {accountOpen && (
-              <div className="motion-reveal absolute right-0 top-12 w-[250px] rounded-[18px] bg-card p-3 shadow-floating">
+              <div className="motion-reveal absolute right-0 top-12 w-[250px] rounded-[18px] bg-card p-3 shadow-[var(--shadow-floating)]">
                 <div className="flex items-center gap-3 border-b border-hairline px-1 pb-3">
                   <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={36} />
                   <div className="min-w-0">
@@ -192,7 +192,7 @@ export function Dashboard() {
                           className={
                             "rounded-lg px-1 py-2 text-[11.5px] font-bold normal-case tracking-normal transition-colors " +
                             (themePreference === option.value
-                              ? "bg-card text-teal-dark shadow-card"
+                              ? "bg-card text-teal-dark shadow-[var(--shadow-card)]"
                               : "text-secondary")
                           }
                         >
@@ -248,7 +248,7 @@ export function Dashboard() {
 
       </div>
 
-      <StickyActionBar>
+      <StickyActionBar fade>
         <Link to="/trips/new" className={buttonClasses("primary", true)}>
           + Create trip
         </Link>

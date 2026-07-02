@@ -198,7 +198,7 @@ export function TripSettings() {
                 "rounded-pill border-2 px-4 py-2 text-[13.5px] font-bold",
                 currency === item.code
                   ? "border-teal bg-teal-tint text-teal-dark"
-                  : "border-transparent bg-card text-secondary shadow-card",
+                  : "border-transparent bg-card text-secondary shadow-[var(--shadow-card)]",
               )}
             >
               {item.code} {item.symbol}
@@ -208,7 +208,7 @@ export function TripSettings() {
             <select
               value={currency}
               onChange={(event) => setCurrency(event.target.value)}
-              className="appearance-none rounded-pill border-2 border-transparent bg-card py-2 pl-4 pr-9 text-[13.5px] font-bold text-secondary shadow-card outline-none"
+              className="appearance-none rounded-pill border-2 border-transparent bg-card py-2 pl-4 pr-9 text-[13.5px] font-bold text-secondary shadow-[var(--shadow-card)] outline-none"
             >
               {!ALL_CURRENCIES.some((item) => item.code === currency) && currency && (
                 <option value={currency}>{currency}</option>
@@ -239,7 +239,7 @@ export function TripSettings() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="rounded-pill bg-card px-4 py-2.5 text-[12.5px] font-bold text-teal shadow-card disabled:opacity-50"
+            className="rounded-pill bg-card px-4 py-2.5 text-[12.5px] font-bold text-teal shadow-[var(--shadow-card)] disabled:opacity-50"
           >
             {uploading ? "Uploading…" : "Change cover"}
           </button>
@@ -257,7 +257,7 @@ export function TripSettings() {
           <SectionLabel>Members · {trip.members.length}</SectionLabel>
           <button
             onClick={() => void shareInvite()}
-            className="shrink-0 rounded-pill bg-card px-3 py-2 text-[12.5px] font-bold text-teal shadow-card"
+            className="shrink-0 rounded-pill bg-card px-3 py-2 text-[12.5px] font-bold text-teal shadow-[var(--shadow-card)]"
           >
             {inviteCopied ? "Copied ✓" : "🔗 Share invite"}
           </button>
@@ -315,7 +315,7 @@ export function TripSettings() {
           )
         )}
 
-        <div className="bg-card rounded-[18px] px-4 shadow-card">
+        <div className="bg-card rounded-[18px] px-4 shadow-[var(--shadow-card)]">
           {trip.members.map((member, i) => (
             <div
               key={member.id}

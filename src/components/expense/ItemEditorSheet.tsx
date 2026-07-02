@@ -142,7 +142,7 @@ export function ItemEditorSheet({
       <div
         ref={formRef}
         {...formFlow.formProps}
-        className="motion-reveal max-h-full w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-sheet"
+        className="motion-reveal max-h-full w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-faint-2/60" />
         <div className="mb-4 flex items-center justify-between">
@@ -163,7 +163,7 @@ export function ItemEditorSheet({
             autoFocus
             enterKeyHint="next"
           />
-          <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-card">
+          <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-[var(--shadow-card)]">
             <span className="text-[12px] font-bold text-secondary">{currency}</span>
             <input
               value={amount}
@@ -183,7 +183,7 @@ export function ItemEditorSheet({
                 className={clsx(
                   "rounded-pill px-2 py-2 text-[12px] font-bold",
                   mode === option.value
-                    ? "bg-card text-teal-dark shadow-card"
+                    ? "bg-card text-teal-dark shadow-[var(--shadow-card)]"
                     : "text-secondary",
                 )}
               >
@@ -192,7 +192,7 @@ export function ItemEditorSheet({
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+          <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
             {members.map((member, index) => {
               const included =
                 mode === "equal"

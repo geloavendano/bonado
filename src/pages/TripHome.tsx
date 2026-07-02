@@ -99,14 +99,14 @@ export function TripHome() {
         />
         <Link
           to="/"
-          className="absolute left-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-card"
+          className="absolute left-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
           aria-label="Back to dashboard"
         >
           ←
         </Link>
         <Link
           to={`/trips/${trip.id}/settings`}
-          className="absolute right-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-card"
+          className="absolute right-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
           aria-label="Trip settings"
         >
           ⚙︎
@@ -118,7 +118,7 @@ export function TripHome() {
         className={
           "sticky top-0 z-20 flex items-center bg-bg/95 backdrop-blur-md transition-[height,padding,border-color,box-shadow] duration-200 " +
           (headerCompact
-            ? "h-14 border-b border-hairline px-4 shadow-card"
+            ? "h-14 border-b border-hairline px-4 shadow-[var(--shadow-card)]"
             : "h-[72px] border-b border-transparent px-6")
         }
       >
@@ -126,7 +126,7 @@ export function TripHome() {
           to="/"
           aria-label="Back to dashboard"
           className={
-            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-card transition-[width,opacity] duration-200 " +
+            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-[var(--shadow-card)] transition-[width,opacity] duration-200 " +
             (headerCompact
               ? "pointer-events-auto h-9 w-9 opacity-100"
               : "pointer-events-none h-9 w-0 opacity-0")
@@ -161,7 +161,7 @@ export function TripHome() {
           to={`/trips/${trip.id}/settings`}
           aria-label="Trip settings"
           className={
-            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-card transition-[width,opacity] duration-200 " +
+            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-[var(--shadow-card)] transition-[width,opacity] duration-200 " +
             (headerCompact
               ? "pointer-events-auto h-9 w-9 opacity-100"
               : "pointer-events-none h-9 w-0 opacity-0")
@@ -180,7 +180,7 @@ export function TripHome() {
           </Link>
           <button
             onClick={() => void shareInvite()}
-            className="ml-auto flex items-center gap-1.5 bg-card rounded-pill px-3.5 py-2 text-[13px] font-bold text-teal shadow-card"
+            className="ml-auto flex items-center gap-1.5 bg-card rounded-pill px-3.5 py-2 text-[13px] font-bold text-teal shadow-[var(--shadow-card)]"
           >
             {copied ? "Copied ✓" : "🔗 Share invite"}
           </button>
@@ -265,7 +265,7 @@ export function TripHome() {
                   <div className="sticky top-14 z-10 -mx-1 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
                     {dateLabel}
                   </div>
-                  <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+                  <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
                     {dateEntries.map((entry, index) => {
               if (entry.type === "settlement") {
                 const isSender = entry.from_user_id === user?.id;
@@ -422,7 +422,7 @@ export function TripHome() {
             })}
           </div>
         ) : (
-          <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-card">
+          <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-[var(--shadow-card)]">
             No expenses yet. Tap + to add the first one.
           </div>
         )}

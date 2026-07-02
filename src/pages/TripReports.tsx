@@ -53,7 +53,7 @@ export function TripReports() {
             <Skeleton className="h-[240px] w-full rounded-[18px]" />
           </>
         ) : report.groupTotal <= 0 ? (
-          <div className="rounded-[18px] bg-card p-6 text-center text-[13.5px] text-secondary shadow-card">
+          <div className="rounded-[18px] bg-card p-6 text-center text-[13.5px] text-secondary shadow-[var(--shadow-card)]">
             Reports will appear once the trip has expenses.
           </div>
         ) : (
@@ -69,7 +69,7 @@ export function TripReports() {
               />
             </div>
 
-            <div className="grid grid-cols-2 divide-x divide-hairline rounded-[20px] bg-card px-2 py-5 shadow-card">
+            <div className="grid grid-cols-2 divide-x divide-hairline rounded-[20px] bg-card px-2 py-5 shadow-[var(--shadow-card)]">
               <div className="px-3 text-center">
                 <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-secondary">
                   You spent
@@ -105,7 +105,7 @@ export function TripReports() {
             )}
 
             <SectionLabel>Spending breakdown</SectionLabel>
-            <div className="rounded-[18px] bg-card px-4 shadow-card">
+            <div className="rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
               {report.categories.map((category, index) => {
                 const expanded = expandedCategory === category.name;
                 const userPercent =

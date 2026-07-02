@@ -68,7 +68,7 @@ export function EditSettlement() {
                 <select
                   value={field.value}
                   onChange={(event) => field.setValue(event.target.value)}
-                  className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 font-semibold text-ink shadow-card outline-none"
+                  className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 font-semibold text-ink shadow-[var(--shadow-card)] outline-none"
                 >
                   {trip.members
                     .filter((member) => field.label === "From" || member.id !== fromUserId)
@@ -79,7 +79,7 @@ export function EditSettlement() {
             </Fragment>
           ))}
         </div>
-        <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-card">
+        <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-[var(--shadow-card)]">
           <span className="text-[12px] font-bold text-secondary">{trip.default_currency}</span>
           <input
             value={amount}
@@ -94,7 +94,7 @@ export function EditSettlement() {
           type="date"
           value={date}
           onChange={(event) => setDate(event.target.value)}
-          className="rounded-xl bg-card px-3 py-3 font-semibold shadow-card outline-none"
+          className="rounded-xl bg-card px-3 py-3 font-semibold shadow-[var(--shadow-card)] outline-none"
         />
         <PaymentMethodPicker value={paymentMethod} label={paymentLabel} onChange={setPaymentMethod} onLabelChange={setPaymentLabel} />
         {error && <p className="text-[12.5px] text-owe">{error}</p>}

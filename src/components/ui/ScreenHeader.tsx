@@ -12,7 +12,7 @@ export function BackButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       onClick={onClick ?? (() => navigate(-1))}
-      className="w-9 h-9 rounded-full bg-card shadow-card flex items-center justify-center text-secondary text-[15px] flex-none"
+      className="w-9 h-9 rounded-full bg-card shadow-[var(--shadow-card)] flex items-center justify-center text-secondary text-[15px] flex-none"
       aria-label="Back"
     >
       ←

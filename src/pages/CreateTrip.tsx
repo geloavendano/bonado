@@ -117,7 +117,7 @@ export function CreateTrip() {
                 "rounded-pill px-4 py-2 text-[13.5px] font-bold transition-colors",
                 currency === c.code
                   ? "bg-teal-tint text-teal-dark border-2 border-teal"
-                  : "bg-card text-secondary shadow-card border-2 border-transparent",
+                  : "bg-card text-secondary shadow-[var(--shadow-card)] border-2 border-transparent",
               )}
             >
               {c.code} {c.symbol}
@@ -131,7 +131,7 @@ export function CreateTrip() {
                 "appearance-none rounded-pill pl-4 pr-7 py-2 text-[13.5px] w-[92px] text-center outline-none transition-colors",
                 isMoreCurrency
                   ? "bg-teal-tint text-teal-dark font-bold border-2 border-teal"
-                  : "bg-card text-secondary font-semibold shadow-card border-2 border-transparent",
+                  : "bg-card text-secondary font-semibold shadow-[var(--shadow-card)] border-2 border-transparent",
               )}
             >
               <option value="" disabled>

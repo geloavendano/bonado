@@ -58,7 +58,7 @@ export function LocationField({
         </span>
       )}
       {focused && places.suggestions.length > 0 && (
-        <div className="absolute z-10 mt-1.5 w-full overflow-hidden rounded-[16px] bg-card shadow-floating">
+        <div className="absolute z-10 mt-1.5 w-full overflow-hidden rounded-[16px] bg-card shadow-[var(--shadow-floating)]">
           {places.suggestions.map((suggestion) => (
             <button
               key={suggestion.placeId}

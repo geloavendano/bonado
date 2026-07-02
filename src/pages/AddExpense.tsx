@@ -418,7 +418,7 @@ export function AddExpense() {
 
       <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-28">
         <SectionLabel>Amount</SectionLabel>
-        <div className="flex items-center rounded-[20px] bg-card px-5 py-3 shadow-card focus-within:ring-2 focus-within:ring-teal/40">
+        <div className="flex items-center rounded-[20px] bg-card px-5 py-3 shadow-[var(--shadow-card)] focus-within:ring-2 focus-within:ring-teal/40">
           <div className="relative mr-3">
             <select
               value={currency}
@@ -495,7 +495,7 @@ export function AddExpense() {
                 "rounded-pill border-2 px-3 py-2 text-[12.5px] font-bold",
                 categoryId === category.id
                   ? "border-teal bg-teal-tint text-teal-dark"
-                  : "border-transparent bg-card text-secondary shadow-card",
+                  : "border-transparent bg-card text-secondary shadow-[var(--shadow-card)]",
               )}
             >
               <span className="inline-flex items-center gap-1.5">
@@ -507,7 +507,7 @@ export function AddExpense() {
         </div>
 
         <SectionLabel className="mt-1">Paid by</SectionLabel>
-        <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+        <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
           {trip.members.map((member, index) => {
             const selected = payerIds.includes(member.id);
             return (
@@ -595,7 +595,7 @@ export function AddExpense() {
               className={clsx(
                 "rounded-[12px] px-1 py-2 text-[10.5px] font-bold",
                 splitMode === mode.value
-                  ? "bg-card text-teal-dark shadow-card"
+                  ? "bg-card text-teal-dark shadow-[var(--shadow-card)]"
                   : "text-secondary",
               )}
             >
@@ -606,7 +606,7 @@ export function AddExpense() {
 
         {splitMode === "equal" ? (
           <>
-            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
               {trip.members.map((member, index) => {
                 const included = participantIds.includes(member.id);
                 const estimate =
@@ -662,7 +662,7 @@ export function AddExpense() {
           <div className="motion-reveal flex flex-col gap-3.5">
             <SectionLabel>Line items</SectionLabel>
             {items.length > 0 && (
-              <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+              <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
                 {items.map((item, index) => {
                   const people = trip.members.filter((member) =>
                     item.shares.some((share) => share.userId === member.id),
@@ -711,7 +711,7 @@ export function AddExpense() {
               { label: "Tax", value: tax, setValue: setTax, mode: taxMode, setMode: setTaxMode },
               { label: "Tip", value: tip, setValue: setTip, mode: tipMode, setMode: setTipMode },
             ].map((adjustment) => (
-              <div key={adjustment.label} className="rounded-[18px] bg-card p-3 shadow-card">
+              <div key={adjustment.label} className="rounded-[18px] bg-card p-3 shadow-[var(--shadow-card)]">
                 <div className="flex items-center gap-3">
                   <span className="w-10 text-[13.5px] font-bold">{adjustment.label}</span>
                   <div className="flex min-w-0 flex-1 items-center rounded-xl bg-tile px-3 py-2">
@@ -737,7 +737,7 @@ export function AddExpense() {
                         className={clsx(
                           "rounded-pill px-2 py-1.5 text-[11.5px] font-bold",
                           adjustment.mode === option.value
-                            ? "bg-card text-teal-dark shadow-card"
+                            ? "bg-card text-teal-dark shadow-[var(--shadow-card)]"
                             : "text-secondary",
                         )}
                       >
@@ -767,7 +767,7 @@ export function AddExpense() {
           </div>
         ) : (
           <div className="motion-reveal flex flex-col gap-2.5">
-            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
               {trip.members.map((member, index) => {
                 const value = Number(splitValues[member.id]) || 0;
                 const calculated =

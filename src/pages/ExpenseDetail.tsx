@@ -149,7 +149,7 @@ export function ExpenseDetail() {
 
       <div className="flex flex-col gap-3.5 pb-28 pt-2.5">
         <>
-            <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-card">
+            <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-[var(--shadow-card)]">
               <div className="mb-2 text-[12px] font-bold uppercase tracking-[0.09em] text-secondary">
                 <span className="inline-flex items-center gap-1.5">
                   <CategoryIcon category={expense.category?.name ?? "Other"} className="size-4" />
@@ -180,7 +180,7 @@ export function ExpenseDetail() {
             </div>
 
             <SectionLabel>Paid by</SectionLabel>
-            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
               {expense.payments.map((payment, index) => (
                 <div
                   key={`${payment.user_id}-${index}`}
@@ -216,7 +216,7 @@ export function ExpenseDetail() {
             </div>
 
             <SectionLabel>Breakdown</SectionLabel>
-            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
               {breakdown.map((person, index) => (
                 <div
                   key={person.id}
@@ -253,7 +253,7 @@ export function ExpenseDetail() {
             {(expense.line_items.length > 1 || expense.adjustments.length > 0) && (
               <>
                 <SectionLabel>Items</SectionLabel>
-                <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+                <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
                   {expense.line_items.map((item, index) => (
                     <div
                       key={item.id}
@@ -349,7 +349,7 @@ export function ExpenseDetail() {
                 <img
                   src={receiptUrl}
                   alt="Expense receipt"
-                  className="max-h-[320px] w-full rounded-[18px] object-cover shadow-card"
+                  className="max-h-[320px] w-full rounded-[18px] object-cover shadow-[var(--shadow-card)]"
                 />
               </div>
             ) : (

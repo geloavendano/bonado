@@ -43,7 +43,7 @@ export function SettlementDetail() {
         }
       />
       <div className="flex flex-col gap-3.5 pb-20 pt-2.5">
-        <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-card">
+        <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-[var(--shadow-card)]">
           <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-secondary">
             Settlement
           </div>
@@ -57,7 +57,7 @@ export function SettlementDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[18px] bg-card p-4 shadow-card">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[18px] bg-card p-4 shadow-[var(--shadow-card)]">
           <div className="grid justify-items-center gap-2 text-center">
             <Avatar name={settlement.from_user?.name ?? "Member"} seed={settlement.from_user_id} avatarUrl={settlement.from_user?.avatar_url} size={40} />
             <div className="text-[12.5px] font-bold">{settlement.from_user?.name ?? "Member"}</div>
@@ -72,7 +72,7 @@ export function SettlementDetail() {
         </div>
 
         {settlement.payment_account && (
-          <div className="rounded-[16px] bg-card px-4 py-3 shadow-card">
+          <div className="rounded-[16px] bg-card px-4 py-3 shadow-[var(--shadow-card)]">
             <div className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-secondary">Payment method</div>
             <div className="mt-1 text-[13.5px] font-bold">
               {settlement.payment_account.method} · {settlement.payment_account.label}

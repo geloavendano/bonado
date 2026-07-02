@@ -12,7 +12,7 @@ export function TripTabHeader({
       <Link
         to={`/trips/${tripId}`}
         aria-label="Back to entries"
-        className="grid size-9 flex-none place-items-center rounded-full bg-card text-[15px] text-secondary shadow-card"
+        className="grid size-9 flex-none place-items-center rounded-full bg-card text-[15px] text-secondary shadow-[var(--shadow-card)]"
       >
         ←
       </Link>

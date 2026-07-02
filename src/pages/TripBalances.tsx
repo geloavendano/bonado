@@ -272,7 +272,7 @@ export function TripBalances() {
             )}
 
             <SectionLabel>By member</SectionLabel>
-            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
               {memberBalances
                 .sort((a, b) => b.balance - a.balance)
                 .map((member, index) => (
@@ -316,7 +316,7 @@ export function TripBalances() {
                     <button
                       key={`${suggestion.fromUserId}-${suggestion.toUserId}`}
                       onClick={() => openSuggestion(suggestion)}
-                      className="flex items-center gap-2 rounded-[16px] bg-card px-4 py-3 text-left shadow-card"
+                      className="flex items-center gap-2 rounded-[16px] bg-card px-4 py-3 text-left shadow-[var(--shadow-card)]"
                     >
                       <div className="min-w-0 flex-1 text-[12.5px] text-secondary">
                         <span className="font-bold text-ink">
@@ -355,7 +355,7 @@ export function TripBalances() {
           role="presentation"
         >
           <div
-            className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-sheet"
+            className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -380,7 +380,7 @@ export function TripBalances() {
                   <select
                     value={fromUserId}
                     onChange={(event) => setFromUserId(event.target.value)}
-                    className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 text-[13px] font-semibold text-ink shadow-card outline-none"
+                    className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 text-[13px] font-semibold text-ink shadow-[var(--shadow-card)] outline-none"
                   >
                     {trip.members.map((member) => (
                       <option key={member.id} value={member.id}>
@@ -396,7 +396,7 @@ export function TripBalances() {
                   <select
                     value={toUserId}
                     onChange={(event) => setToUserId(event.target.value)}
-                    className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 text-[13px] font-semibold text-ink shadow-card outline-none"
+                    className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 text-[13px] font-semibold text-ink shadow-[var(--shadow-card)] outline-none"
                   >
                     {trip.members
                       .filter((member) => member.id !== fromUserId)
@@ -410,7 +410,7 @@ export function TripBalances() {
                 </label>
               </div>
 
-              <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-card">
+              <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-[var(--shadow-card)]">
                 <div className="relative mr-1 flex-none">
                   <select
                     value={settlementCurrency}
@@ -446,7 +446,7 @@ export function TripBalances() {
                 type="date"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
-                className="rounded-xl bg-card px-3 py-3 text-[13px] font-semibold shadow-card outline-none"
+                className="rounded-xl bg-card px-3 py-3 text-[13px] font-semibold shadow-[var(--shadow-card)] outline-none"
               />
 
               <PaymentMethodPicker
