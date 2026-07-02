@@ -22,7 +22,7 @@ export interface RecentEntry {
   payments: {
     amount_paid: number;
     user_id: string;
-    user: { id: string; name: string } | null;
+    user: { id: string; name: string; avatar_url: string | null } | null;
   }[];
   line_items: {
     line_item_shares: { user_id: string; owed_amount: number }[];
@@ -58,7 +58,7 @@ interface RecentEntryRow extends Omit<RecentEntry, "type"> {
   payments: {
     amount_paid: number;
     user_id: string;
-    user: { id: string; name: string } | null;
+    user: { id: string; name: string; avatar_url: string | null } | null;
   }[];
   line_items: {
     line_item_shares: { user_id: string; owed_amount: number }[];
@@ -92,7 +92,7 @@ export function useRecentEntries(tripId: string) {
             `id, description, date, created_at, last_edited_at, currency,
              exchange_rate_to_trip_default, rate_is_estimated, payee,
              category:categories(name, icon),
-             payments(amount_paid, user_id, user:users(id, name)),
+             payments(amount_paid, user_id, user:users(id, name, avatar_url)),
              line_items(line_item_shares(user_id, owed_amount)),
              adjustments(adjustment_shares(user_id, owed_amount))`,
           )

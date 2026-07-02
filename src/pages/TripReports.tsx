@@ -21,12 +21,15 @@ export function TripReports() {
   const { report, loading, error } = useTripReports(trip.id, user?.id);
   const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
   const [pickedCurrency, setPickedCurrency] = useState("");
-  const displayCurrency =
-    pickedCurrency ||
-    (user?.preferred_currency && rates[user.preferred_currency]
-      ? user.preferred_currency
-      : trip.default_currency);
+  const displayCurrency = pickedCurrency || trip.default_currency;
   const displayRate = rates[displayCurrency] ?? 1;
+  const preferredCurrency = user?.preferred_currency;
+  const preferredRate =
+    preferredCurrency === trip.default_currency ? 1 : rates[preferredCurrency ?? ""];
+  const showPreferredConversion =
+    Boolean(preferredCurrency) &&
+    preferredCurrency !== displayCurrency &&
+    preferredRate !== undefined;
   const expandedKey = `bonado:reports:${trip.id}:expanded`;
   const [expandedCategory, setExpandedCategory] = useState<string | null>(
     () => sessionStorage.getItem(expandedKey),
@@ -74,6 +77,11 @@ export function TripReports() {
                 <div className="mt-1 text-[21px] font-extrabold tracking-[-0.5px] text-teal-dark">
                   {formatMoney(report.userTotal * displayRate, displayCurrency)}
                 </div>
+                {showPreferredConversion && (
+                  <div className="mt-0.5 text-[11px] text-faint">
+                    ≈ {formatMoney(report.userTotal * preferredRate, preferredCurrency!)}
+                  </div>
+                )}
               </div>
               <div className="px-3 text-center">
                 <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-secondary">
@@ -82,6 +90,11 @@ export function TripReports() {
                 <div className="mt-1 text-[21px] font-extrabold tracking-[-0.5px]">
                   {formatMoney(report.groupTotal * displayRate, displayCurrency)}
                 </div>
+                {showPreferredConversion && (
+                  <div className="mt-0.5 text-[11px] text-faint">
+                    ≈ {formatMoney(report.groupTotal * preferredRate, preferredCurrency!)}
+                  </div>
+                )}
               </div>
             </div>
 

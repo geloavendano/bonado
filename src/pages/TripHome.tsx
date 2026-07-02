@@ -339,9 +339,10 @@ export function TripHome() {
                     .filter((payment) => payment.user_id === user.id)
                     .reduce((sum, payment) => sum + Number(payment.amount_paid), 0)
                 : 0;
-              const payerNames = entry.payments
-                .flatMap((payment) => (payment.user ? [payment.user.name] : []))
-                .join(", ");
+              const payers = entry.payments.flatMap((payment) =>
+                payment.user ? [payment.user] : [],
+              );
+              const payerNames = payers.map((payer) => payer.name).join(", ");
               const unread = Boolean(user && isEntryUnread(entry, user.id));
               const shareDisplay = convertEntryAmount(
                 yourShare,
@@ -374,8 +375,20 @@ export function TripHome() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14.5px] font-bold">{entry.description}</div>
-                    <div className="truncate text-[11.5px] text-secondary">
-                      {payerNames ? `Paid by ${payerNames}` : "No payer"}
+                    <div className="flex items-center gap-1.5 text-[11.5px] text-secondary">
+                      <span className="truncate">
+                        {entry.payee
+                          ? `Paid to ${entry.payee}`
+                          : payerNames
+                            ? `Paid by ${payerNames}`
+                            : "No payer"}
+                      </span>
+                      {entry.payee && payers.length > 0 && (
+                        <>
+                          <span className="flex-none">by</span>
+                          <AvatarStack people={payers} size={16} max={3} />
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
