@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { TripMember } from "@/hooks/useTrip";
 import { formatMoney } from "@/lib/money";
+import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 
 export type ItemSplitMode = "equal" | "exact" | "percent" | "shares";
 
@@ -70,6 +71,8 @@ export function ItemEditorSheet({
       ]),
     ),
   );
+  const formRef = useRef<HTMLDivElement>(null);
+  const formFlow = useMobileFormFlow(formRef);
 
   const numericAmount = Number(amount);
   const numericValues = useMemo(
@@ -129,8 +132,18 @@ export function ItemEditorSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/20 px-0">
-      <div className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-sheet">
+    <div
+      className="fixed inset-x-0 z-30 flex items-end justify-center bg-black/20 px-0"
+      style={{
+        top: formFlow.viewport.top,
+        height: formFlow.viewport.height || "100dvh",
+      }}
+    >
+      <div
+        ref={formRef}
+        {...formFlow.formProps}
+        className="motion-reveal max-h-full w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-sheet"
+      >
         <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-faint-2/60" />
         <div className="mb-4 flex items-center justify-between">
           <button onClick={onClose} className="text-[13px] font-bold text-secondary">
@@ -148,6 +161,7 @@ export function ItemEditorSheet({
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Item description"
             autoFocus
+            enterKeyHint="next"
           />
           <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-card">
             <span className="text-[12px] font-bold text-secondary">{currency}</span>
@@ -155,8 +169,9 @@ export function ItemEditorSheet({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
+              enterKeyHint="done"
               placeholder="0.00"
-              className="min-w-0 flex-1 bg-transparent text-right text-[24px] font-extrabold outline-none"
+              className="min-w-0 flex-1 bg-transparent text-right !text-[24px] font-extrabold outline-none"
             />
           </div>
 
@@ -256,18 +271,20 @@ export function ItemEditorSheet({
 
           <Button
             fullWidth
-            disabled={!valid}
-            onClick={() =>
+            disabled={!formFlow.keyboardOpen && !valid}
+            onPointerDown={(event) => formFlow.keyboardOpen && event.preventDefault()}
+            onClick={() => {
+              if (formFlow.keyboardOpen) return formFlow.advance();
               onSave({
                 id: initial?.id ?? crypto.randomUUID(),
                 description: description.trim(),
                 amount: numericAmount,
                 splitMode: mode,
                 shares: buildShares(),
-              })
-            }
+              });
+            }}
           >
-            {initial ? "Save item" : "Add item"}
+            {formFlow.keyboardOpen ? "Next →" : initial ? "Save item" : "Add item"}
           </Button>
           {initial && onDelete && (
             <button

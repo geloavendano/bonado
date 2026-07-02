@@ -5,18 +5,21 @@ import clsx from "clsx";
 export function StickyActionBar({
   children,
   fade = false,
+  bottomOffset = 0,
 }: {
   children: ReactNode;
   fade?: boolean;
+  bottomOffset?: number;
 }) {
   return (
     <div
       className={clsx(
-        "motion-dock fixed inset-x-0 bottom-0 z-10",
+        "motion-dock fixed inset-x-0 z-10 transition-[bottom] duration-200",
         fade
           ? "bg-gradient-to-b from-transparent via-bg/90 to-bg"
           : "bg-bg",
       )}
+      style={{ bottom: bottomOffset }}
     >
       <div
         className={clsx("mx-auto max-w-[430px] px-6", fade ? "pt-8" : "pt-3")}

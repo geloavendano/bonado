@@ -26,6 +26,7 @@ import { useExpense } from "@/hooks/useExpense";
 import { formatMoney } from "@/lib/money";
 import { ALL_CURRENCIES } from "@/lib/currencies";
 import type { AdjustmentMode } from "@/types/schema";
+import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & drink": "🍽",
@@ -71,6 +72,8 @@ export function AddExpense() {
     error,
   } = useCreateExpense();
   const initializedEntryRef = useRef<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const formFlow = useMobileFormFlow(formRef);
 
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("");
@@ -425,7 +428,7 @@ export function AddExpense() {
         }
       />
 
-      <div className="flex flex-col gap-3.5 pt-2.5 pb-28">
+      <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-28">
         <SectionLabel>Amount</SectionLabel>
         <div className="flex items-center rounded-[20px] bg-card px-5 py-3 shadow-card focus-within:ring-2 focus-within:ring-teal/40">
           <div className="relative mr-3">
@@ -451,7 +454,9 @@ export function AddExpense() {
             inputMode="decimal"
             placeholder="0.00"
             aria-label="Expense amount"
-            className="min-w-0 flex-1 bg-transparent text-right text-[32px] font-extrabold tracking-[-1px] outline-none placeholder:text-faint-2"
+            autoFocus
+            enterKeyHint="next"
+            className="min-w-0 flex-1 bg-transparent text-right !text-[32px] font-extrabold tracking-[-1px] outline-none placeholder:text-faint-2"
           />
         </div>
         {currency !== trip.default_currency && (
@@ -466,9 +471,10 @@ export function AddExpense() {
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder="Dinner, taxi, hotel…"
+          enterKeyHint="next"
         />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
           <div className="flex min-w-0 flex-col gap-2">
             <SectionLabel>Paid to</SectionLabel>
             <Input
@@ -476,6 +482,7 @@ export function AddExpense() {
               onChange={(event) => setPayee(event.target.value)}
               placeholder="Optional"
               className="w-full min-w-0"
+              enterKeyHint="done"
             />
           </div>
           <div className="flex min-w-0 flex-col gap-2">
@@ -845,13 +852,16 @@ export function AddExpense() {
         {error && <p className="text-[13px] text-owe">{error}</p>}
       </div>
 
-      <StickyActionBar fade>
+      <StickyActionBar fade bottomOffset={formFlow.keyboardOffset}>
         <Button
           fullWidth
-          disabled={!canSubmit}
-          onClick={handleSubmit}
+          disabled={!formFlow.keyboardOpen && !canSubmit}
+          onPointerDown={(event) => formFlow.keyboardOpen && event.preventDefault()}
+          onClick={() => formFlow.keyboardOpen ? formFlow.advance() : handleSubmit()}
         >
-          {submitting
+          {formFlow.keyboardOpen
+            ? "Next →"
+            : submitting
             ? entryId
               ? "Saving expense…"
               : "Adding expense…"

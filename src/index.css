@@ -193,3 +193,20 @@ a:active {
 .cover-placeholder {
   background: repeating-linear-gradient(45deg, #efefee 0 10px, #e7e7e5 10px 20px);
 }
+
+/* iOS zooms form controls whose computed font size is below 16px. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  input[type="date"] {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    -webkit-appearance: none;
+  }
+}

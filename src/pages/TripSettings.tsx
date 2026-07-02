@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -11,6 +11,7 @@ import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { useTrip } from "@/hooks/useTrip";
 import { useUpdateTrip } from "@/hooks/useUpdateTrip";
 import { useManageTripGuests } from "@/hooks/useManageTripGuests";
+import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 
 export function TripSettings() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -35,6 +36,8 @@ export function TripSettings() {
   const [addingMember, setAddingMember] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showInviteLink, setShowInviteLink] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
+  const formFlow = useMobileFormFlow(formRef);
 
   useEffect(() => {
     if (trip) {
@@ -120,15 +123,16 @@ export function TripSettings() {
     <PageShell>
       <ScreenHeader title="Trip settings" />
 
-      <div className="flex flex-col gap-3.5 pt-2.5 pb-28">
+      <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-28">
         <SectionLabel>Trip name</SectionLabel>
-        <Input value={name} onChange={(e) => setName(e.target.value)} />
+        <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus enterKeyHint="next" />
 
         <SectionLabel>Where to?</SectionLabel>
         <Input
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="City, country"
+          enterKeyHint="done"
         />
 
         {error && <p className="text-owe text-[13px]">{error}</p>}
@@ -293,13 +297,14 @@ export function TripSettings() {
         {guestError && <p className="text-owe text-[13px]">{guestError}</p>}
       </div>
 
-      <StickyActionBar>
+      <StickyActionBar bottomOffset={formFlow.keyboardOffset}>
         <Button
           fullWidth
-          disabled={!dirty || saving || name.trim().length === 0}
-          onClick={() => void handleSave()}
+          disabled={!formFlow.keyboardOpen && (!dirty || saving || name.trim().length === 0)}
+          onPointerDown={(event) => formFlow.keyboardOpen && event.preventDefault()}
+          onClick={() => formFlow.keyboardOpen ? formFlow.advance() : void handleSave()}
         >
-          {saving ? "Saving…" : "Save changes"}
+          {formFlow.keyboardOpen ? "Next →" : saving ? "Saving…" : "Save changes"}
         </Button>
       </StickyActionBar>
     </PageShell>

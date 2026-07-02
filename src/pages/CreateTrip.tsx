@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { SUGGESTED_CURRENCIES } from "@/lib/currencies";
 import { useCreateTrip } from "@/hooks/useCreateTrip";
 import { useCoverPhotoUpload } from "@/hooks/useCoverPhotoUpload";
+import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 
 export function CreateTrip() {
   const [name, setName] = useState("");
@@ -16,6 +17,8 @@ export function CreateTrip() {
   const [currency, setCurrency] = useState("USD");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const formFlow = useMobileFormFlow(formRef);
 
   const { createTrip, submitting, error } = useCreateTrip();
   const { upload, uploading, error: uploadError } = useCoverPhotoUpload();
@@ -34,12 +37,14 @@ export function CreateTrip() {
     <PageShell>
       <ScreenHeader title="New trip" />
 
-      <div className="flex flex-col gap-3.5 pt-2.5 pb-24">
+      <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-24">
         <SectionLabel>Trip name</SectionLabel>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Lisbon 2026"
+          autoFocus
+          enterKeyHint="next"
         />
 
         <SectionLabel>Where to?</SectionLabel>
@@ -47,6 +52,7 @@ export function CreateTrip() {
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="City, country"
+          enterKeyHint="done"
         />
 
         <SectionLabel>Trip currency</SectionLabel>
@@ -131,20 +137,22 @@ export function CreateTrip() {
         {error && <p className="text-owe text-[13px]">{error}</p>}
       </div>
 
-      <StickyActionBar>
+      <StickyActionBar bottomOffset={formFlow.keyboardOffset}>
         <Button
           fullWidth
-          disabled={!canSubmit}
-          onClick={() =>
+          disabled={!formFlow.keyboardOpen && !canSubmit}
+          onPointerDown={(event) => formFlow.keyboardOpen && event.preventDefault()}
+          onClick={() => {
+            if (formFlow.keyboardOpen) return formFlow.advance();
             void createTrip({
               name: name.trim(),
               locationName: location.trim(),
               defaultCurrency: currency,
               coverPhotoUrl,
-            })
-          }
+            });
+          }}
         >
-          {submitting ? "Creating…" : "Create trip"}
+          {formFlow.keyboardOpen ? "Next →" : submitting ? "Creating…" : "Create trip"}
         </Button>
       </StickyActionBar>
     </PageShell>
