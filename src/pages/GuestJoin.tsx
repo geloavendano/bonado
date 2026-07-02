@@ -160,7 +160,7 @@ export function GuestJoin() {
                         "flex items-center gap-3 rounded-[16px] border px-3 py-2.5 text-left " +
                         (selectedIdentity === member.id
                           ? "border-teal bg-teal-tint"
-                          : "border-black/5 bg-card")
+                          : "border-hairline bg-card")
                       }
                     >
                       <Avatar name={member.name} seed={member.id} size={34} />
@@ -176,7 +176,7 @@ export function GuestJoin() {
                       "rounded-[16px] border px-3 py-3 text-left text-[14px] font-semibold " +
                       (selectedIdentity === "new"
                         ? "border-teal bg-teal-tint text-teal-dark"
-                        : "border-black/5 bg-card text-secondary")
+                        : "border-hairline bg-card text-secondary")
                     }
                   >
                     I’m not listed
@@ -215,14 +215,14 @@ export function GuestJoin() {
                 </Button>
 
                 <div className="flex items-center gap-3 text-faint-2 text-xs font-semibold">
-                  <div className="flex-1 border-t border-[#e5e7e6]" />
+                  <div className="flex-1 border-t border-[var(--color-faint-2)]" />
                   or
-                  <div className="flex-1 border-t border-[#e5e7e6]" />
+                  <div className="flex-1 border-t border-[var(--color-faint-2)]" />
                 </div>
 
                 <button
                   onClick={joinWithGoogle}
-                  className="bg-card border-[1.5px] border-[#e0e2e1] rounded-pill py-[14px] text-center font-bold text-[15px] flex items-center justify-center gap-2"
+                  className="bg-card border-[1.5px] border-[var(--color-faint-2)] rounded-pill py-[14px] text-center font-bold text-[15px] flex items-center justify-center gap-2"
                 >
                   <span className="text-base">Ⓖ</span> Continue with Google
                 </button>

@@ -118,7 +118,7 @@ export function TripHome() {
         className={
           "sticky top-0 z-20 flex items-center bg-bg/95 backdrop-blur-md transition-[height,padding,border-color,box-shadow] duration-200 " +
           (headerCompact
-            ? "h-14 border-b border-black/5 px-4 shadow-card"
+            ? "h-14 border-b border-hairline px-4 shadow-card"
             : "h-[72px] border-b border-transparent px-6")
         }
       >
@@ -284,7 +284,7 @@ export function TripHome() {
                     to={`/trips/${trip.id}/settlements/${entry.id}`}
                     className={
                       "flex items-center gap-3 py-3.5" +
-                      (index < dateEntries.length - 1 ? " border-b border-black/5" : "")
+                      (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
                     }
                   >
                     <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-teal-tint text-teal-dark">
@@ -367,7 +367,7 @@ export function TripHome() {
                   to={`/trips/${trip.id}/expenses/${entry.id}`}
                   className={
                     "flex items-center gap-3 py-3.5" +
-                    (index < dateEntries.length - 1 ? " border-b border-black/5" : "")
+                    (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
                   }
                 >
                   <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">

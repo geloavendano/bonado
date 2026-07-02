@@ -18,7 +18,7 @@ export function BalanceRail({ trip }: { trip: TripWithMembers }) {
     }));
 
   return (
-    <div className="sticky top-0 hidden h-dvh w-[260px] flex-none flex-col gap-3 overflow-y-auto border-l border-black/5 px-5 py-6 lg:flex">
+    <div className="sticky top-0 hidden h-dvh w-[260px] flex-none flex-col gap-3 overflow-y-auto border-l border-hairline px-5 py-6 lg:flex">
       <div className="px-1 text-[10.5px] font-bold uppercase tracking-[0.09em] text-secondary">
         Your balance
       </div>

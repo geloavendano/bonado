@@ -18,7 +18,11 @@ interface AuthContextValue {
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signInAsGuest: (name: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (input: { name?: string; preferredCurrency?: string }) => Promise<boolean>;
+  updateProfile: (input: {
+    name?: string;
+    preferredCurrency?: string;
+    themePreference?: "system" | "light" | "dark";
+  }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -157,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(async (input: {
     name?: string;
     preferredCurrency?: string;
+    themePreference?: "system" | "light" | "dark";
   }) => {
     if (!user) return false;
     const { data, error } = await supabase
@@ -165,6 +170,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.preferredCurrency !== undefined
           ? { preferred_currency: input.preferredCurrency }
+          : {}),
+        ...(input.themePreference !== undefined
+          ? { theme_preference: input.themePreference }
           : {}),
       })
       .eq("id", user.id)

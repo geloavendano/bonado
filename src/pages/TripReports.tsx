@@ -69,7 +69,7 @@ export function TripReports() {
               />
             </div>
 
-            <div className="grid grid-cols-2 divide-x divide-black/5 rounded-[20px] bg-card px-2 py-5 shadow-card">
+            <div className="grid grid-cols-2 divide-x divide-hairline rounded-[20px] bg-card px-2 py-5 shadow-card">
               <div className="px-3 text-center">
                 <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-secondary">
                   You spent
@@ -114,7 +114,7 @@ export function TripReports() {
                 return (
                   <div
                     key={category.name}
-                    className={clsx(index < report.categories.length - 1 && "border-b border-black/5")}
+                    className={clsx(index < report.categories.length - 1 && "border-b border-hairline")}
                   >
                     <button
                       onClick={() => toggleCategory(category.name)}
@@ -182,7 +182,7 @@ export function TripReports() {
                             className={clsx(
                               "flex items-center gap-3 py-3",
                               transactionIndex < category.transactions.length - 1 &&
-                                "border-b border-black/5",
+                                "border-b border-hairline",
                             )}
                           >
                             <div className="min-w-0 flex-1">

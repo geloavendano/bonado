@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
@@ -27,6 +28,7 @@ export default function App() {
     <BrowserRouter>
       <NavigationRestoration />
       <AuthProvider>
+        <ThemeProvider>
         <Suspense
           fallback={
             <div className="min-h-dvh bg-bg px-6 pt-10">
@@ -80,6 +82,7 @@ export default function App() {
           />
         </Routes>
         </Suspense>
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

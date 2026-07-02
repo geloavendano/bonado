@@ -88,7 +88,14 @@ up") that stays visible regardless of which tab is active. Below `lg:`, or
 on Add expense/expense detail/settlement/trip settings/Dashboard/Create
 trip, layout is unchanged from the existing phone-width centered shell.
 
-## Phase 13 — Dark mode
+## Phase 13 — Dark mode ✅ done
 
-Configurable dark theme (device `prefers-color-scheme` by default, with an
-explicit override in account settings), covering the full design token set.
+Dark theme covering the full design token set (surfaces, text, teal accent,
+money colors, shadows, hairline dividers), implemented as CSS-variable
+overrides scoped to `prefers-color-scheme: dark` / an explicit `.dark`
+class, so no component markup needed a `dark:` variant. Defaults to
+following the device's setting; overridable to System/Light/Dark from the
+Dashboard account menu (next to display currency), persisted to
+`bonado.users.theme_preference` for signed-in users (synced across
+devices) and cached in `localStorage` otherwise, applied via a blocking
+inline script in `index.html` to avoid a flash of the wrong theme.

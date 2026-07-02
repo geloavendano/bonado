@@ -515,7 +515,7 @@ export function AddExpense() {
                 key={member.id}
                 className={clsx(
                   "py-3",
-                  index < trip.members.length - 1 && "border-b border-black/5",
+                  index < trip.members.length - 1 && "border-b border-hairline",
                 )}
               >
                 <button
@@ -619,7 +619,7 @@ export function AddExpense() {
                     onClick={() => toggleParticipant(member.id)}
                     className={clsx(
                       "flex w-full items-center gap-3 py-3 text-left",
-                      index < trip.members.length - 1 && "border-b border-black/5",
+                      index < trip.members.length - 1 && "border-b border-hairline",
                     )}
                   >
                     <Avatar
@@ -676,7 +676,7 @@ export function AddExpense() {
                       }}
                       className={clsx(
                         "flex w-full items-center gap-3 py-3 text-left",
-                        index < items.length - 1 && "border-b border-black/5",
+                        index < items.length - 1 && "border-b border-hairline",
                       )}
                     >
                       <div className="min-w-0 flex-1">
@@ -783,7 +783,7 @@ export function AddExpense() {
                     key={member.id}
                     className={clsx(
                       "flex items-center gap-3 py-3",
-                      index < trip.members.length - 1 && "border-b border-black/5",
+                      index < trip.members.length - 1 && "border-b border-hairline",
                     )}
                   >
                     <Avatar

@@ -280,7 +280,7 @@ export function TripBalances() {
                     key={member.id}
                     className={clsx(
                       "flex items-center gap-3 py-3",
-                      index < memberBalances.length - 1 && "border-b border-black/5",
+                      index < memberBalances.length - 1 && "border-b border-hairline",
                     )}
                   >
                     <Avatar

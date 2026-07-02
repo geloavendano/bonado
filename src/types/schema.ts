@@ -9,6 +9,7 @@ export interface User {
   auth_id: string | null;
   claimed_from_guest_id: string | null;
   preferred_currency: Currency;
+  theme_preference: "system" | "light" | "dark";
   created_at: string;
 }
 

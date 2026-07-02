@@ -321,7 +321,7 @@ export function TripSettings() {
               key={member.id}
               className={
                 "flex items-center gap-3 py-3" +
-                (i < trip.members.length - 1 ? " border-b border-black/5" : "")
+                (i < trip.members.length - 1 ? " border-b border-hairline" : "")
               }
             >
               <Avatar name={member.name} seed={member.id} avatarUrl={member.avatar_url} size={36} />

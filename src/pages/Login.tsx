@@ -24,7 +24,7 @@ export function Login() {
         <Button
           variant="outline"
           fullWidth
-          className="!border-[#e0e2e1] !text-ink flex items-center justify-center gap-2"
+          className="!border-[var(--color-faint-2)] !text-ink flex items-center justify-center gap-2"
           onClick={() => void signInWithGoogle()}
         >
           <span className="text-base">Ⓖ</span> Continue with Google

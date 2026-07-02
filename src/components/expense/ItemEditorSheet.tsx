@@ -203,7 +203,7 @@ export function ItemEditorSheet({
                   key={member.id}
                   className={clsx(
                     "flex items-center gap-3 py-3",
-                    index < members.length - 1 && "border-b border-black/5",
+                    index < members.length - 1 && "border-b border-hairline",
                   )}
                 >
                   <button

@@ -186,7 +186,7 @@ export function ExpenseDetail() {
                   key={`${payment.user_id}-${index}`}
                   className={
                     "flex items-center gap-3 py-3" +
-                    (index < expense.payments.length - 1 ? " border-b border-black/5" : "")
+                    (index < expense.payments.length - 1 ? " border-b border-hairline" : "")
                   }
                 >
                   <Avatar
@@ -222,7 +222,7 @@ export function ExpenseDetail() {
                   key={person.id}
                   className={
                     "flex items-center gap-3 py-3" +
-                    (index < breakdown.length - 1 ? " border-b border-black/5" : "")
+                    (index < breakdown.length - 1 ? " border-b border-hairline" : "")
                   }
                 >
                   <Avatar
@@ -261,7 +261,7 @@ export function ExpenseDetail() {
                         "flex items-center gap-3 py-3" +
                         (index < expense.line_items.length - 1 ||
                         expense.adjustments.length > 0
-                          ? " border-b border-black/5"
+                          ? " border-b border-hairline"
                           : "")
                       }
                     >
@@ -302,7 +302,7 @@ export function ExpenseDetail() {
                       className={
                         "flex items-center gap-3 py-3" +
                         (index < expense.adjustments.length - 1
-                          ? " border-b border-black/5"
+                          ? " border-b border-hairline"
                           : "")
                       }
                     >

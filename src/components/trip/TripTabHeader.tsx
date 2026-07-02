@@ -8,7 +8,7 @@ export function TripTabHeader({
   title: string;
 }) {
   return (
-    <div className="sticky top-0 z-20 -mx-6 flex h-14 items-center border-b border-black/5 bg-bg/95 px-6 backdrop-blur-md">
+    <div className="sticky top-0 z-20 -mx-6 flex h-14 items-center border-b border-hairline bg-bg/95 px-6 backdrop-blur-md">
       <Link
         to={`/trips/${tripId}`}
         aria-label="Back to entries"

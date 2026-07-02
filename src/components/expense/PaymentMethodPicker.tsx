@@ -78,7 +78,7 @@ export function PaymentMethodPicker({
               <option value="Other">Other</option>
             </select>
           </div>
-          <div className="h-6 w-px flex-none bg-black/10" />
+          <div className="h-6 w-px flex-none bg-hairline" />
           <input
             value={label}
             onChange={(event) => onLabelChange(event.target.value)}

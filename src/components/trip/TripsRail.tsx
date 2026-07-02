@@ -6,7 +6,7 @@ export function TripsRail({ activeTripId }: { activeTripId: string }) {
   const { trips } = useTrips();
 
   return (
-    <div className="sticky top-0 hidden h-dvh w-[220px] flex-none flex-col gap-1 overflow-y-auto border-r border-black/5 px-4 py-6 lg:flex">
+    <div className="sticky top-0 hidden h-dvh w-[220px] flex-none flex-col gap-1 overflow-y-auto border-r border-hairline px-4 py-6 lg:flex">
       <Link to="/" className="mb-5 px-2 text-[19px] font-extrabold tracking-[-0.4px]">
         bonado<span className="text-teal">.</span>
       </Link>

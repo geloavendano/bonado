@@ -17,6 +17,13 @@ import { formatMoney } from "@/lib/money";
 import { ALL_CURRENCIES } from "@/lib/currencies";
 import { ChevronDown } from "@/components/ui/ChevronDown";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
+import { useTheme, type ThemePreference } from "@/context/ThemeContext";
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
 
 function tripDateRange(trip: TripWithMembers): string {
   return new Date(trip.created_at).toLocaleDateString(undefined, {
@@ -107,6 +114,7 @@ function TripRow({ trip, displayCurrency }: { trip: TripWithMembers; displayCurr
 
 export function Dashboard() {
   const { user, signOut, updateProfile } = useAuth();
+  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const { trips, loading } = useTrips();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -139,7 +147,7 @@ export function Dashboard() {
             </button>
             {accountOpen && (
               <div className="motion-reveal absolute right-0 top-12 w-[250px] rounded-[18px] bg-card p-3 shadow-floating">
-                <div className="flex items-center gap-3 border-b border-black/5 px-1 pb-3">
+                <div className="flex items-center gap-3 border-b border-hairline px-1 pb-3">
                   <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={36} />
                   <div className="min-w-0">
                     <div className="truncate text-[13.5px] font-bold">{user.name}</div>
@@ -173,9 +181,30 @@ export function Dashboard() {
                     <ChevronDown className="pointer-events-none absolute bottom-2.5 right-3" />
                   </label>
                 )}
+                {settingsOpen && (
+                  <div className="motion-reveal mb-2 grid w-full min-w-0 gap-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-secondary">
+                    Appearance
+                    <div className="grid grid-cols-3 rounded-xl bg-tile p-1">
+                      {THEME_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setThemePreference(option.value)}
+                          className={
+                            "rounded-lg px-1 py-2 text-[11.5px] font-bold normal-case tracking-normal transition-colors " +
+                            (themePreference === option.value
+                              ? "bg-card text-teal-dark shadow-card"
+                              : "text-secondary")
+                          }
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button
                   onClick={() => void signOut()}
-                  className="w-full border-t border-black/5 px-1 pt-3 text-left text-[12.5px] font-bold text-owe"
+                  className="w-full border-t border-hairline px-1 pt-3 text-left text-[12.5px] font-bold text-owe"
                 >
                   Log out
                 </button>
