@@ -18,6 +18,7 @@ import { formatMoney, formatSignedMoney } from "@/lib/money";
 import { TripTabHeader } from "@/components/trip/TripTabHeader";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { createPortal } from "react-dom";
+import { ChevronDown } from "@/components/ui/ChevronDown";
 
 interface SuggestedSettlement {
   fromUserId: string;
@@ -205,7 +206,7 @@ export function TripBalances() {
                 <option key={currency} value={currency}>{currency}</option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-secondary">▾</span>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-secondary" />
           </div>
         </div>
         {ratesError && (
@@ -370,12 +371,12 @@ export function TripBalances() {
 
             <div className="flex flex-col gap-3.5">
               <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
-                <label className="flex min-w-0 flex-col gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-secondary">
+                <label className="relative flex min-w-0 flex-col gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-secondary">
                   From
                   <select
                     value={fromUserId}
                     onChange={(event) => setFromUserId(event.target.value)}
-                    className="min-w-0 rounded-xl bg-card px-3 py-3 text-[13px] font-semibold text-ink shadow-card outline-none"
+                    className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 text-[13px] font-semibold text-ink shadow-card outline-none"
                   >
                     {trip.members.map((member) => (
                       <option key={member.id} value={member.id}>
@@ -383,14 +384,15 @@ export function TripBalances() {
                       </option>
                     ))}
                   </select>
+                  <ChevronDown className="pointer-events-none absolute bottom-3 right-3 text-secondary" />
                 </label>
                 <span className="pb-3 text-secondary">→</span>
-                <label className="flex min-w-0 flex-col gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-secondary">
+                <label className="relative flex min-w-0 flex-col gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-secondary">
                   To
                   <select
                     value={toUserId}
                     onChange={(event) => setToUserId(event.target.value)}
-                    className="min-w-0 rounded-xl bg-card px-3 py-3 text-[13px] font-semibold text-ink shadow-card outline-none"
+                    className="min-w-0 appearance-none rounded-xl bg-card py-3 pl-3 pr-9 text-[13px] font-semibold text-ink shadow-card outline-none"
                   >
                     {trip.members
                       .filter((member) => member.id !== fromUserId)
@@ -400,6 +402,7 @@ export function TripBalances() {
                         </option>
                       ))}
                   </select>
+                  <ChevronDown className="pointer-events-none absolute bottom-3 right-3 text-secondary" />
                 </label>
               </div>
 

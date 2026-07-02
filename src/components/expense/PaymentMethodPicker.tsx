@@ -64,14 +64,7 @@ export function PaymentMethodPicker({
         <>
           <div className="relative flex h-full w-[54px] flex-none items-center justify-center">
             <MethodIcon method={value} />
-            <svg
-              viewBox="0 0 20 20"
-              aria-hidden="true"
-              className="pointer-events-none absolute right-1 size-4"
-              fill="currentColor"
-            >
-              <path d="m5.5 7.5 4.5 5 4.5-5H5.5Z" />
-            </svg>
+            <ChevronDown className="pointer-events-none absolute right-0.5 size-[17px]" />
             <select
               value={value}
               onChange={(event) => onChange(event.target.value as PaymentMethod)}
@@ -107,14 +100,7 @@ export function PaymentMethodPicker({
           <span className="truncate px-3 pr-9 text-[12px] font-semibold">
             Payment method (optional)
           </span>
-          <svg
-            viewBox="0 0 20 20"
-            aria-hidden="true"
-            className="pointer-events-none absolute right-2.5 size-4"
-            fill="currentColor"
-          >
-            <path d="m5.5 7.5 4.5 5 4.5-5H5.5Z" />
-          </svg>
+          <ChevronDown className="pointer-events-none absolute right-2.5" />
           <select
             value={value}
             onChange={(event) => onChange(event.target.value as PaymentMethod)}
@@ -132,3 +118,4 @@ export function PaymentMethodPicker({
     </div>
   );
 }
+import { ChevronDown } from "@/components/ui/ChevronDown";

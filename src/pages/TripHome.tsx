@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
 import { CoverPhoto } from "@/components/ui/CoverPhoto";
 import { AvatarStack } from "@/components/ui/AvatarStack";
@@ -14,15 +15,7 @@ import { isEntryUnread } from "@/lib/entryReadState";
 import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { useBalances } from "@/hooks/useBalances";
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Food & drink": "🍽",
-  Transport: "🚕",
-  Lodging: "🛏",
-  Groceries: "🛒",
-  Activities: "🎟",
-  Other: "•••",
-};
+import { CategoryIcon } from "@/components/ui/CategoryIcon";
 
 export function TripHome() {
   const trip = useTripLayout();
@@ -242,6 +235,41 @@ export function TripHome() {
                   </div>
                   <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
                     {dateEntries.map((entry, index) => {
+              if (entry.type === "settlement") {
+                const isSender = entry.from_user_id === user?.id;
+                const isReceiver = entry.to_user_id === user?.id;
+                return (
+                  <div
+                    key={`settlement-${entry.id}`}
+                    className={
+                      "flex items-center gap-3 py-3.5" +
+                      (index < dateEntries.length - 1 ? " border-b border-black/5" : "")
+                    }
+                  >
+                    <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-teal-tint text-teal-dark">
+                      <svg viewBox="0 0 24 24" className="size-[19px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M5 8h14M15 4l4 4-4 4M19 16H5M9 12l-4 4 4 4" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14.5px] font-bold">Settlement</div>
+                      <div className="truncate text-[11.5px] text-secondary">
+                        {entry.from_user?.name ?? "Member"} paid {entry.to_user?.name ?? "Member"}
+                      </div>
+                    </div>
+                    <div
+                      className={clsx(
+                        "shrink-0 text-right text-[14px] font-extrabold",
+                        isReceiver ? "text-owed" : isSender ? "text-owe" : "text-ink",
+                      )}
+                    >
+                      {isReceiver ? "+" : isSender ? "−" : ""}
+                      {formatMoney(entry.amount, trip.default_currency)}
+                    </div>
+                    <span className="size-2 flex-none" />
+                  </div>
+                );
+              }
               const yourShare = user
                 ? entry.line_items.reduce(
                     (sum, item) =>
@@ -280,7 +308,7 @@ export function TripHome() {
                   }
                 >
                   <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">
-                    {CATEGORY_ICONS[entry.category?.name ?? "Other"] ?? "•"}
+                    <CategoryIcon category={entry.category?.name ?? "Other"} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14.5px] font-bold">{entry.description}</div>
@@ -294,7 +322,7 @@ export function TripHome() {
                     </div>
                     {yourPaid > 0 && (
                       <div className="text-[10.5px] font-semibold text-secondary">
-                        Paid {formatMoney(yourPaid, entry.currency)}
+                        {formatMoney(yourPaid, entry.currency)}
                       </div>
                     )}
                   </div>

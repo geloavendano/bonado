@@ -27,15 +27,8 @@ import { formatMoney } from "@/lib/money";
 import { ALL_CURRENCIES } from "@/lib/currencies";
 import type { AdjustmentMode } from "@/types/schema";
 import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Food & drink": "🍽",
-  Transport: "🚕",
-  Lodging: "🛏",
-  Groceries: "🛒",
-  Activities: "🎟",
-  Other: "•••",
-};
+import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { ChevronDown } from "@/components/ui/ChevronDown";
 
 function todayForInput() {
   const now = new Date();
@@ -438,9 +431,7 @@ export function AddExpense() {
                 </option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[9px] text-secondary">
-              ▾
-            </span>
+            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-secondary" />
           </div>
           <input
             value={amount}
@@ -503,7 +494,10 @@ export function AddExpense() {
                   : "border-transparent bg-card text-secondary shadow-card",
               )}
             >
-              {CATEGORY_ICONS[category.name] ?? "•"} {category.name}
+              <span className="inline-flex items-center gap-1.5">
+                <CategoryIcon category={category.name} className="size-4" />
+                {category.name}
+              </span>
             </button>
           ))}
         </div>

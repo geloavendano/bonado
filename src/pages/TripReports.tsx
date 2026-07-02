@@ -9,16 +9,8 @@ import { useTripReports } from "@/hooks/useTripReports";
 import { useAuth } from "@/context/AuthContext";
 import { formatMoney } from "@/lib/money";
 import { TripTabHeader } from "@/components/trip/TripTabHeader";
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Food & drink": "🍽",
-  Transport: "🚕",
-  Lodging: "🛏",
-  Groceries: "🛒",
-  Activities: "🎟",
-  Other: "•••",
-  Uncategorized: "•••",
-};
+import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { ChevronDown } from "@/components/ui/ChevronDown";
 
 export function TripReports() {
   const trip = useTripLayout();
@@ -98,19 +90,17 @@ export function TripReports() {
                       aria-expanded={expanded}
                     >
                       <span className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">
-                        {CATEGORY_ICONS[category.name] ?? "•••"}
+                        <CategoryIcon category={category.name} />
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[13.5px] font-extrabold">
                         {category.name}
                       </span>
-                      <span
+                      <ChevronDown
                         className={clsx(
-                          "text-[11px] text-secondary transition-transform",
+                          "text-secondary transition-transform",
                           expanded && "rotate-180",
                         )}
-                      >
-                        ▾
-                      </span>
+                      />
                       <span className="col-start-2 col-end-4 grid grid-cols-2 gap-3">
                         <span className="grid min-w-0">
                           <span className="truncate text-[12.5px] font-extrabold text-teal-dark">

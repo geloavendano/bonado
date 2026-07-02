@@ -10,6 +10,7 @@ import { SUGGESTED_CURRENCIES } from "@/lib/currencies";
 import { useCreateTrip } from "@/hooks/useCreateTrip";
 import { useCoverPhotoUpload } from "@/hooks/useCoverPhotoUpload";
 import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
+import { ChevronDown } from "@/components/ui/ChevronDown";
 
 export function CreateTrip() {
   const [name, setName] = useState("");
@@ -93,14 +94,12 @@ export function CreateTrip() {
                 ),
               )}
             </select>
-            <span
+            <ChevronDown
               className={clsx(
-                "pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px]",
+                "pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2",
                 isMoreCurrency ? "text-teal-dark" : "text-secondary",
               )}
-            >
-              ▾
-            </span>
+            />
           </div>
         </div>
 

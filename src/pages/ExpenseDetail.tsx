@@ -14,15 +14,7 @@ import { formatMoney, formatSignedMoney } from "@/lib/money";
 import { markEntryRead } from "@/lib/entryReadState";
 import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Food & drink": "🍽",
-  Transport: "🚕",
-  Lodging: "🛏",
-  Groceries: "🛒",
-  Activities: "🎟",
-  Other: "•••",
-};
+import { CategoryIcon } from "@/components/ui/CategoryIcon";
 
 function labelForAdjustment(type: string) {
   if (type === "tax") return "Tax";
@@ -152,8 +144,10 @@ export function ExpenseDetail() {
         <>
             <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-card">
               <div className="mb-2 text-[12px] font-bold uppercase tracking-[0.09em] text-secondary">
-                {CATEGORY_ICONS[expense.category?.name ?? "Other"] ?? "•"}{" "}
-                {expense.category?.name ?? "Other"}
+                <span className="inline-flex items-center gap-1.5">
+                  <CategoryIcon category={expense.category?.name ?? "Other"} className="size-4" />
+                  {expense.category?.name ?? "Other"}
+                </span>
               </div>
               <div className="text-[23px] font-extrabold">{expense.description}</div>
               <div className="mt-1 text-[13px] text-secondary">
