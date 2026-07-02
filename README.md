@@ -38,16 +38,5 @@ supabase/
 
 ## Progress
 
-- [x] Project scaffold, design tokens, UI primitives
-- [x] Auth (Google SSO via Supabase)
-- [x] Dashboard (current trip + all trips)
-- [ ] Trip creation
-- [ ] Trip home / invite
-- [ ] Membership / guest join
-- [ ] Expense entry (simple + itemized)
-- [ ] Expense detail
-- [ ] Balances / settle up
-- [ ] Reports
-- [ ] Currency conversion
-- [ ] Offline sync
-- [ ] Desktop layout
+See [ROADMAP.md](./ROADMAP.md) for the full phased build plan. Currently on
+Phase 1 (done) → Phase 2 (Trip creation) next.
