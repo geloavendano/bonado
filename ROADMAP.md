@@ -37,11 +37,12 @@ multiple payers, equal-split toggle per person. Creation is atomic through
 a SECURITY DEFINER RPC, and saved expenses appear in Trip Home's recent
 entries feed.
 
-## Phase 6 — Expense entry (itemized)
+## Phase 6 — Expense entry (itemized) ✅ done
 
 Itemized screen (`4c`) + add-item sheet (`4d`): line items, per-item
 avatar include/exclude, exact/%/shares splits, tax & tip (proportional or
-own-item), reconciliation footer.
+own-item), reconciliation footer. Simple and itemized expenses share the
+same currency, payer, payment-method, date, and category controls.
 
 ## Phase 7 — Expense detail
 

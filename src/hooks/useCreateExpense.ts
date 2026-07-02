@@ -5,17 +5,42 @@ import { supabase } from "@/lib/supabase";
 export interface PayerAllocation {
   userId: string;
   amount: number;
+  paymentMethod: string;
 }
 
 interface SimpleExpenseInput {
   tripId: string;
   amount: number;
+  currency: string;
   description: string;
   payee: string;
   date: string;
   categoryId: string | null;
   payers: PayerAllocation[];
   participantIds: string[];
+}
+
+export interface ItemizedExpenseItem {
+  description: string;
+  amount: number;
+  shares: {
+    userId: string;
+    shareType: "equal" | "exact" | "percent" | "shares";
+    shareValue: number | null;
+    owedAmount: number;
+  }[];
+}
+
+export interface ExpenseAdjustment {
+  type: "tax" | "tip" | "service_charge";
+  mode: "proportional" | "own_item";
+  amount: number;
+  shares: { userId: string; owedAmount: number }[];
+}
+
+interface ItemizedExpenseInput extends Omit<SimpleExpenseInput, "participantIds"> {
+  items: ItemizedExpenseItem[];
+  adjustments: ExpenseAdjustment[];
 }
 
 export function useCreateExpense() {
@@ -30,6 +55,7 @@ export function useCreateExpense() {
     const { error: createError } = await supabase.rpc("create_simple_expense", {
       p_trip_id: input.tripId,
       p_amount: input.amount,
+      p_currency: input.currency,
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
@@ -37,6 +63,7 @@ export function useCreateExpense() {
       p_payers: input.payers.map((payer) => ({
         user_id: payer.userId,
         amount: payer.amount,
+        payment_method: payer.paymentMethod,
       })),
       p_participant_ids: input.participantIds,
     });
@@ -51,5 +78,53 @@ export function useCreateExpense() {
     return true;
   }
 
-  return { createExpense, submitting, error };
+  async function createItemizedExpense(input: ItemizedExpenseInput) {
+    setSubmitting(true);
+    setError(null);
+
+    const { error: createError } = await supabase.rpc("create_itemized_expense", {
+      p_trip_id: input.tripId,
+      p_amount: input.amount,
+      p_currency: input.currency,
+      p_description: input.description,
+      p_payee: input.payee,
+      p_date: input.date,
+      p_category_id: input.categoryId,
+      p_payers: input.payers.map((payer) => ({
+        user_id: payer.userId,
+        amount: payer.amount,
+        payment_method: payer.paymentMethod,
+      })),
+      p_items: input.items.map((item) => ({
+        description: item.description,
+        amount: item.amount,
+        shares: item.shares.map((share) => ({
+          user_id: share.userId,
+          share_type: share.shareType,
+          share_value: share.shareValue,
+          owed_amount: share.owedAmount,
+        })),
+      })),
+      p_adjustments: input.adjustments.map((adjustment) => ({
+        type: adjustment.type,
+        mode: adjustment.mode,
+        amount: adjustment.amount,
+        shares: adjustment.shares.map((share) => ({
+          user_id: share.userId,
+          owed_amount: share.owedAmount,
+        })),
+      })),
+    });
+
+    setSubmitting(false);
+    if (createError) {
+      setError(createError.message);
+      return false;
+    }
+
+    navigate(`/trips/${input.tripId}`, { replace: true });
+    return true;
+  }
+
+  return { createExpense, createItemizedExpense, submitting, error };
 }
