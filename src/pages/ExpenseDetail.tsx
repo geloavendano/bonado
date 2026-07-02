@@ -12,6 +12,8 @@ import { useReceiptUpload } from "@/hooks/useReceiptUpload";
 import { supabase } from "@/lib/supabase";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
 import { markEntryRead } from "@/lib/entryReadState";
+import { Toast } from "@/components/ui/Toast";
+import { useRouteToast } from "@/hooks/useRouteToast";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & drink": "🍽",
@@ -39,6 +41,7 @@ export function ExpenseDetail() {
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const toastMessage = useRouteToast();
 
   useEffect(() => {
     const path = expense?.entry_attachments[0]?.storage_path;
@@ -381,6 +384,7 @@ export function ExpenseDetail() {
         </>
         {error && <p className="text-[12.5px] text-owe">{error}</p>}
       </div>
+      <Toast message={toastMessage} />
     </PageShell>
   );
 }

@@ -203,7 +203,10 @@ export function useCreateExpense() {
 
     invalidateExpense(entryId);
     invalidateRecentEntries(input.tripId);
-    navigate(`/trips/${input.tripId}/expenses/${entryId}`, { replace: true });
+    navigate(`/trips/${input.tripId}/expenses/${entryId}`, {
+      replace: true,
+      state: { toast: "Transaction changes have been saved." },
+    });
     return true;
   }
 

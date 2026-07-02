@@ -11,6 +11,8 @@ import { useRecentEntries } from "@/hooks/useRecentEntries";
 import { formatMoney } from "@/lib/money";
 import { useAuth } from "@/context/AuthContext";
 import { isEntryUnread } from "@/lib/entryReadState";
+import { Toast } from "@/components/ui/Toast";
+import { useRouteToast } from "@/hooks/useRouteToast";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & drink": "🍽",
@@ -27,6 +29,7 @@ export function TripHome() {
   const { entries, loading: entriesLoading, error: entriesError } =
     useRecentEntries(trip.id);
   const [copied, setCopied] = useState(false);
+  const toastMessage = useRouteToast();
   const [headerCompact, setHeaderCompact] = useState(false);
   const headerSentinelRef = useRef<HTMLDivElement>(null);
   const groupedEntries = entries.reduce<Map<string, typeof entries>>(
@@ -311,6 +314,7 @@ export function TripHome() {
           </div>
         )}
       </div>
+      <Toast message={toastMessage} />
     </PageShell>
   );
 }

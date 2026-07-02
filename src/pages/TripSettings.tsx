@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Input } from "@/components/ui/Input";
@@ -14,6 +14,7 @@ import { useManageTripGuests } from "@/hooks/useManageTripGuests";
 
 export function TripSettings() {
   const { tripId } = useParams<{ tripId: string }>();
+  const navigate = useNavigate();
   const { trip, loading, reload } = useTrip(tripId);
   const { updateTrip, saving, error } = useUpdateTrip();
   const {
@@ -27,7 +28,6 @@ export function TripSettings() {
 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
-  const [saved, setSaved] = useState(false);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
   const [confirmingGuestId, setConfirmingGuestId] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
@@ -59,9 +59,10 @@ export function TripSettings() {
     if (!tripId || name.trim().length === 0) return;
     const ok = await updateTrip(tripId, { name: name.trim(), locationName: location.trim() });
     if (ok) {
-      await reload();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      navigate(`/trips/${tripId}`, {
+        replace: true,
+        state: { toast: "Changes have been saved." },
+      });
     }
   }
 
@@ -298,7 +299,7 @@ export function TripSettings() {
           disabled={!dirty || saving || name.trim().length === 0}
           onClick={() => void handleSave()}
         >
-          {saving ? "Saving…" : saved ? "Saved ✓" : "Save changes"}
+          {saving ? "Saving…" : "Save changes"}
         </Button>
       </StickyActionBar>
     </PageShell>
