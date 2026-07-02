@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+const expenseCache = new Map<string, ExpenseDetail>();
+
+export function invalidateExpense(entryId: string) {
+  expenseCache.delete(entryId);
+}
+
 interface Person {
   id: string;
   name: string;
@@ -22,7 +28,12 @@ export interface ExpenseDetail {
     amount_paid: number;
     user_id: string;
     user: Person | null;
-    payment_account: { id: string; label: string; type: string } | null;
+    payment_account: {
+      id: string;
+      label: string;
+      type: string;
+      method: "Cash" | "Card" | "Bank" | "Other";
+    } | null;
   }[];
   line_items: {
     id: string;
@@ -55,8 +66,9 @@ export interface ExpenseDetail {
 }
 
 export function useExpense(entryId: string | undefined) {
-  const [expense, setExpense] = useState<ExpenseDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = entryId ? expenseCache.get(entryId) ?? null : null;
+  const [expense, setExpense] = useState<ExpenseDetail | null>(cached);
+  const [loading, setLoading] = useState(Boolean(entryId && !cached));
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -70,7 +82,7 @@ export function useExpense(entryId: string | undefined) {
         payments(
           amount_paid, user_id,
           user:users(id, name, avatar_url),
-          payment_account:payment_accounts(id, label, type)
+          payment_account:payment_accounts(id, label, type, method)
         ),
         line_items(
           id, description, amount,
@@ -98,14 +110,25 @@ export function useExpense(entryId: string | undefined) {
       setExpense(null);
     } else {
       setExpense(data);
+      if (data) expenseCache.set(entryId, data);
       setError(null);
     }
     setLoading(false);
   }, [entryId]);
 
   useEffect(() => {
+    if (!entryId) {
+      setLoading(false);
+      return;
+    }
+    const cachedExpense = expenseCache.get(entryId);
+    if (cachedExpense) {
+      setExpense(cachedExpense);
+      setLoading(false);
+      return;
+    }
     void reload();
-  }, [reload]);
+  }, [entryId, reload]);
 
   return { expense, loading, error, reload };
 }

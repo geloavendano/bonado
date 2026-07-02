@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { invalidateExpense } from "@/hooks/useExpense";
+import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
 
 export function useExpenseMutations() {
   const [saving, setSaving] = useState(false);
@@ -26,7 +28,7 @@ export function useExpenseMutations() {
     return true;
   }
 
-  async function deleteExpense(entryId: string) {
+  async function deleteExpense(entryId: string, tripId?: string) {
     setSaving(true);
     setError(null);
     const { error: deleteError } = await supabase.rpc("soft_delete_entry", {
@@ -37,6 +39,8 @@ export function useExpenseMutations() {
       setError(deleteError.message);
       return false;
     }
+    invalidateExpense(entryId);
+    if (tripId) invalidateRecentEntries(tripId);
     return true;
   }
 

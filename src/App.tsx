@@ -60,28 +60,15 @@ export default function App() {
             <Route index element={<TripHome />} />
             <Route path="balances" element={<TripBalances />} />
             <Route path="reports" element={<TripReports />} />
+            <Route path="expenses/new" element={<AddExpense />} />
+            <Route path="expenses/:entryId" element={<ExpenseDetail />} />
+            <Route path="expenses/:entryId/edit" element={<AddExpense />} />
           </Route>
           <Route
             path="/trips/:tripId/settings"
             element={
               <ProtectedRoute>
                 <TripSettings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trips/:tripId/expenses/new"
-            element={
-              <ProtectedRoute>
-                <AddExpense />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trips/:tripId/expenses/:entryId"
-            element={
-              <ProtectedRoute>
-                <ExpenseDetail />
               </ProtectedRoute>
             }
           />

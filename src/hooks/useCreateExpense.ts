@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { invalidateExpense } from "@/hooks/useExpense";
+import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
 
 export interface PayerAllocation {
   userId: string;
@@ -9,7 +11,7 @@ export interface PayerAllocation {
   paymentLabel: string;
 }
 
-interface SimpleExpenseInput {
+export interface SimpleExpenseInput {
   tripId: string;
   amount: number;
   currency: string;
@@ -39,7 +41,7 @@ export interface ExpenseAdjustment {
   shares: { userId: string; owedAmount: number }[];
 }
 
-interface ItemizedExpenseInput extends Omit<SimpleExpenseInput, "participantIds"> {
+export interface ItemizedExpenseInput extends Omit<SimpleExpenseInput, "participantIds"> {
   items: ItemizedExpenseItem[];
   adjustments: ExpenseAdjustment[];
 }
@@ -98,6 +100,7 @@ export function useCreateExpense() {
       return false;
     }
 
+    invalidateRecentEntries(input.tripId);
     navigate(`/trips/${input.tripId}`, { replace: true });
     return true;
   }
@@ -147,9 +150,68 @@ export function useCreateExpense() {
       return false;
     }
 
+    invalidateRecentEntries(input.tripId);
     navigate(`/trips/${input.tripId}`, { replace: true });
     return true;
   }
 
-  return { createExpense, createItemizedExpense, submitting, error };
+  async function replaceExpense(entryId: string, input: ItemizedExpenseInput) {
+    setSubmitting(true);
+    setError(null);
+
+    const { error: replaceError } = await supabase.rpc("replace_expense", {
+      p_entry_id: entryId,
+      p_trip_id: input.tripId,
+      p_amount: input.amount,
+      p_currency: input.currency,
+      p_description: input.description,
+      p_payee: input.payee,
+      p_date: input.date,
+      p_category_id: input.categoryId,
+      p_payers: input.payers.map((payer) => ({
+        user_id: payer.userId,
+        amount: payer.amount,
+        payment_method: payer.paymentMethod,
+        payment_label: payer.paymentLabel,
+      })),
+      p_items: input.items.map((item) => ({
+        description: item.description,
+        amount: item.amount,
+        shares: item.shares.map((share) => ({
+          user_id: share.userId,
+          share_type: share.shareType,
+          share_value: share.shareValue,
+          owed_amount: share.owedAmount,
+        })),
+      })),
+      p_adjustments: input.adjustments.map((adjustment) => ({
+        type: adjustment.type,
+        mode: adjustment.mode,
+        amount: adjustment.amount,
+        shares: adjustment.shares.map((share) => ({
+          user_id: share.userId,
+          owed_amount: share.owedAmount,
+        })),
+      })),
+    });
+
+    setSubmitting(false);
+    if (replaceError) {
+      setError(replaceError.message);
+      return false;
+    }
+
+    invalidateExpense(entryId);
+    invalidateRecentEntries(input.tripId);
+    navigate(`/trips/${input.tripId}/expenses/${entryId}`, { replace: true });
+    return true;
+  }
+
+  return {
+    createExpense,
+    createItemizedExpense,
+    replaceExpense,
+    submitting,
+    error,
+  };
 }

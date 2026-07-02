@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+const recentEntriesCache = new Map<string, RecentEntry[]>();
+
+export function invalidateRecentEntries(tripId: string) {
+  recentEntriesCache.delete(tripId);
+}
+
 export interface RecentEntry {
   id: string;
   description: string;
@@ -28,13 +34,20 @@ interface RecentEntryRow {
 }
 
 export function useRecentEntries(tripId: string) {
-  const [entries, setEntries] = useState<RecentEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = recentEntriesCache.get(tripId);
+  const [entries, setEntries] = useState<RecentEntry[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      const cachedEntries = recentEntriesCache.get(tripId);
+      if (cachedEntries) {
+        setEntries(cachedEntries);
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from("entries")
         .select(
@@ -48,7 +61,9 @@ export function useRecentEntries(tripId: string) {
         .returns<RecentEntryRow[]>();
 
       if (!cancelled) {
-        setEntries(data ?? []);
+        const nextEntries = data ?? [];
+        recentEntriesCache.set(tripId, nextEntries);
+        setEntries(nextEntries);
         setLoading(false);
       }
     }

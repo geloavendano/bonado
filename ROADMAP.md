@@ -47,8 +47,9 @@ same currency, payer, payment-method, date, and category controls.
 ## Phase 7 — Expense detail ✅ done
 
 Expense detail screen (`4e`): summary, your-share highlight, per-person
-breakdown, private receipt photo, metadata editing, and confirmed soft
-deletion (online only).
+breakdown, private receipt photo, full expense editing (amount, currency,
+payers, payment accounts, and splits), and confirmed soft deletion
+(online only).
 
 ## Phase 8 — Balances / settle up
 

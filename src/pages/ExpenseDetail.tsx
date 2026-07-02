@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
-import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { FormPageSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
-import { useCategories } from "@/hooks/useCategories";
 import { useExpense } from "@/hooks/useExpense";
 import { useExpenseMutations } from "@/hooks/useExpenseMutations";
 import { useReceiptUpload } from "@/hooks/useReceiptUpload";
@@ -36,26 +32,12 @@ export function ExpenseDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { expense, loading, reload } = useExpense(entryId);
-  const { categories } = useCategories();
-  const { updateDetails, deleteExpense, saving, error } = useExpenseMutations();
+  const { deleteExpense, saving, error } = useExpenseMutations();
   const { uploadReceipt, uploading, error: uploadError } = useReceiptUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [description, setDescription] = useState("");
-  const [payee, setPayee] = useState("");
-  const [date, setDate] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!expense) return;
-    setDescription(expense.description);
-    setPayee(expense.payee ?? "");
-    setDate(expense.date);
-    setCategoryId(expense.category?.id ?? null);
-  }, [expense]);
 
   useEffect(() => {
     const path = expense?.entry_attachments[0]?.storage_path;
@@ -130,46 +112,15 @@ export function ExpenseDetail() {
   if (!expense || !tripId || !entryId) {
     return <Navigate to={tripId ? `/trips/${tripId}` : "/"} replace />;
   }
-  const activeExpense = expense;
-
   const total = expense.payments.reduce(
     (sum, payment) => sum + Number(payment.amount_paid),
     0,
   );
   const yourBreakdown = breakdown.find((person) => person.id === user?.id);
   const yourShare = yourBreakdown?.owed ?? 0;
-  const dirty =
-    description.trim() !== expense.description ||
-    payee.trim() !== (expense.payee ?? "") ||
-    date !== expense.date ||
-    categoryId !== (expense.category?.id ?? null);
-
-  async function saveDetails() {
-    if (!entryId || description.trim().length === 0) return;
-    if (
-      await updateDetails(entryId, {
-        description: description.trim(),
-        payee: payee.trim(),
-        date,
-        categoryId,
-      })
-    ) {
-      await reload();
-      setEditing(false);
-    }
-  }
-
-  function cancelEditing() {
-    setDescription(activeExpense.description);
-    setPayee(activeExpense.payee ?? "");
-    setDate(activeExpense.date);
-    setCategoryId(activeExpense.category?.id ?? null);
-    setEditing(false);
-  }
-
   async function handleDelete() {
     if (!entryId || !tripId) return;
-    if (await deleteExpense(entryId)) {
+    if (await deleteExpense(entryId, tripId)) {
       navigate(`/trips/${tripId}`, { replace: true });
     }
   }
@@ -178,70 +129,19 @@ export function ExpenseDetail() {
     <PageShell>
       <ScreenHeader
         title="Expense details"
+        onBack={() => navigate(`/trips/${tripId}`)}
         right={
-          editing ? (
-            <button
-              onClick={cancelEditing}
-              className="text-[12.5px] font-bold text-secondary"
-            >
-              Cancel
-            </button>
-          ) : (
-            <button
-              onClick={() => setEditing(true)}
-              className="text-[12.5px] font-bold text-teal"
-            >
-              Edit
-            </button>
-          )
+          <button
+            onClick={() => navigate(`/trips/${tripId}/expenses/${entryId}/edit`)}
+            className="text-[12.5px] font-bold text-teal"
+          >
+            Edit
+          </button>
         }
       />
 
       <div className="flex flex-col gap-3.5 pb-28 pt-2.5">
-        {editing ? (
-          <>
-            <SectionLabel>Description</SectionLabel>
-            <Input value={description} onChange={(event) => setDescription(event.target.value)} />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex min-w-0 flex-col gap-2">
-                <SectionLabel>Paid to</SectionLabel>
-                <Input
-                  value={payee}
-                  onChange={(event) => setPayee(event.target.value)}
-                  placeholder="Optional"
-                  className="min-w-0"
-                />
-              </div>
-              <div className="flex min-w-0 flex-col gap-2">
-                <SectionLabel>Date</SectionLabel>
-                <Input
-                  type="date"
-                  value={date}
-                  onChange={(event) => setDate(event.target.value)}
-                  className="min-w-0"
-                />
-              </div>
-            </div>
-            <SectionLabel>Category</SectionLabel>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setCategoryId(category.id)}
-                  className={
-                    "rounded-pill border-2 px-3 py-2 text-[12px] font-bold " +
-                    (categoryId === category.id
-                      ? "border-teal bg-teal-tint text-teal-dark"
-                      : "border-transparent bg-card text-secondary shadow-card")
-                  }
-                >
-                  {CATEGORY_ICONS[category.name] ?? "•"} {category.name}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <>
+        <>
             <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-card">
               <div className="mb-2 text-[12px] font-bold uppercase tracking-[0.09em] text-secondary">
                 {CATEGORY_ICONS[expense.category?.name ?? "Other"] ?? "•"}{" "}
@@ -292,7 +192,10 @@ export function ExpenseDetail() {
                     </div>
                     {payment.payment_account && (
                       <div className="text-[11px] text-secondary">
-                        {payment.payment_account.label}
+                        {payment.payment_account.method}
+                        {payment.payment_account.label !== payment.payment_account.method
+                          ? ` · ${payment.payment_account.label}`
+                          : ""}
                       </div>
                     )}
                   </div>
@@ -360,6 +263,24 @@ export function ExpenseDetail() {
                         <div className="text-[11px] capitalize text-secondary">
                           {item.line_item_shares[0]?.share_type ?? "equal"} split
                         </div>
+                        <div className="mt-1.5 flex flex-col gap-0.5">
+                          {item.line_item_shares.map((share) => (
+                            <div
+                              key={share.user_id}
+                              className="flex items-center justify-between gap-3 text-[10.5px] text-secondary"
+                            >
+                              <span className="truncate">{share.user?.name ?? "Member"}</span>
+                              <span className="shrink-0 font-semibold">
+                                {share.share_type === "percent" && share.share_value !== null
+                                  ? `${share.share_value}% · `
+                                  : share.share_type === "shares" && share.share_value !== null
+                                    ? `${share.share_value} shares · `
+                                    : ""}
+                                {formatMoney(Number(share.owed_amount), expense.currency)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                       <div className="text-[13px] font-extrabold">
                         {formatMoney(Number(item.amount), expense.currency)}
@@ -376,8 +297,13 @@ export function ExpenseDetail() {
                           : "")
                       }
                     >
-                      <div className="min-w-0 flex-1 text-[13.5px] font-semibold">
-                        {labelForAdjustment(adjustment.type)}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13.5px] font-semibold">
+                          {labelForAdjustment(adjustment.type)}
+                        </div>
+                        <div className="text-[10.5px] capitalize text-secondary">
+                          {adjustment.mode.replace("_", " ")}
+                        </div>
                       </div>
                       <div className="text-[13px] font-extrabold">
                         {formatMoney(Number(adjustment.amount), expense.currency)}
@@ -447,22 +373,9 @@ export function ExpenseDetail() {
                 </button>
               )}
             </div>
-          </>
-        )}
+        </>
         {error && <p className="text-[12.5px] text-owe">{error}</p>}
       </div>
-
-      {editing && (
-        <StickyActionBar fade>
-          <Button
-            fullWidth
-            disabled={!dirty || saving || description.trim().length === 0}
-            onClick={() => void saveDetails()}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
-        </StickyActionBar>
-      )}
     </PageShell>
   );
 }

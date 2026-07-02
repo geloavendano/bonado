@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
 import { StickyActionBar } from "@/components/layout/StickyActionBar";
@@ -19,9 +19,10 @@ import {
   type PaymentMethod,
 } from "@/components/expense/PaymentMethodPicker";
 import { useAuth } from "@/context/AuthContext";
-import { useTrip } from "@/hooks/useTrip";
+import { useTripLayout } from "@/components/trip/useTripLayout";
 import { useCategories } from "@/hooks/useCategories";
 import { useCreateExpense } from "@/hooks/useCreateExpense";
+import { useExpense } from "@/hooks/useExpense";
 import { formatMoney } from "@/lib/money";
 import { ALL_CURRENCIES } from "@/lib/currencies";
 import type { AdjustmentMode } from "@/types/schema";
@@ -56,11 +57,20 @@ const SPLIT_MODES: { value: GlobalSplitMode; label: string }[] = [
 ];
 
 export function AddExpense() {
-  const { tripId } = useParams<{ tripId: string }>();
+  const { entryId } = useParams<{ entryId?: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { trip, loading } = useTrip(tripId);
+  const trip = useTripLayout();
+  const { expense, loading: expenseLoading } = useExpense(entryId);
   const { categories } = useCategories();
-  const { createExpense, createItemizedExpense, submitting, error } = useCreateExpense();
+  const {
+    createExpense,
+    createItemizedExpense,
+    replaceExpense,
+    submitting,
+    error,
+  } = useCreateExpense();
+  const initializedEntryRef = useRef<string | null>(null);
 
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("");
@@ -84,7 +94,6 @@ export function AddExpense() {
   const [tipMode, setTipMode] = useState<AdjustmentMode>("proportional");
 
   useEffect(() => {
-    if (!trip) return;
     setCurrency((current) => current || trip.default_currency);
     setParticipantIds((current) =>
       current.length > 0 ? current : trip.members.map((member) => member.id),
@@ -93,6 +102,89 @@ export function AddExpense() {
       setPayerIds((current) => (current.length > 0 ? current : [user.id]));
     }
   }, [trip, user]);
+
+  useEffect(() => {
+    if (!entryId || !expense || initializedEntryRef.current === entryId) return;
+    initializedEntryRef.current = entryId;
+
+    const total = expense.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount_paid),
+      0,
+    );
+    setAmount(String(total));
+    setCurrency(expense.currency);
+    setDescription(expense.description);
+    setPayee(expense.payee ?? "");
+    setDate(expense.date);
+    setCategoryId(expense.category?.id ?? null);
+    setPayerIds(expense.payments.map((payment) => payment.user_id));
+    setPayerAmounts(
+      Object.fromEntries(
+        expense.payments.map((payment) => [
+          payment.user_id,
+          String(payment.amount_paid),
+        ]),
+      ),
+    );
+    setPayerMethods(
+      Object.fromEntries(
+        expense.payments.map((payment) => [
+          payment.user_id,
+          payment.payment_account?.method ?? "",
+        ]),
+      ),
+    );
+    setPayerLabels(
+      Object.fromEntries(
+        expense.payments.map((payment) => [
+          payment.user_id,
+          payment.payment_account?.label ?? "",
+        ]),
+      ),
+    );
+
+    const draftItems: DraftItem[] = expense.line_items.map((item) => ({
+      id: item.id,
+      description: item.description,
+      amount: Number(item.amount),
+      splitMode: (item.line_item_shares[0]?.share_type ?? "equal") as DraftItem["splitMode"],
+      shares: item.line_item_shares.map((share) => ({
+        userId: share.user_id,
+        shareType: share.share_type as DraftItem["splitMode"],
+        shareValue: share.share_value === null ? null : Number(share.share_value),
+        owedAmount: Number(share.owed_amount),
+      })),
+    }));
+
+    const isItemized = draftItems.length > 1 || expense.adjustments.length > 0;
+    if (isItemized) {
+      setSplitMode("itemized");
+      setItems(draftItems);
+      const taxAdjustment = expense.adjustments.find((item) => item.type === "tax");
+      const tipAdjustment = expense.adjustments.find((item) => item.type === "tip");
+      setTax(taxAdjustment ? String(taxAdjustment.amount) : "");
+      setTip(tipAdjustment ? String(tipAdjustment.amount) : "");
+      if (taxAdjustment) setTaxMode(taxAdjustment.mode as AdjustmentMode);
+      if (tipAdjustment) setTipMode(tipAdjustment.mode as AdjustmentMode);
+      return;
+    }
+
+    const onlyItem = draftItems[0];
+    const savedMode = onlyItem?.splitMode ?? "equal";
+    setSplitMode(savedMode);
+    if (savedMode === "equal") {
+      setParticipantIds(onlyItem.shares.map((share) => share.userId));
+    } else {
+      setSplitValues(
+        Object.fromEntries(
+          onlyItem.shares.map((share) => [
+            share.userId,
+            String(savedMode === "exact" ? share.owedAmount : share.shareValue ?? ""),
+          ]),
+        ),
+      );
+    }
+  }, [entryId, expense]);
 
   useEffect(() => {
     if (!categoryId && categories.length > 0) {
@@ -122,7 +214,7 @@ export function AddExpense() {
   const reconciliationRemaining = roundMoney(numericAmount - itemizedContentTotal);
   const itemizedValid =
     items.length > 0 && Math.abs(reconciliationRemaining) < 0.001;
-  const splitValueTotal = trip?.members.reduce(
+  const splitValueTotal = trip.members.reduce(
     (sum, member) => sum + (Number(splitValues[member.id]) || 0),
     0,
   ) ?? 0;
@@ -150,7 +242,7 @@ export function AddExpense() {
     splitValid &&
     !submitting;
 
-  if (loading) {
+  if (entryId && expenseLoading) {
     return (
       <PageShell>
         <FormPageSkeleton />
@@ -158,7 +250,6 @@ export function AddExpense() {
     );
   }
 
-  if (!trip || !tripId) return <Navigate to="/" replace />;
   const activeTripId = trip.id;
   const activeTripMembers = trip.members;
 
@@ -232,6 +323,24 @@ export function AddExpense() {
     });
   }
 
+  function buildEqualShares() {
+    const base = Math.floor((numericAmount * 100) / participantIds.length) / 100;
+    let allocated = 0;
+    return participantIds.map((userId, index) => {
+      const owedAmount =
+        index === participantIds.length - 1
+          ? roundMoney(numericAmount - allocated)
+          : base;
+      allocated += owedAmount;
+      return {
+        userId,
+        shareType: "equal" as const,
+        shareValue: null,
+        owedAmount,
+      };
+    });
+  }
+
   function handleSubmit() {
     const common = {
       tripId: activeTripId,
@@ -249,8 +358,8 @@ export function AddExpense() {
       })),
     };
 
-    if (splitMode === "itemized") {
-      const adjustments = [
+    const adjustments = splitMode === "itemized"
+      ? [
         ...(Number(tax) > 0
           ? [{
               type: "tax" as const,
@@ -267,14 +376,25 @@ export function AddExpense() {
               shares: allocateAdjustment(Number(tip)),
             }]
           : []),
-      ];
-      void createItemizedExpense({
+      ]
+      : [];
+    const expenseItems =
+      splitMode === "itemized"
+        ? items.map((item) => ({
+            description: item.description,
+            amount: item.amount,
+            shares: item.shares,
+          }))
+        : [{
+            description: description.trim(),
+            amount: numericAmount,
+            shares: splitMode === "equal" ? buildEqualShares() : buildGlobalShares(),
+          }];
+
+    if (entryId) {
+      void replaceExpense(entryId, {
         ...common,
-        items: items.map((item) => ({
-          description: item.description,
-          amount: item.amount,
-          shares: item.shares,
-        })),
+        items: expenseItems,
         adjustments,
       });
       return;
@@ -283,12 +403,8 @@ export function AddExpense() {
     if (splitMode !== "equal") {
       void createItemizedExpense({
         ...common,
-        items: [{
-          description: description.trim(),
-          amount: numericAmount,
-          shares: buildGlobalShares(),
-        }],
-        adjustments: [],
+        items: expenseItems,
+        adjustments,
       });
       return;
     }
@@ -298,7 +414,16 @@ export function AddExpense() {
 
   return (
     <PageShell>
-      <ScreenHeader title="Add expense" />
+      <ScreenHeader
+        title={entryId ? "Edit expense" : "Add expense"}
+        onBack={() =>
+          navigate(
+            entryId
+              ? `/trips/${trip.id}/expenses/${entryId}`
+              : `/trips/${trip.id}`,
+          )
+        }
+      />
 
       <div className="flex flex-col gap-3.5 pt-2.5 pb-28">
         <SectionLabel>Amount</SectionLabel>
@@ -726,7 +851,13 @@ export function AddExpense() {
           disabled={!canSubmit}
           onClick={handleSubmit}
         >
-          {submitting ? "Adding expense…" : "Add expense"}
+          {submitting
+            ? entryId
+              ? "Saving expense…"
+              : "Adding expense…"
+            : entryId
+              ? "Save expense"
+              : "Add expense"}
         </Button>
       </StickyActionBar>
 
