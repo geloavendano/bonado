@@ -7,8 +7,12 @@ import type { Trip } from "@/types/schema";
 interface CreateTripInput {
   name: string;
   locationName: string;
+  locationPlaceId: string | null;
+  locationLat: number | null;
+  locationLng: number | null;
   defaultCurrency: string;
   coverPhotoUrl: string | null;
+  coverPhotoAttribution: string | null;
 }
 
 export function useCreateTrip() {
@@ -28,6 +32,10 @@ export function useCreateTrip() {
         p_location_name: input.locationName,
         p_default_currency: input.defaultCurrency,
         p_cover_photo_url: input.coverPhotoUrl,
+        p_location_place_id: input.locationPlaceId,
+        p_location_lat: input.locationLat,
+        p_location_lng: input.locationLng,
+        p_cover_photo_attribution: input.coverPhotoAttribution,
       })
       .single<Trip>();
 

@@ -11,9 +11,11 @@ primitives, Supabase (schema, RLS, auth, storage), Google SSO, Dashboard
 
 ## Phase 2 — Trip creation ✅ done
 
-Create trip screen (`4a`): name, location, currency selection, cover photo.
-Location autocomplete and Unsplash-suggested photos are stubbed (manual
-entry / placeholder); "Own" cover upload is real (Supabase Storage).
+Create trip screen (`4a`): name, currency selection, cover photo. Location
+uses real Google Places (New) autocomplete, resolving place_id/lat/lng.
+Cover photo auto-suggests real Unsplash photos for the resolved location
+(with attribution + required download tracking), with shuffle and
+alternates; "Own" upload remains available (Supabase Storage).
 
 ## Phase 3 — Trip home / invite ✅ done
 
