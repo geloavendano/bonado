@@ -17,6 +17,8 @@ export interface PlaceDetails {
   name: string;
   lat: number;
   lng: number;
+  /** ISO 3166-1 alpha-2 country code, when resolvable. */
+  countryCode: string | null;
 }
 
 interface AutocompleteResponse {
@@ -36,6 +38,7 @@ interface PlaceDetailsResponse {
   id: string;
   displayName?: { text: string };
   location?: { latitude: number; longitude: number };
+  addressComponents?: { shortText: string; types: string[] }[];
 }
 
 export async function autocompletePlaces(
@@ -86,7 +89,7 @@ export async function getPlaceDetails(
     {
       headers: {
         "X-Goog-Api-Key": API_KEY,
-        "X-Goog-FieldMask": "id,displayName,location",
+        "X-Goog-FieldMask": "id,displayName,location,addressComponents",
       },
     },
   );
@@ -96,11 +99,16 @@ export async function getPlaceDetails(
   const data = (await response.json()) as PlaceDetailsResponse;
   if (!data.location) return null;
 
+  const countryComponent = data.addressComponents?.find((component) =>
+    component.types.includes("country"),
+  );
+
   return {
     placeId: data.id,
     name: data.displayName?.text ?? "",
     lat: data.location.latitude,
     lng: data.location.longitude,
+    countryCode: countryComponent?.shortText ?? null,
   };
 }
 

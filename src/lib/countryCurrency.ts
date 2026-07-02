@@ -1,0 +1,57 @@
+/** ISO 3166-1 alpha-2 country code -> primary ISO 4217 currency code. */
+const COUNTRY_CURRENCY: Record<string, string> = {
+  AD: "EUR", AE: "AED", AF: "AFN", AG: "XCD", AI: "XCD", AL: "ALL", AM: "AMD",
+  AO: "AOA", AR: "ARS", AS: "USD", AT: "EUR", AU: "AUD", AW: "AWG", AZ: "AZN",
+  BA: "BAM", BB: "BBD", BD: "BDT", BE: "EUR", BF: "XOF", BG: "BGN", BH: "BHD",
+  BI: "BIF", BJ: "XOF", BM: "BMD", BN: "BND", BO: "BOB", BR: "BRL", BS: "BSD",
+  BT: "BTN", BW: "BWP", BY: "BYN", BZ: "BZD", CA: "CAD", CD: "CDF", CF: "XAF",
+  CG: "XAF", CH: "CHF", CI: "XOF", CK: "NZD", CL: "CLP", CM: "XAF", CN: "CNY",
+  CO: "COP", CR: "CRC", CU: "CUP", CV: "CVE", CY: "EUR", CZ: "CZK", DE: "EUR",
+  DJ: "DJF", DK: "DKK", DM: "XCD", DO: "DOP", DZ: "DZD", EC: "USD", EE: "EUR",
+  EG: "EGP", ER: "ERN", ES: "EUR", ET: "ETB", FI: "EUR", FJ: "FJD", FK: "FKP",
+  FM: "USD", FO: "DKK", FR: "EUR", GA: "XAF", GB: "GBP", GD: "XCD", GE: "GEL",
+  GF: "EUR", GG: "GBP", GH: "GHS", GI: "GIP", GL: "DKK", GM: "GMD", GN: "GNF",
+  GP: "EUR", GQ: "XAF", GR: "EUR", GT: "GTQ", GU: "USD", GW: "XOF", GY: "GYD",
+  HK: "HKD", HN: "HNL", HR: "EUR", HT: "HTG", HU: "HUF", ID: "IDR", IE: "EUR",
+  IL: "ILS", IM: "GBP", IN: "INR", IQ: "IQD", IR: "IRR", IS: "ISK", IT: "EUR",
+  JE: "GBP", JM: "JMD", JO: "JOD", JP: "JPY", KE: "KES", KG: "KGS", KH: "KHR",
+  KI: "AUD", KM: "KMF", KN: "XCD", KP: "KPW", KR: "KRW", KW: "KWD", KY: "KYD",
+  KZ: "KZT", LA: "LAK", LB: "LBP", LC: "XCD", LI: "CHF", LK: "LKR", LR: "LRD",
+  LS: "LSL", LT: "EUR", LU: "EUR", LV: "EUR", LY: "LYD", MA: "MAD", MC: "EUR",
+  MD: "MDL", ME: "EUR", MG: "MGA", MH: "USD", MK: "MKD", ML: "XOF", MM: "MMK",
+  MN: "MNT", MO: "MOP", MP: "USD", MQ: "EUR", MR: "MRU", MS: "XCD", MT: "EUR",
+  MU: "MUR", MV: "MVR", MW: "MWK", MX: "MXN", MY: "MYR", MZ: "MZN", NA: "NAD",
+  NC: "XPF", NE: "XOF", NG: "NGN", NI: "NIO", NL: "EUR", NO: "NOK", NP: "NPR",
+  NR: "AUD", NU: "NZD", NZ: "NZD", OM: "OMR", PA: "PAB", PE: "PEN", PF: "XPF",
+  PG: "PGK", PH: "PHP", PK: "PKR", PL: "PLN", PR: "USD", PS: "ILS", PT: "EUR",
+  PW: "USD", PY: "PYG", QA: "QAR", RE: "EUR", RO: "RON", RS: "RSD", RU: "RUB",
+  RW: "RWF", SA: "SAR", SB: "SBD", SC: "SCR", SD: "SDG", SE: "SEK", SG: "SGD",
+  SH: "SHP", SI: "EUR", SK: "EUR", SL: "SLE", SM: "EUR", SN: "XOF", SO: "SOS",
+  SR: "SRD", SS: "SSP", ST: "STN", SV: "USD", SY: "SYP", SZ: "SZL", TC: "USD",
+  TD: "XAF", TG: "XOF", TH: "THB", TJ: "TJS", TL: "USD", TM: "TMT", TN: "TND",
+  TO: "TOP", TR: "TRY", TT: "TTD", TV: "AUD", TW: "TWD", TZ: "TZS", UA: "UAH",
+  UG: "UGX", US: "USD", UY: "UYU", UZ: "UZS", VA: "EUR", VC: "XCD", VE: "VES",
+  VG: "USD", VI: "USD", VN: "VND", VU: "VUV", WS: "WST", XK: "EUR", YE: "YER",
+  YT: "EUR", ZA: "ZAR", ZM: "ZMW", ZW: "ZWL",
+};
+
+/**
+ * Frankfurter (our exchange-rate source) only tracks ~30 major currencies.
+ * A trip's default currency needs a working rate for cross-currency
+ * expenses/settlements/edits, so auto-select only suggests currencies
+ * Frankfurter actually has rates for — anything else silently 404s later
+ * (e.g. changing a trip's currency triggers a rebase that needs a rate for
+ * every entry currency, including the old default).
+ * https://api.frankfurter.dev/v1/currencies
+ */
+const FRANKFURTER_CURRENCIES = new Set([
+  "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD",
+  "HUF", "IDR", "ILS", "INR", "ISK", "JPY", "KRW", "MXN", "MYR", "NOK",
+  "NZD", "PHP", "PLN", "RON", "SEK", "SGD", "THB", "TRY", "USD", "ZAR",
+]);
+
+export function getCurrencyForCountry(countryCode: string): string | null {
+  const currency = COUNTRY_CURRENCY[countryCode.toUpperCase()];
+  if (!currency || !FRANKFURTER_CURRENCIES.has(currency)) return null;
+  return currency;
+}

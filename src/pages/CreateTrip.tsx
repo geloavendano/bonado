@@ -3,22 +3,27 @@ import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
 import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { Input } from "@/components/ui/Input";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { Button } from "@/components/ui/Button";
-import { SUGGESTED_CURRENCIES } from "@/lib/currencies";
+import { ALL_CURRENCIES, SUGGESTED_CURRENCIES } from "@/lib/currencies";
 import { useCreateTrip } from "@/hooks/useCreateTrip";
 import { useCoverPhotoUpload } from "@/hooks/useCoverPhotoUpload";
 import { useCoverPhotoSuggestions } from "@/hooks/useCoverPhotoSuggestions";
-import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
 import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 import { ChevronDown } from "@/components/ui/ChevronDown";
-import { isPlacesConfigured } from "@/lib/googlePlaces";
 import { isUnsplashConfigured, trackDownload } from "@/lib/unsplash";
+import { LocationField } from "@/components/trip/LocationField";
+import { getCurrencyForCountry } from "@/lib/countryCurrency";
+import { Input } from "@/components/ui/Input";
+
+const MORE_CURRENCIES = ALL_CURRENCIES.filter(
+  (currency) => !SUGGESTED_CURRENCIES.some((c) => c.code === currency.code),
+);
 
 export function CreateTrip() {
   const [name, setName] = useState("");
   const [currency, setCurrency] = useState("USD");
+  const [locationName, setLocationName] = useState("");
   const [locationPlaceId, setLocationPlaceId] = useState<string | null>(null);
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
@@ -26,14 +31,12 @@ export function CreateTrip() {
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [coverPhotoAttribution, setCoverPhotoAttribution] = useState<string | null>(null);
   const [ownCoverUploaded, setOwnCoverUploaded] = useState(false);
-  const [locationFocused, setLocationFocused] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const formFlow = useMobileFormFlow(formRef);
 
   const { createTrip, submitting, error } = useCreateTrip();
   const { upload, uploading, error: uploadError } = useCoverPhotoUpload();
-  const places = usePlacesAutocomplete();
   const { photos, loading: photosLoading, shuffle } = useCoverPhotoSuggestions(unsplashQuery);
 
   const canSubmit = name.trim().length > 0 && !submitting;
@@ -57,17 +60,6 @@ export function CreateTrip() {
       setCoverPhotoAttribution(null);
       setOwnCoverUploaded(true);
     }
-  }
-
-  async function handleSelectPlace(placeId: string) {
-    const details = await places.selectPlace(placeId);
-    if (!details) return;
-    places.setInput(details.name);
-    setLocationPlaceId(details.placeId);
-    setLocationLat(details.lat);
-    setLocationLng(details.lng);
-    setUnsplashQuery(details.name);
-    setLocationFocused(false);
   }
 
   function selectSuggestedPhoto(photo: (typeof photos)[number]) {
@@ -94,46 +86,26 @@ export function CreateTrip() {
         />
 
         <SectionLabel>Where to?</SectionLabel>
-        <div className="relative">
-          <Input
-            value={places.input}
-            onChange={(e) => {
-              places.setInput(e.target.value);
-              setLocationPlaceId(null);
-              setLocationLat(null);
-              setLocationLng(null);
-            }}
-            onFocus={() => setLocationFocused(true)}
-            onBlur={() => setTimeout(() => setLocationFocused(false), 150)}
-            placeholder="City, country"
-            enterKeyHint="done"
-            className={clsx(locationPlaceId && "border-2 border-teal")}
-          />
-          {locationPlaceId && (
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-teal">✓</span>
-          )}
-          {locationFocused && places.suggestions.length > 0 && (
-            <div className="absolute z-10 mt-1.5 w-full overflow-hidden rounded-[16px] bg-card shadow-floating">
-              {places.suggestions.map((suggestion) => (
-                <button
-                  key={suggestion.placeId}
-                  onClick={() => void handleSelectPlace(suggestion.placeId)}
-                  className="flex w-full flex-col items-start gap-0.5 px-4 py-2.5 text-left hover:bg-track"
-                >
-                  <span className="text-[14px] font-semibold">{suggestion.mainText}</span>
-                  {suggestion.secondaryText && (
-                    <span className="text-[12px] text-secondary">{suggestion.secondaryText}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-          {!isPlacesConfigured && (
-            <p className="mt-1.5 text-[11px] text-faint">
-              Location search isn’t configured — you can still type a location manually.
-            </p>
-          )}
-        </div>
+        <LocationField
+          resolved={Boolean(locationPlaceId)}
+          onManualChange={(text) => {
+            setLocationName(text);
+            setLocationPlaceId(null);
+            setLocationLat(null);
+            setLocationLng(null);
+          }}
+          onResolve={(details) => {
+            setLocationName(details.name);
+            setLocationPlaceId(details.placeId);
+            setLocationLat(details.lat);
+            setLocationLng(details.lng);
+            setUnsplashQuery(details.name);
+            const localCurrency = details.countryCode
+              ? getCurrencyForCountry(details.countryCode)
+              : null;
+            if (localCurrency) setCurrency(localCurrency);
+          }}
+        />
 
         <SectionLabel>Trip currency</SectionLabel>
         <div className="flex gap-2 flex-wrap">
@@ -165,13 +137,11 @@ export function CreateTrip() {
               <option value="" disabled>
                 More…
               </option>
-              {["JPY", "AUD", "CAD", "CHF", "CNY", "SGD", "HKD", "NZD", "INR", "MXN", "PHP", "THB", "IDR", "KRW", "ZAR", "BRL"].map(
-                (code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ),
-              )}
+              {MORE_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code}
+                </option>
+              ))}
             </select>
             <ChevronDown
               className={clsx(
@@ -251,7 +221,7 @@ export function CreateTrip() {
             if (formFlow.keyboardOpen) return formFlow.advance();
             void createTrip({
               name: name.trim(),
-              locationName: places.input.trim(),
+              locationName: locationName.trim(),
               locationPlaceId,
               locationLat,
               locationLng,

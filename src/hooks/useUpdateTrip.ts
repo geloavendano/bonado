@@ -6,6 +6,9 @@ import { invalidateBalances } from "@/lib/balanceData";
 interface UpdateTripInput {
   name: string;
   locationName: string;
+  locationPlaceId: string | null;
+  locationLat: number | null;
+  locationLng: number | null;
   defaultCurrency: string;
   previousCurrency: string;
   coverPhotoUrl: string | null;
@@ -57,6 +60,9 @@ export function useUpdateTrip() {
       p_trip_id: tripId,
       p_name: input.name,
       p_location_name: input.locationName,
+      p_location_place_id: input.locationPlaceId,
+      p_location_lat: input.locationLat,
+      p_location_lng: input.locationLng,
       p_default_currency: input.defaultCurrency,
       p_cover_photo_url: input.coverPhotoUrl ?? "",
       p_rates: rates,

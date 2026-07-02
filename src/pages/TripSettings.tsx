@@ -15,6 +15,8 @@ import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 import { useCoverPhotoUpload } from "@/hooks/useCoverPhotoUpload";
 import { SUGGESTED_CURRENCIES, ALL_CURRENCIES } from "@/lib/currencies";
 import { ChevronDown } from "@/components/ui/ChevronDown";
+import { LocationField } from "@/components/trip/LocationField";
+import { getCurrencyForCountry } from "@/lib/countryCurrency";
 import clsx from "clsx";
 
 export function TripSettings() {
@@ -34,6 +36,9 @@ export function TripSettings() {
 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [locationPlaceId, setLocationPlaceId] = useState<string | null>(null);
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
   const [currency, setCurrency] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
@@ -51,6 +56,9 @@ export function TripSettings() {
     if (trip) {
       setName(trip.name);
       setLocation(trip.location_name ?? "");
+      setLocationPlaceId(trip.location_place_id);
+      setLocationLat(trip.location_lat);
+      setLocationLng(trip.location_lng);
       setCurrency(trip.default_currency);
       setCoverPhotoUrl(trip.cover_photo_url);
     }
@@ -78,6 +86,9 @@ export function TripSettings() {
     const ok = await updateTrip(tripId, {
       name: name.trim(),
       locationName: location.trim(),
+      locationPlaceId,
+      locationLat,
+      locationLng,
       defaultCurrency: currency,
       previousCurrency,
       coverPhotoUrl,
@@ -156,11 +167,25 @@ export function TripSettings() {
         <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus enterKeyHint="next" />
 
         <SectionLabel>Where to?</SectionLabel>
-        <Input
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="City, country"
-          enterKeyHint="done"
+        <LocationField
+          initialValue={trip.location_name ?? ""}
+          resolved={Boolean(locationPlaceId)}
+          onManualChange={(text) => {
+            setLocation(text);
+            setLocationPlaceId(null);
+            setLocationLat(null);
+            setLocationLng(null);
+          }}
+          onResolve={(details) => {
+            setLocation(details.name);
+            setLocationPlaceId(details.placeId);
+            setLocationLat(details.lat);
+            setLocationLng(details.lng);
+            const localCurrency = details.countryCode
+              ? getCurrencyForCountry(details.countryCode)
+              : null;
+            if (localCurrency) setCurrency(localCurrency);
+          }}
         />
 
         <SectionLabel>Trip currency</SectionLabel>
