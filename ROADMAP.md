@@ -57,7 +57,7 @@ Balances screen (`4f`): net position per person, record-settlement bottom
 sheet, suggested transfers, optional payment account, and "trip settled"
 celebration state. Real balances are also wired into Trip Home and Dashboard.
 
-## Phase 9 — Reports
+## Phase 9 — Reports ✅ done
 
 Reports screen (`4g`): by-category donut chart, by-account view (money in/
 out, expense vs transfer).
