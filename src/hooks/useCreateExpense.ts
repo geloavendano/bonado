@@ -158,7 +158,11 @@ export function useCreateExpense() {
     return true;
   }
 
-  async function replaceExpense(entryId: string, input: ItemizedExpenseInput) {
+  async function replaceExpense(
+    entryId: string,
+    input: ItemizedExpenseInput,
+    returnTo?: string,
+  ) {
     setSubmitting(true);
     setError(null);
 
@@ -209,7 +213,10 @@ export function useCreateExpense() {
     invalidateBalances(input.tripId);
     navigate(`/trips/${input.tripId}/expenses/${entryId}`, {
       replace: true,
-      state: { toast: "Transaction changes have been saved." },
+      state: {
+        toast: "Transaction changes have been saved.",
+        ...(returnTo ? { returnTo } : {}),
+      },
     });
     return true;
   }
