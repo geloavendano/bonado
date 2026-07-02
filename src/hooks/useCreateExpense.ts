@@ -6,6 +6,7 @@ export interface PayerAllocation {
   userId: string;
   amount: number;
   paymentMethod: string;
+  paymentLabel: string;
 }
 
 interface SimpleExpenseInput {
@@ -52,7 +53,24 @@ export function useCreateExpense() {
     setSubmitting(true);
     setError(null);
 
-    const { error: createError } = await supabase.rpc("create_simple_expense", {
+    const participantCount = input.participantIds.length;
+    const baseShare = Math.floor((input.amount * 100) / participantCount) / 100;
+    let allocated = 0;
+    const equalShares = input.participantIds.map((userId, index) => {
+      const owedAmount =
+        index === participantCount - 1
+          ? Math.round((input.amount - allocated) * 100) / 100
+          : baseShare;
+      allocated += owedAmount;
+      return {
+        user_id: userId,
+        share_type: "equal",
+        share_value: null,
+        owed_amount: owedAmount,
+      };
+    });
+
+    const { error: createError } = await supabase.rpc("create_itemized_expense", {
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
@@ -64,8 +82,14 @@ export function useCreateExpense() {
         user_id: payer.userId,
         amount: payer.amount,
         payment_method: payer.paymentMethod,
+        payment_label: payer.paymentLabel,
       })),
-      p_participant_ids: input.participantIds,
+      p_items: [{
+        description: input.description,
+        amount: input.amount,
+        shares: equalShares,
+      }],
+      p_adjustments: [],
     });
 
     setSubmitting(false);
@@ -94,6 +118,7 @@ export function useCreateExpense() {
         user_id: payer.userId,
         amount: payer.amount,
         payment_method: payer.paymentMethod,
+        payment_label: payer.paymentLabel,
       })),
       p_items: input.items.map((item) => ({
         description: item.description,

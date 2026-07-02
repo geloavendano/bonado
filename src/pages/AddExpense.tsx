@@ -14,6 +14,10 @@ import {
   ItemEditorSheet,
   type DraftItem,
 } from "@/components/expense/ItemEditorSheet";
+import {
+  PaymentMethodPicker,
+  type PaymentMethod,
+} from "@/components/expense/PaymentMethodPicker";
 import { useAuth } from "@/context/AuthContext";
 import { useTrip } from "@/hooks/useTrip";
 import { useCategories } from "@/hooks/useCategories";
@@ -66,7 +70,8 @@ export function AddExpense() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [payerIds, setPayerIds] = useState<string[]>([]);
   const [payerAmounts, setPayerAmounts] = useState<Record<string, string>>({});
-  const [payerMethods, setPayerMethods] = useState<Record<string, string>>({});
+  const [payerMethods, setPayerMethods] = useState<Record<string, PaymentMethod>>({});
+  const [payerLabels, setPayerLabels] = useState<Record<string, string>>({});
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [splitMode, setSplitMode] = useState<GlobalSplitMode>("equal");
   const [splitValues, setSplitValues] = useState<Record<string, string>>({});
@@ -239,7 +244,8 @@ export function AddExpense() {
       payers: payerIds.map((id) => ({
         userId: id,
         amount: Number(payerAmounts[id]),
-        paymentMethod: payerMethods[id] ?? "Cash",
+        paymentMethod: payerMethods[id] ?? "",
+        paymentLabel: payerLabels[id] ?? "",
       })),
     };
 
@@ -412,29 +418,38 @@ export function AddExpense() {
                   </span>
                 </button>
                   {selected && (
-                    <div className="motion-reveal mt-2 grid grid-cols-[1fr_100px] gap-2 pl-[46px]">
-                      <div className="relative rounded-xl bg-tile">
-                        <select
-                          value={payerMethods[member.id] ?? "Cash"}
-                          onChange={(event) =>
-                            setPayerMethods((current) => ({
-                              ...current,
-                              [member.id]: event.target.value,
-                            }))
-                          }
-                          aria-label={`Payment method for ${member.name}`}
-                          className="w-full appearance-none bg-transparent px-3 py-2.5 pr-7 text-[12.5px] font-bold text-secondary outline-none"
-                        >
-                          <option>Cash</option>
-                          <option>Card</option>
-                          <option>Bank</option>
-                          <option>Other</option>
-                        </select>
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-secondary">
-                          ▾
-                        </span>
-                      </div>
-                      <div className="flex items-center rounded-xl bg-tile px-2.5 py-2">
+                    <div className="motion-reveal mt-2 flex gap-2 pl-[46px]">
+                      <PaymentMethodPicker
+                        value={payerMethods[member.id] ?? ""}
+                        onChange={(method) =>
+                          setPayerMethods((current) => ({
+                            ...current,
+                            [member.id]: method,
+                          }))
+                        }
+                      />
+                      {payerMethods[member.id] &&
+                        payerMethods[member.id] !== "Cash" && (
+                          <input
+                            value={payerLabels[member.id] ?? ""}
+                            onChange={(event) =>
+                              setPayerLabels((current) => ({
+                                ...current,
+                                [member.id]: event.target.value,
+                              }))
+                            }
+                            placeholder={
+                              payerMethods[member.id] === "Card"
+                                ? "Card"
+                                : payerMethods[member.id] === "Bank"
+                                  ? "Bank"
+                                  : "Label"
+                            }
+                            aria-label={`${payerMethods[member.id]} name for ${member.name}`}
+                            className="min-w-0 flex-1 rounded-xl bg-tile px-3 py-2 text-[12.5px] font-semibold outline-none placeholder:text-faint"
+                          />
+                        )}
+                      <div className="ml-auto flex w-[92px] flex-none items-center rounded-xl bg-tile px-2.5 py-2">
                         <input
                           value={payerAmounts[member.id] ?? ""}
                           onChange={(event) =>
