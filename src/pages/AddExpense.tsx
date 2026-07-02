@@ -421,34 +421,20 @@ export function AddExpense() {
                     <div className="motion-reveal mt-2 flex gap-2 pl-[46px]">
                       <PaymentMethodPicker
                         value={payerMethods[member.id] ?? ""}
+                        label={payerLabels[member.id] ?? ""}
                         onChange={(method) =>
                           setPayerMethods((current) => ({
                             ...current,
                             [member.id]: method,
                           }))
                         }
+                        onLabelChange={(label) =>
+                          setPayerLabels((current) => ({
+                            ...current,
+                            [member.id]: label,
+                          }))
+                        }
                       />
-                      {payerMethods[member.id] &&
-                        payerMethods[member.id] !== "Cash" && (
-                          <input
-                            value={payerLabels[member.id] ?? ""}
-                            onChange={(event) =>
-                              setPayerLabels((current) => ({
-                                ...current,
-                                [member.id]: event.target.value,
-                              }))
-                            }
-                            placeholder={
-                              payerMethods[member.id] === "Card"
-                                ? "Card"
-                                : payerMethods[member.id] === "Bank"
-                                  ? "Bank"
-                                  : "Label"
-                            }
-                            aria-label={`${payerMethods[member.id]} name for ${member.name}`}
-                            className="min-w-0 flex-1 rounded-xl bg-tile px-3 py-2 text-[12.5px] font-semibold outline-none placeholder:text-faint"
-                          />
-                        )}
                       <div className="ml-auto flex w-[92px] flex-none items-center rounded-xl bg-tile px-2.5 py-2">
                         <input
                           value={payerAmounts[member.id] ?? ""}
