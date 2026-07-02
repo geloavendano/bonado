@@ -21,7 +21,7 @@ export function TripBalances() {
     <PageShell>
       <div className="text-center pt-4 pb-2 text-[16px] font-bold">Balances</div>
 
-      <div className="flex flex-col gap-3.5 pt-2.5 pb-4">
+      <div className="flex flex-col gap-3.5 pt-2.5 pb-20">
         <div className="bg-teal-tint rounded-[20px] px-[18px] py-5 text-center">
           <div className="text-[11.5px] font-bold uppercase tracking-[0.09em] text-teal-dark/70">
             Your position

@@ -71,7 +71,7 @@ export function TripHome() {
         </Link>
       </div>
 
-      <div className="flex flex-col gap-3.5 px-6 pt-4 pb-6">
+      <div className="flex flex-col gap-3.5 px-6 pt-4 pb-24">
         <GuestBanner />
 
         <div>
@@ -121,9 +121,7 @@ export function TripHome() {
         </div>
       </div>
 
-      <div className="px-6">
-        <TripNav tripId={trip.id} />
-      </div>
+      <TripNav tripId={trip.id} />
     </PageShell>
   );
 }
