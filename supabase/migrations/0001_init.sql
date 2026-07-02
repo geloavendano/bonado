@@ -3,8 +3,6 @@
 -- Requires: Google provider enabled in Auth settings, Anonymous sign-ins
 -- enabled (used for guest trip joins), and a "receipts" Storage bucket.
 
-create extension if not exists pgcrypto;
-
 -- =========================================================================
 -- USERS
 -- One row per person, registered or guest. Guests are backed by a Supabase
@@ -35,7 +33,7 @@ create table public.trips (
   created_by uuid not null references public.users (id),
   created_at timestamptz not null default now(),
   default_currency text not null default 'USD',
-  invite_link_token text not null unique default encode(gen_random_bytes(9), 'base64'),
+  invite_link_token text not null unique default substr(md5(gen_random_uuid()::text || clock_timestamp()::text), 1, 12),
   location_name text,
   location_place_id text,
   location_lat double precision,
