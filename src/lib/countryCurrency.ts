@@ -35,23 +35,12 @@ const COUNTRY_CURRENCY: Record<string, string> = {
   YT: "EUR", ZA: "ZAR", ZM: "ZMW", ZW: "ZWL",
 };
 
-/**
- * Frankfurter (our exchange-rate source) only tracks ~30 major currencies.
- * A trip's default currency needs a working rate for cross-currency
- * expenses/settlements/edits, so auto-select only suggests currencies
- * Frankfurter actually has rates for — anything else silently 404s later
- * (e.g. changing a trip's currency triggers a rebase that needs a rate for
- * every entry currency, including the old default).
- * https://api.frankfurter.dev/v1/currencies
- */
-const FRANKFURTER_CURRENCIES = new Set([
-  "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD",
-  "HUF", "IDR", "ILS", "INR", "ISK", "JPY", "KRW", "MXN", "MYR", "NOK",
-  "NZD", "PHP", "PLN", "RON", "SEK", "SGD", "THB", "TRY", "USD", "ZAR",
-]);
+import { ALL_CURRENCIES } from "@/lib/currencies";
+
+const SELECTABLE_CURRENCIES = new Set(ALL_CURRENCIES.map((c) => c.code));
 
 export function getCurrencyForCountry(countryCode: string): string | null {
   const currency = COUNTRY_CURRENCY[countryCode.toUpperCase()];
-  if (!currency || !FRANKFURTER_CURRENCIES.has(currency)) return null;
+  if (!currency || !SELECTABLE_CURRENCIES.has(currency)) return null;
   return currency;
 }

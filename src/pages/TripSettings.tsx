@@ -210,6 +210,9 @@ export function TripSettings() {
               onChange={(event) => setCurrency(event.target.value)}
               className="appearance-none rounded-pill border-2 border-transparent bg-card py-2 pl-4 pr-9 text-[13.5px] font-bold text-secondary shadow-card outline-none"
             >
+              {!ALL_CURRENCIES.some((item) => item.code === currency) && currency && (
+                <option value={currency}>{currency}</option>
+              )}
               {ALL_CURRENCIES.map((item) => (
                 <option key={item.code} value={item.code}>{item.code} · {item.name}</option>
               ))}

@@ -426,6 +426,9 @@ export function AddExpense() {
               aria-label="Expense currency"
               className="appearance-none bg-transparent py-2 pr-5 text-[13px] font-extrabold text-secondary outline-none"
             >
+              {!ALL_CURRENCIES.some((item) => item.code === currency) && currency && (
+                <option value={currency}>{currency}</option>
+              )}
               {ALL_CURRENCIES.map((item) => (
                 <option key={item.code} value={item.code}>
                   {item.code}

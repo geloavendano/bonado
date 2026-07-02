@@ -161,6 +161,9 @@ export function Dashboard() {
                       onChange={(event) => void updateProfile({ preferredCurrency: event.target.value })}
                       className="w-full min-w-0 appearance-none rounded-xl bg-tile py-2.5 pl-3 pr-9 text-[13px] font-bold text-ink outline-none"
                     >
+                      {!ALL_CURRENCIES.some((c) => c.code === user.preferred_currency) && (
+                        <option value={user.preferred_currency}>{user.preferred_currency}</option>
+                      )}
                       {ALL_CURRENCIES.map((currency) => (
                         <option key={currency.code} value={currency.code}>
                           {currency.code}
