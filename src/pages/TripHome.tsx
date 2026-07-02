@@ -135,8 +135,9 @@ export function TripHome() {
               );
 
               return (
-                <div
+                <Link
                   key={entry.id}
+                  to={`/trips/${trip.id}/expenses/${entry.id}`}
                   className={
                     "flex items-center gap-3 py-3.5" +
                     (index < entries.length - 1 ? " border-b border-black/5" : "")
@@ -155,7 +156,7 @@ export function TripHome() {
                   <div className="shrink-0 text-[14px] font-extrabold">
                     {formatMoney(total, entry.currency)}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

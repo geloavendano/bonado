@@ -44,10 +44,11 @@ avatar include/exclude, exact/%/shares splits, tax & tip (proportional or
 own-item), reconciliation footer. Simple and itemized expenses share the
 same currency, payer, payment-method, date, and category controls.
 
-## Phase 7 — Expense detail
+## Phase 7 — Expense detail ✅ done
 
 Expense detail screen (`4e`): summary, your-share highlight, per-person
-breakdown, receipt photo, edit/delete (soft delete, online only).
+breakdown, private receipt photo, metadata editing, and confirmed soft
+deletion (online only).
 
 ## Phase 8 — Balances / settle up
 

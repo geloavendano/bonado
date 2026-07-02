@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -10,12 +11,25 @@ import { TripBalances } from "@/pages/TripBalances";
 import { TripReports } from "@/pages/TripReports";
 import { GuestJoin } from "@/pages/GuestJoin";
 import { TripLayout } from "@/components/trip/TripLayout";
-import { AddExpense } from "@/pages/AddExpense";
+
+const AddExpense = lazy(() =>
+  import("@/pages/AddExpense").then((module) => ({ default: module.AddExpense })),
+);
+const ExpenseDetail = lazy(() =>
+  import("@/pages/ExpenseDetail").then((module) => ({ default: module.ExpenseDetail })),
+);
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Suspense
+          fallback={
+            <div className="min-h-dvh bg-bg px-6 pt-10">
+              <div className="skeleton mx-auto h-[280px] max-w-[382px] rounded-[22px]" />
+            </div>
+          }
+        >
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/join/:token" element={<GuestJoin />} />
@@ -63,7 +77,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/trips/:tripId/expenses/:entryId"
+            element={
+              <ProtectedRoute>
+                <ExpenseDetail />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );
