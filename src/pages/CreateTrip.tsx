@@ -20,6 +20,7 @@ export function CreateTrip() {
   const { upload, uploading, error: uploadError } = useCoverPhotoUpload();
 
   const canSubmit = name.trim().length > 0 && !submitting;
+  const isMoreCurrency = !SUGGESTED_CURRENCIES.some((c) => c.code === currency);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -63,22 +64,37 @@ export function CreateTrip() {
               {c.code} {c.symbol}
             </button>
           ))}
-          <select
-            value={SUGGESTED_CURRENCIES.some((c) => c.code === currency) ? "" : currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="rounded-pill px-4 py-2 text-[13.5px] font-semibold text-secondary bg-card shadow-card outline-none"
-          >
-            <option value="" disabled>
-              More…
-            </option>
-            {["JPY", "AUD", "CAD", "CHF", "CNY", "SGD", "HKD", "NZD", "INR", "MXN", "PHP", "THB", "IDR", "KRW", "ZAR", "BRL"].map(
-              (code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ),
-            )}
-          </select>
+          <div className="relative">
+            <select
+              value={isMoreCurrency ? currency : ""}
+              onChange={(e) => setCurrency(e.target.value)}
+              className={clsx(
+                "appearance-none rounded-pill pl-4 pr-7 py-2 text-[13.5px] w-[92px] text-center outline-none transition-colors",
+                isMoreCurrency
+                  ? "bg-teal-tint text-teal-dark font-bold border-2 border-teal"
+                  : "bg-card text-secondary font-semibold shadow-card border-2 border-transparent",
+              )}
+            >
+              <option value="" disabled>
+                More…
+              </option>
+              {["JPY", "AUD", "CAD", "CHF", "CNY", "SGD", "HKD", "NZD", "INR", "MXN", "PHP", "THB", "IDR", "KRW", "ZAR", "BRL"].map(
+                (code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ),
+              )}
+            </select>
+            <span
+              className={clsx(
+                "pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px]",
+                isMoreCurrency ? "text-teal-dark" : "text-secondary",
+              )}
+            >
+              ▾
+            </span>
+          </div>
         </div>
 
         <SectionLabel>Cover photo</SectionLabel>

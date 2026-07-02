@@ -3,17 +3,20 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
 export function useCoverPhotoUpload() {
-  const { user } = useAuth();
+  const { session } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function upload(file: File): Promise<string | null> {
-    if (!user) return null;
+    const authId = session?.user.id;
+    if (!authId) return null;
     setUploading(true);
     setError(null);
 
+    // Storage RLS checks the folder prefix against auth.uid(), which is the
+    // Supabase auth user id — not bonado.users.id (a separate app-level id).
     const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+    const path = `${authId}/${crypto.randomUUID()}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("trip-covers")
