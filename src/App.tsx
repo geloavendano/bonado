@@ -3,6 +3,11 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
+import { CreateTrip } from "@/pages/CreateTrip";
+import { TripHome } from "@/pages/TripHome";
+import { TripBalances } from "@/pages/TripBalances";
+import { TripReports } from "@/pages/TripReports";
+import { GuestJoin } from "@/pages/GuestJoin";
 import { ComingSoon } from "@/pages/ComingSoon";
 
 export default function App() {
@@ -11,6 +16,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/join/:token" element={<GuestJoin />} />
           <Route
             path="/"
             element={
@@ -23,7 +29,7 @@ export default function App() {
             path="/trips/new"
             element={
               <ProtectedRoute>
-                <ComingSoon title="Create trip" />
+                <CreateTrip />
               </ProtectedRoute>
             }
           />
@@ -31,7 +37,31 @@ export default function App() {
             path="/trips/:tripId"
             element={
               <ProtectedRoute>
-                <ComingSoon title="Trip home" />
+                <TripHome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:tripId/balances"
+            element={
+              <ProtectedRoute>
+                <TripBalances />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:tripId/reports"
+            element={
+              <ProtectedRoute>
+                <TripReports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:tripId/expenses/new"
+            element={
+              <ProtectedRoute>
+                <ComingSoon title="Add expense" />
               </ProtectedRoute>
             }
           />

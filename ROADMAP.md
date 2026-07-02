@@ -9,23 +9,26 @@ Project scaffold (Vite + React + TS + Tailwind), design tokens, UI
 primitives, Supabase (schema, RLS, auth, storage), Google SSO, Dashboard
 (`3a`).
 
-## Phase 2 — Trip creation
+## Phase 2 — Trip creation ✅ done
 
 Create trip screen (`4a`): name, location, currency selection, cover photo.
-Location autocomplete and cover photo search are stubbed (manual entry /
-placeholder) until Google Places and Unsplash API keys are wired in.
+Location autocomplete and Unsplash-suggested photos are stubbed (manual
+entry / placeholder); "Own" cover upload is real (Supabase Storage).
 
-## Phase 3 — Trip home / invite
+## Phase 3 — Trip home / invite ✅ done
 
-Trip home screen (`4b`): cover, balance summary, recent entries list,
-invite link generation/sharing, floating nav pattern (Entries / Balances /
-Reports + FAB).
+Trip home screen (`4b`): cover, balance summary (0 until Phase 8 lands),
+empty-state recent entries, invite link generation/sharing. Shared floating
+nav (Entries / Balances / Reports + FAB) used across all three trip tabs;
+Balances/Reports have the real nav shell with placeholder bodies until
+Phases 8/9.
 
-## Phase 4 — Membership / guest join
+## Phase 4 — Membership / guest join ✅ done
 
-Guest join landing page (`4h`): join via invite link, guest session
-(Supabase anonymous auth), name-only join, later account claiming
-(guest → registered merge).
+Guest join landing page (`4h`): trip preview by invite token (via a
+SECURITY DEFINER RPC, works signed-out), join via anonymous auth or
+Google, auto-join once authenticated. Guest → registered claiming via
+Supabase identity linking (banner shown on Dashboard/Trip home).
 
 ## Phase 5 — Expense entry (simple)
 
@@ -69,9 +72,3 @@ reconnect.
 Three-column desktop view (`4i`): trip list rail, wide entries view,
 balance rail.
 
----
-
-Open ordering question: Phase 3 (Trip home / invite) surfaces the invite
-flow before Phase 4 (Membership / guest join) implements what happens when
-someone taps that link. May want to swap or merge 3 & 4 depending on how we
-want to demo progress.

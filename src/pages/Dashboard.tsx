@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { buttonClasses } from "@/components/ui/Button";
+import { GuestBanner } from "@/components/trip/GuestBanner";
 import { formatMoney } from "@/lib/money";
 
 function tripDateRange(trip: TripWithMembers): string {
@@ -110,6 +111,8 @@ export function Dashboard() {
       </div>
 
       <div className="flex flex-col gap-3.5 pt-3.5">
+        <GuestBanner />
+
         {loading && (
           <div className="text-secondary text-sm py-10 text-center">Loading trips…</div>
         )}

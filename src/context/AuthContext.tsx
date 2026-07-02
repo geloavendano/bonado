@@ -15,15 +15,22 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
+  signInAsGuest: (name: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-/** Fetches (or provisions on first login) the public.users row for a Supabase auth session. */
+/**
+ * Fetches (or provisions on first login) the bonado.users row for a Supabase
+ * auth session. Also reconciles a guest's row after they claim a full
+ * account via linkIdentity — same auth.uid(), but is_anonymous flips to
+ * false and real profile data becomes available.
+ */
 async function loadOrCreateUserRow(session: Session): Promise<User | null> {
   const authUser = session.user;
+  const metadata = authUser.user_metadata ?? {};
 
   const { data: existing, error: selectError } = await supabase
     .from("users")
@@ -36,9 +43,29 @@ async function loadOrCreateUserRow(session: Session): Promise<User | null> {
     return null;
   }
 
-  if (existing) return existing as User;
+  if (existing) {
+    const justClaimed = existing.is_registered === false && !authUser.is_anonymous;
+    if (!justClaimed) return existing as User;
 
-  const metadata = authUser.user_metadata ?? {};
+    const { data: updated, error: updateError } = await supabase
+      .from("users")
+      .update({
+        is_registered: true,
+        name: metadata.full_name ?? metadata.name ?? existing.name,
+        email: authUser.email ?? existing.email,
+        avatar_url: metadata.avatar_url ?? metadata.picture ?? existing.avatar_url,
+      })
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+
+    if (updateError) {
+      console.error("[bonado] failed to reconcile claimed user row", updateError);
+      return existing as User;
+    }
+    return updated as User;
+  }
+
   const { data: created, error: insertError } = await supabase
     .from("users")
     .insert({
@@ -96,11 +123,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (redirectTo?: string) => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: redirectTo ?? window.location.origin },
     });
+  }, []);
+
+  const signInAsGuest = useCallback(async (name: string) => {
+    const { error } = await supabase.auth.signInAnonymously({
+      options: { data: { full_name: name } },
+    });
+    if (error) throw error;
   }, []);
 
   const signOut = useCallback(async () => {
@@ -108,8 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ session, user, loading, signInWithGoogle, signOut }),
-    [session, user, loading, signInWithGoogle, signOut],
+    () => ({ session, user, loading, signInWithGoogle, signInAsGuest, signOut }),
+    [session, user, loading, signInWithGoogle, signInAsGuest, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -38,5 +38,5 @@ supabase/
 
 ## Progress
 
-See [ROADMAP.md](./ROADMAP.md) for the full phased build plan. Currently on
-Phase 1 (done) → Phase 2 (Trip creation) next.
+See [ROADMAP.md](./ROADMAP.md) for the full phased build plan. Phases 1–4
+done → Phase 5 (Expense entry, simple) next.
