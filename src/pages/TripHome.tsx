@@ -48,7 +48,7 @@ export function TripHome() {
   }
 
   return (
-    <PageShell className="px-0">
+    <PageShell padded={false}>
       <div className="relative">
         <CoverPhoto
           url={trip.cover_photo_url}
@@ -61,6 +61,13 @@ export function TripHome() {
           aria-label="Back to dashboard"
         >
           ←
+        </Link>
+        <Link
+          to={`/trips/${trip.id}/settings`}
+          className="absolute top-3 right-4 w-[34px] h-[34px] rounded-full bg-card shadow-card flex items-center justify-center text-secondary"
+          aria-label="Trip settings"
+        >
+          ⚙︎
         </Link>
       </div>
 
@@ -75,7 +82,9 @@ export function TripHome() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <AvatarStack people={trip.members} />
+          <Link to={`/trips/${trip.id}/settings`} aria-label="View members">
+            <AvatarStack people={trip.members} />
+          </Link>
           <button
             onClick={() => void shareInvite()}
             className="ml-auto flex items-center gap-1.5 bg-card rounded-pill px-3.5 py-2 text-[13px] font-bold text-teal shadow-card"

@@ -3,8 +3,16 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import type { Trip } from "@/types/schema";
 
+export interface TripMember {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  role: string;
+  is_registered: boolean;
+}
+
 export interface TripWithMembers extends Trip {
-  members: { id: string; name: string; avatar_url: string | null }[];
+  members: TripMember[];
   isOwner: boolean;
   /** Positive = you're owed; negative = you owe. Wired up once the expenses/balances phase lands. */
   yourBalance: number;
@@ -13,7 +21,7 @@ export interface TripWithMembers extends Trip {
 interface TripRow extends Trip {
   memberships: {
     role: string;
-    user: { id: string; name: string; avatar_url: string | null } | null;
+    user: { id: string; name: string; avatar_url: string | null; is_registered: boolean } | null;
   }[];
 }
 
@@ -28,7 +36,7 @@ export function useTrip(tripId: string | undefined) {
     setLoading(true);
     const { data, error } = await supabase
       .from("trips")
-      .select("*, memberships(role, user:users(id, name, avatar_url))")
+      .select("*, memberships(role, user:users(id, name, avatar_url, is_registered))")
       .eq("id", tripId)
       .returns<TripRow[]>()
       .maybeSingle();
@@ -48,7 +56,9 @@ export function useTrip(tripId: string | undefined) {
     const { memberships, ...rest } = data;
     setTrip({
       ...rest,
-      members: memberships.flatMap((m) => (m.user ? [m.user] : [])),
+      members: memberships.flatMap((m) =>
+        m.user ? [{ ...m.user, role: m.role }] : [],
+      ),
       isOwner: memberships.some((m) => m.user?.id === user?.id && m.role === "owner"),
       yourBalance: 0,
     });

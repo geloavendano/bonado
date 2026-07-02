@@ -5,6 +5,7 @@ import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
 import { CreateTrip } from "@/pages/CreateTrip";
 import { TripHome } from "@/pages/TripHome";
+import { TripSettings } from "@/pages/TripSettings";
 import { TripBalances } from "@/pages/TripBalances";
 import { TripReports } from "@/pages/TripReports";
 import { GuestJoin } from "@/pages/GuestJoin";
@@ -38,6 +39,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TripHome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:tripId/settings"
+            element={
+              <ProtectedRoute>
+                <TripSettings />
               </ProtectedRoute>
             }
           />

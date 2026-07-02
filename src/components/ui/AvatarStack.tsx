@@ -3,7 +3,7 @@ import { Avatar } from "./Avatar";
 interface StackPerson {
   id: string;
   name: string;
-  avatarUrl?: string | null;
+  avatar_url?: string | null;
 }
 
 interface AvatarStackProps {
@@ -24,7 +24,7 @@ export function AvatarStack({ people, size = 30, max = 5 }: AvatarStackProps) {
           key={person.id}
           name={person.name}
           seed={person.id}
-          avatarUrl={person.avatarUrl}
+          avatarUrl={person.avatar_url}
           size={size}
           ring="white"
           className={i > 0 ? "" : undefined}
