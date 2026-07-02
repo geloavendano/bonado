@@ -9,6 +9,8 @@ import { GuestBanner } from "@/components/trip/GuestBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useRecentEntries } from "@/hooks/useRecentEntries";
 import { formatMoney } from "@/lib/money";
+import { useAuth } from "@/context/AuthContext";
+import { isEntryUnread } from "@/lib/entryReadState";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & drink": "🍽",
@@ -21,8 +23,19 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export function TripHome() {
   const trip = useTripLayout();
-  const { entries, loading: entriesLoading } = useRecentEntries(trip.id);
+  const { user } = useAuth();
+  const { entries, loading: entriesLoading, error: entriesError } =
+    useRecentEntries(trip.id);
   const [copied, setCopied] = useState(false);
+  const groupedEntries = entries.reduce<Map<string, typeof entries>>(
+    (groups, entry) => {
+      const group = groups.get(entry.date) ?? [];
+      group.push(entry);
+      groups.set(entry.date, group);
+      return groups;
+    },
+    new Map(),
+  );
 
   const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
 
@@ -47,35 +60,42 @@ export function TripHome() {
 
   return (
     <PageShell padded={false}>
-      <div className="relative">
-        <CoverPhoto
-          url={trip.cover_photo_url}
-          label={`trip cover — ${trip.location_name ?? trip.name}`}
-          className="h-[150px] w-full"
-        />
+      <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-black/5 bg-bg/90 px-4 backdrop-blur-md">
         <Link
           to="/"
-          className="absolute top-3 left-4 w-[34px] h-[34px] rounded-full bg-card shadow-card flex items-center justify-center text-secondary"
+          className="grid size-9 place-items-center rounded-full bg-card text-secondary shadow-card"
           aria-label="Back to dashboard"
         >
           ←
         </Link>
+        <div className="min-w-0 flex-1 truncate px-3 text-center text-[16px] font-extrabold">
+          {trip.name}
+        </div>
         <Link
           to={`/trips/${trip.id}/settings`}
-          className="absolute top-3 right-4 w-[34px] h-[34px] rounded-full bg-card shadow-card flex items-center justify-center text-secondary"
+          className="grid size-9 place-items-center rounded-full bg-card text-secondary shadow-card"
           aria-label="Trip settings"
         >
           ⚙︎
         </Link>
       </div>
 
+      <div>
+        <CoverPhoto
+          url={trip.cover_photo_url}
+          label={`trip cover — ${trip.location_name ?? trip.name}`}
+          className="h-[150px] w-full"
+        />
+      </div>
+
       <div className="flex flex-col gap-3.5 px-6 pt-4 pb-24">
         <GuestBanner />
 
         <div>
-          <div className="text-[21px] font-extrabold tracking-[-0.4px]">{trip.name}</div>
           {trip.location_name && (
-            <div className="text-[13px] text-secondary mt-0.5">{trip.location_name}</div>
+            <div className="text-[13px] font-semibold text-secondary">
+              {trip.location_name}
+            </div>
           )}
         </div>
 
@@ -110,8 +130,8 @@ export function TripHome() {
           <div className="ml-auto text-[13.5px] font-bold text-teal">Details →</div>
         </Link>
 
-        <div className="flex items-baseline justify-between mt-0.5">
-          <SectionLabel>Recent entries</SectionLabel>
+        <div className="mt-0.5 flex items-baseline justify-between">
+          <SectionLabel>Transaction history</SectionLabel>
         </div>
 
         {entriesLoading ? (
@@ -119,20 +139,65 @@ export function TripHome() {
             <Skeleton className="h-[68px] w-full rounded-[18px]" />
             <Skeleton className="h-[68px] w-full rounded-[18px]" />
           </div>
+        ) : entriesError ? (
+          <div className="rounded-[18px] bg-owe-tint p-4 text-center text-[12.5px] text-owe">
+            Couldn’t load transactions. {entriesError}
+          </div>
         ) : entries.length > 0 ? (
-          <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
-            {entries.map((entry, index) => {
-              const total = entry.payments.reduce(
-                (sum, payment) => sum + Number(payment.amount_paid),
-                0,
-              );
+          <div className="flex flex-col gap-1">
+            {[...groupedEntries.entries()].map(([date, dateEntries]) => {
+              const dateValue = new Date(`${date}T00:00:00`);
+              const today = new Date();
+              const yesterday = new Date();
+              yesterday.setDate(today.getDate() - 1);
+              const sameDay = (left: Date, right: Date) =>
+                left.getFullYear() === right.getFullYear() &&
+                left.getMonth() === right.getMonth() &&
+                left.getDate() === right.getDate();
+              const dateLabel = sameDay(dateValue, today)
+                ? "Today"
+                : sameDay(dateValue, yesterday)
+                  ? "Yesterday"
+                  : dateValue.toLocaleDateString(undefined, {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    });
+
+              return (
+                <section key={date}>
+                  <div className="sticky top-14 z-10 -mx-1 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
+                    {dateLabel}
+                  </div>
+                  <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+                    {dateEntries.map((entry, index) => {
+              const yourShare = user
+                ? entry.line_items.reduce(
+                    (sum, item) =>
+                      sum +
+                      item.line_item_shares
+                        .filter((share) => share.user_id === user.id)
+                        .reduce((shareSum, share) => shareSum + Number(share.owed_amount), 0),
+                    0,
+                  ) +
+                  entry.adjustments.reduce(
+                    (sum, adjustment) =>
+                      sum +
+                      adjustment.adjustment_shares
+                        .filter((share) => share.user_id === user.id)
+                        .reduce((shareSum, share) => shareSum + Number(share.owed_amount), 0),
+                    0,
+                  )
+                : 0;
+              const yourPaid = user
+                ? entry.payments
+                    .filter((payment) => payment.user_id === user.id)
+                    .reduce((sum, payment) => sum + Number(payment.amount_paid), 0)
+                : 0;
               const payerNames = entry.payments
                 .flatMap((payment) => (payment.user ? [payment.user.name] : []))
                 .join(", ");
-              const dateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(
-                undefined,
-                { month: "short", day: "numeric" },
-              );
+              const unread = Boolean(user && isEntryUnread(entry, user.id));
 
               return (
                 <Link
@@ -140,7 +205,7 @@ export function TripHome() {
                   to={`/trips/${trip.id}/expenses/${entry.id}`}
                   className={
                     "flex items-center gap-3 py-3.5" +
-                    (index < entries.length - 1 ? " border-b border-black/5" : "")
+                    (index < dateEntries.length - 1 ? " border-b border-black/5" : "")
                   }
                 >
                   <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">
@@ -149,14 +214,31 @@ export function TripHome() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14.5px] font-bold">{entry.description}</div>
                     <div className="truncate text-[11.5px] text-secondary">
-                      {dateLabel}
-                      {payerNames ? ` · Paid by ${payerNames}` : ""}
+                      {payerNames ? `Paid by ${payerNames}` : "No payer"}
                     </div>
                   </div>
-                  <div className="shrink-0 text-[14px] font-extrabold">
-                    {formatMoney(total, entry.currency)}
+                  <div className="shrink-0 text-right">
+                    <div className="text-[14px] font-extrabold">
+                      {formatMoney(yourShare, entry.currency)}
+                    </div>
+                    {yourPaid > 0 && (
+                      <div className="text-[10.5px] font-semibold text-secondary">
+                        Paid {formatMoney(yourPaid, entry.currency)}
+                      </div>
+                    )}
                   </div>
+                  <span
+                    aria-label={unread ? "Unread transaction" : undefined}
+                    className={
+                      "size-2 flex-none rounded-full " +
+                      (unread ? "bg-teal" : "bg-transparent")
+                    }
+                  />
                 </Link>
+              );
+                    })}
+                  </div>
+                </section>
               );
             })}
           </div>

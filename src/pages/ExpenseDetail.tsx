@@ -11,6 +11,7 @@ import { useExpenseMutations } from "@/hooks/useExpenseMutations";
 import { useReceiptUpload } from "@/hooks/useReceiptUpload";
 import { supabase } from "@/lib/supabase";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
+import { markEntryRead } from "@/lib/entryReadState";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & drink": "🍽",
@@ -56,6 +57,10 @@ export function ExpenseDetail() {
       cancelled = true;
     };
   }, [expense]);
+
+  useEffect(() => {
+    if (expense && user) markEntryRead(expense, user.id);
+  }, [expense, user]);
 
   const breakdown = useMemo(() => {
     if (!expense) return [];
