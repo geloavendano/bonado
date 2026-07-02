@@ -10,7 +10,7 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-dvh bg-bg flex flex-col items-center justify-center px-6 gap-10">
+    <div className="motion-page min-h-dvh bg-bg flex flex-col items-center justify-center px-6 gap-10">
       <div className="text-[28px] font-extrabold tracking-tight text-ink">
         bonado<span className="text-teal">.</span>
       </div>

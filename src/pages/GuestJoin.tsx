@@ -3,8 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { CoverPhoto } from "@/components/ui/CoverPhoto";
 import { AvatarStack } from "@/components/ui/AvatarStack";
+import { Avatar } from "@/components/ui/Avatar";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { TripPageSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { useTripPreview } from "@/hooks/useTripPreview";
 import { supabase } from "@/lib/supabase";
@@ -18,20 +20,36 @@ export function GuestJoin() {
   const [name, setName] = useState("");
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const storageKey = token ? `bonado:join:${token}` : "";
+  const storedIdentity = storageKey ? sessionStorage.getItem(storageKey) : null;
+  const [selectedIdentity, setSelectedIdentity] = useState<string>(
+    storedIdentity ?? "new",
+  );
+  const [joinStarted, setJoinStarted] = useState(Boolean(storedIdentity));
   const hasJoinedRef = useRef(false);
 
   // Once we have an authenticated session (guest or Google) and a resolved
   // trip, join it. Covers both the "Join as guest" button and returning
   // here after a "Continue with Google" redirect.
   useEffect(() => {
-    if (authLoading || previewLoading || !user || !preview || hasJoinedRef.current) return;
+    if (
+      authLoading ||
+      previewLoading ||
+      !user ||
+      !preview ||
+      !joinStarted ||
+      hasJoinedRef.current
+    ) return;
     hasJoinedRef.current = true;
 
     (async () => {
       setJoining(true);
-      const { error: joinError } = await supabase.rpc("join_trip", {
-        p_trip_id: preview.trip_id,
-      });
+      const { error: joinError } = selectedIdentity === "new"
+        ? await supabase.rpc("join_trip", { p_trip_id: preview.trip_id })
+        : await supabase.rpc("claim_temporary_trip_member", {
+            p_trip_id: preview.trip_id,
+            p_guest_id: selectedIdentity,
+          });
 
       if (joinError) {
         setError(joinError.message);
@@ -40,14 +58,24 @@ export function GuestJoin() {
         return;
       }
 
+      if (storageKey) sessionStorage.removeItem(storageKey);
       navigate(`/trips/${preview.trip_id}`, { replace: true });
     })();
-  }, [authLoading, previewLoading, user, preview, navigate]);
+  }, [
+    authLoading,
+    previewLoading,
+    user,
+    preview,
+    navigate,
+    joinStarted,
+    selectedIdentity,
+    storageKey,
+  ]);
 
   if (previewLoading) {
     return (
       <PageShell>
-        <div className="text-secondary text-sm py-10 text-center">Loading invite…</div>
+        <TripPageSkeleton />
       </PageShell>
     );
   }
@@ -64,6 +92,33 @@ export function GuestJoin() {
   }
 
   const inviter = preview.members[0]?.name;
+  const claimableMembers = preview.members.filter((member) => member.is_claimable);
+
+  function beginJoin() {
+    if (storageKey) sessionStorage.setItem(storageKey, selectedIdentity);
+    setJoinStarted(true);
+  }
+
+  async function joinAsGuest() {
+    const selectedMember = claimableMembers.find(
+      (member) => member.id === selectedIdentity,
+    );
+    const guestName = selectedMember?.name ?? name.trim();
+    if (!guestName) return;
+    beginJoin();
+    try {
+      await signInAsGuest(guestName);
+    } catch (joinError) {
+      setJoinStarted(false);
+      if (storageKey) sessionStorage.removeItem(storageKey);
+      setError(joinError instanceof Error ? joinError.message : "Unable to join");
+    }
+  }
+
+  function joinWithGoogle() {
+    beginJoin();
+    void signInWithGoogle(window.location.href);
+  }
 
   return (
     <PageShell>
@@ -71,7 +126,7 @@ export function GuestJoin() {
         <CoverPhoto
           url={preview.cover_photo_url}
           label={`trip cover — ${preview.location_name ?? preview.name}`}
-          className="h-[130px] rounded-[20px]"
+          className="h-[130px] w-full rounded-[20px]"
         />
 
         <div className="text-center flex flex-col items-center gap-1">
@@ -87,41 +142,92 @@ export function GuestJoin() {
           </div>
         </div>
 
-        {joining || user ? (
+        {joining ? (
           <div className="text-secondary text-sm text-center py-4">Joining…</div>
         ) : (
           <>
-            <div className="text-xs font-bold uppercase tracking-[0.09em] text-secondary mt-1">
-              Your name
-            </div>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Sofia"
-            />
+            {claimableMembers.length > 0 && (
+              <>
+                <div className="text-xs font-bold uppercase tracking-[0.09em] text-secondary mt-1">
+                  Which person are you?
+                </div>
+                <div className="motion-reveal flex flex-col gap-2">
+                  {claimableMembers.map((member) => (
+                    <button
+                      key={member.id}
+                      onClick={() => setSelectedIdentity(member.id)}
+                      className={
+                        "flex items-center gap-3 rounded-[16px] border px-3 py-2.5 text-left " +
+                        (selectedIdentity === member.id
+                          ? "border-teal bg-teal-tint"
+                          : "border-black/5 bg-card")
+                      }
+                    >
+                      <Avatar name={member.name} seed={member.id} size={34} />
+                      <span className="flex-1 font-semibold text-[14px]">{member.name}</span>
+                      <span className="text-[13px] font-bold text-teal">
+                        {selectedIdentity === member.id ? "✓" : ""}
+                      </span>
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setSelectedIdentity("new")}
+                    className={
+                      "rounded-[16px] border px-3 py-3 text-left text-[14px] font-semibold " +
+                      (selectedIdentity === "new"
+                        ? "border-teal bg-teal-tint text-teal-dark"
+                        : "border-black/5 bg-card text-secondary")
+                    }
+                  >
+                    I’m not listed
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selectedIdentity === "new" && !user && (
+              <>
+                <div className="text-xs font-bold uppercase tracking-[0.09em] text-secondary mt-1">
+                  Your name
+                </div>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Sofia"
+                />
+              </>
+            )}
 
             {error && <p className="text-owe text-[13px]">{error}</p>}
 
-            <Button
-              fullWidth
-              disabled={name.trim().length === 0}
-              onClick={() => void signInAsGuest(name.trim()).catch((e) => setError(e.message))}
-            >
-              Join as guest
-            </Button>
+            {user ? (
+              <Button fullWidth onClick={beginJoin}>
+                Join trip
+              </Button>
+            ) : (
+              <>
+                <Button
+                  fullWidth
+                  disabled={selectedIdentity === "new" && name.trim().length === 0}
+                  onClick={() => void joinAsGuest()}
+                >
+                  Join as guest
+                </Button>
 
-            <div className="flex items-center gap-3 text-faint-2 text-xs font-semibold">
-              <div className="flex-1 border-t border-[#e5e7e6]" />
-              or
-              <div className="flex-1 border-t border-[#e5e7e6]" />
-            </div>
+                <div className="flex items-center gap-3 text-faint-2 text-xs font-semibold">
+                  <div className="flex-1 border-t border-[#e5e7e6]" />
+                  or
+                  <div className="flex-1 border-t border-[#e5e7e6]" />
+                </div>
 
-            <button
-              onClick={() => void signInWithGoogle(window.location.href)}
-              className="bg-card border-[1.5px] border-[#e0e2e1] rounded-pill py-[14px] text-center font-bold text-[15px] flex items-center justify-center gap-2"
-            >
-              <span className="text-base">Ⓖ</span> Continue with Google
-            </button>
+                <button
+                  onClick={joinWithGoogle}
+                  className="bg-card border-[1.5px] border-[#e0e2e1] rounded-pill py-[14px] text-center font-bold text-[15px] flex items-center justify-center gap-2"
+                >
+                  <span className="text-base">Ⓖ</span> Continue with Google
+                </button>
+              </>
+            )}
 
             <p className="text-center text-secondary text-[12.5px] leading-relaxed">
               No account needed — you can claim your expenses with a full

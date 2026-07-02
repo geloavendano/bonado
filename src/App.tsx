@@ -10,6 +10,7 @@ import { TripBalances } from "@/pages/TripBalances";
 import { TripReports } from "@/pages/TripReports";
 import { GuestJoin } from "@/pages/GuestJoin";
 import { ComingSoon } from "@/pages/ComingSoon";
+import { TripLayout } from "@/components/trip/TripLayout";
 
 export default function App() {
   return (
@@ -38,31 +39,19 @@ export default function App() {
             path="/trips/:tripId"
             element={
               <ProtectedRoute>
-                <TripHome />
+                <TripLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<TripHome />} />
+            <Route path="balances" element={<TripBalances />} />
+            <Route path="reports" element={<TripReports />} />
+          </Route>
           <Route
             path="/trips/:tripId/settings"
             element={
               <ProtectedRoute>
                 <TripSettings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trips/:tripId/balances"
-            element={
-              <ProtectedRoute>
-                <TripBalances />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trips/:tripId/reports"
-            element={
-              <ProtectedRoute>
-                <TripReports />
               </ProtectedRoute>
             }
           />

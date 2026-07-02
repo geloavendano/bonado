@@ -1,30 +1,16 @@
 import { useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { CoverPhoto } from "@/components/ui/CoverPhoto";
 import { AvatarStack } from "@/components/ui/AvatarStack";
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { TripNav } from "@/components/trip/TripNav";
+import { useTripLayout } from "@/components/trip/useTripLayout";
 import { GuestBanner } from "@/components/trip/GuestBanner";
-import { useTrip } from "@/hooks/useTrip";
 import { formatMoney } from "@/lib/money";
 
 export function TripHome() {
-  const { tripId } = useParams<{ tripId: string }>();
-  const { trip, loading } = useTrip(tripId);
+  const trip = useTripLayout();
   const [copied, setCopied] = useState(false);
-
-  if (loading) {
-    return (
-      <PageShell>
-        <div className="text-secondary text-sm py-10 text-center">Loading trip…</div>
-      </PageShell>
-    );
-  }
-
-  if (!trip) {
-    return <Navigate to="/" replace />;
-  }
 
   const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
 
@@ -53,7 +39,7 @@ export function TripHome() {
         <CoverPhoto
           url={trip.cover_photo_url}
           label={`trip cover — ${trip.location_name ?? trip.name}`}
-          className="h-[150px]"
+          className="h-[150px] w-full"
         />
         <Link
           to="/"
@@ -120,8 +106,6 @@ export function TripHome() {
           No expenses yet. Tap + to add the first one.
         </div>
       </div>
-
-      <TripNav tripId={trip.id} />
     </PageShell>
   );
 }

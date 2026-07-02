@@ -7,7 +7,12 @@ export interface TripPreview {
   location_name: string | null;
   cover_photo_url: string | null;
   member_count: number;
-  members: { id: string; name: string; avatar_url: string | null }[];
+  members: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    is_claimable: boolean;
+  }[];
 }
 
 export function useTripPreview(token: string | undefined) {

@@ -12,7 +12,7 @@ export function CoverPhoto({ url, label, className }: CoverPhotoProps) {
       <img
         src={url}
         alt={label}
-        className={clsx("w-full object-cover", className)}
+        className={clsx("block object-cover", className)}
       />
     );
   }

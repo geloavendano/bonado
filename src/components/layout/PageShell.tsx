@@ -15,7 +15,7 @@ export function PageShell({ className, padded = true, ...props }: PageShellProps
   return (
     <div className="min-h-dvh bg-bg">
       <div
-        className={clsx("mx-auto max-w-[430px] pb-10", padded && "px-6", className)}
+        className={clsx("motion-page mx-auto max-w-[430px] pb-10", padded && "px-6", className)}
         {...props}
       />
     </div>

@@ -10,14 +10,29 @@ const TABS = [
 export function TripNav({ tripId }: { tripId: string }) {
   const location = useLocation();
   const base = `/trips/${tripId}`;
+  const activeIndex = Math.max(
+    0,
+    TABS.findIndex((tab) => location.pathname === `${base}${tab.path}`),
+  );
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-10 pointer-events-none">
+    <div className="motion-dock fixed inset-x-0 bottom-0 z-10 pointer-events-none">
       <div
-        className="mx-auto max-w-[430px] px-6 flex items-center justify-between gap-3"
+        className="mx-auto flex w-full max-w-[430px] items-center gap-3 px-6"
         style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
       >
-        <div className="flex items-center bg-card rounded-pill px-[5px] py-2 shadow-floating pointer-events-auto">
+        <nav
+          className="relative grid min-w-0 flex-1 grid-cols-3 items-center rounded-pill bg-card p-[5px] shadow-floating pointer-events-auto"
+          aria-label="Trip sections"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-[5px] left-[5px] rounded-pill bg-teal-tint transition-transform duration-300 ease-out"
+            style={{
+              width: "calc((100% - 10px) / 3)",
+              transform: `translateX(${activeIndex * 100}%)`,
+            }}
+          />
           {TABS.map((tab) => {
             const href = `${base}${tab.path}`;
             const active = location.pathname === href;
@@ -26,8 +41,8 @@ export function TripNav({ tripId }: { tripId: string }) {
                 key={tab.key}
                 to={href}
                 className={clsx(
-                  "flex items-center gap-1 rounded-pill px-2.5 py-2 text-[12.5px] leading-none",
-                  active ? "bg-teal-tint text-teal-dark font-extrabold" : "text-secondary font-semibold",
+                  "relative z-[1] flex min-w-0 items-center justify-center gap-1 rounded-pill px-1.5 py-2 text-[12px] leading-none",
+                  active ? "text-teal-dark font-extrabold" : "text-secondary font-semibold",
                 )}
               >
                 <span className="text-sm leading-none">{tab.icon}</span>
@@ -35,13 +50,23 @@ export function TripNav({ tripId }: { tripId: string }) {
               </Link>
             );
           })}
-        </div>
+        </nav>
         <Link
           to={`${base}/expenses/new`}
-          className="w-[46px] h-[46px] rounded-full bg-teal text-white flex items-center justify-center shadow-fab flex-none pointer-events-auto"
+          className="grid size-10 flex-none place-items-center rounded-full bg-teal text-white shadow-fab pointer-events-auto"
           aria-label="Add expense"
         >
-          <span className="text-2xl font-bold leading-none translate-y-[-1px]">+</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="size-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
         </Link>
       </div>
     </div>

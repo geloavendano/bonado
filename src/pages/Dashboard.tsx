@@ -9,6 +9,7 @@ import { CoverPhoto } from "@/components/ui/CoverPhoto";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { buttonClasses } from "@/components/ui/Button";
 import { GuestBanner } from "@/components/trip/GuestBanner";
 import { formatMoney } from "@/lib/money";
@@ -45,11 +46,11 @@ function CurrentTripCard({ trip }: { trip: TripWithMembers }) {
         <CoverPhoto
           url={trip.cover_photo_url}
           label={`trip cover — ${trip.location_name ?? trip.name}`}
-          className="h-[170px]"
+          className="h-[170px] w-full"
         />
         <div className="p-[18px] flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex-1 text-[19px] font-bold tracking-[-0.3px] truncate">
+            <div className="min-w-0 flex-1 text-[19px] font-bold tracking-[-0.3px] truncate">
               {trip.name}
             </div>
             <Pill tone={trip.yourBalance < 0 ? "danger" : "teal"}>
@@ -73,7 +74,7 @@ function CurrentTripCard({ trip }: { trip: TripWithMembers }) {
 function TripRow({ trip }: { trip: TripWithMembers }) {
   return (
     <Link to={`/trips/${trip.id}`} className="block">
-      <Card className="rounded-[18px] p-3 flex items-center gap-3">
+      <Card className="min-w-0 overflow-hidden rounded-[18px] p-3 flex items-center gap-3">
         <CoverPhoto
           url={trip.cover_photo_url}
           label="cover"
@@ -86,7 +87,9 @@ function TripRow({ trip }: { trip: TripWithMembers }) {
             {trip.members.length === 1 ? "person" : "people"}
           </div>
         </div>
-        <BalanceStatus trip={trip} />
+        <div className="max-w-[34%] shrink-0 text-right">
+          <BalanceStatus trip={trip} />
+        </div>
       </Card>
     </Link>
   );
@@ -115,7 +118,7 @@ export function Dashboard() {
         <GuestBanner />
 
         {loading && (
-          <div className="text-secondary text-sm py-10 text-center">Loading trips…</div>
+          <DashboardSkeleton />
         )}
 
         {!loading && trips.length === 0 && (
