@@ -16,6 +16,7 @@ import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { useBalances } from "@/hooks/useBalances";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 
 export function TripHome() {
   const trip = useTripLayout();
@@ -23,6 +24,7 @@ export function TripHome() {
   const { entries, loading: entriesLoading, error: entriesError } =
     useRecentEntries(trip.id);
   const { balances } = useBalances(trip.id);
+  const { rates } = useCurrencyRates(trip.default_currency);
   const [copied, setCopied] = useState(false);
   const toastMessage = useRouteToast();
   const [headerCompact, setHeaderCompact] = useState(false);
@@ -39,6 +41,11 @@ export function TripHome() {
   const yourBalance =
     balances.find((balance) => balance.user_id === user?.id)?.balance ??
     trip.yourBalance;
+  const balanceCurrency =
+    user?.preferred_currency && rates[user.preferred_currency]
+      ? user.preferred_currency
+      : trip.default_currency;
+  const displayedBalance = yourBalance * (rates[balanceCurrency] ?? 1);
 
   const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
 
@@ -187,11 +194,22 @@ export function TripHome() {
               {yourBalance === 0
                 ? "Settled up"
                 : yourBalance > 0
-                  ? `You're owed ${formatMoney(yourBalance, trip.default_currency)}`
-                  : `You owe ${formatMoney(-yourBalance, trip.default_currency)}`}
+                  ? `You're owed ${formatMoney(displayedBalance, balanceCurrency)}`
+                  : `You owe ${formatMoney(-displayedBalance, balanceCurrency)}`}
             </div>
           </div>
-          <div className="ml-auto text-[13.5px] font-bold text-teal">Details →</div>
+          <svg
+            viewBox="0 0 24 24"
+            className="ml-auto size-5 flex-none text-teal"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m9 6 6 6-6 6" />
+          </svg>
         </Link>
 
         <div className="mt-0.5 flex items-baseline justify-between">
@@ -239,8 +257,9 @@ export function TripHome() {
                 const isSender = entry.from_user_id === user?.id;
                 const isReceiver = entry.to_user_id === user?.id;
                 return (
-                  <div
+                  <Link
                     key={`settlement-${entry.id}`}
+                    to={`/trips/${trip.id}/settlements/${entry.id}`}
                     className={
                       "flex items-center gap-3 py-3.5" +
                       (index < dateEntries.length - 1 ? " border-b border-black/5" : "")
@@ -267,7 +286,7 @@ export function TripHome() {
                       {formatMoney(entry.amount, trip.default_currency)}
                     </div>
                     <span className="size-2 flex-none" />
-                  </div>
+                  </Link>
                 );
               }
               const yourShare = user

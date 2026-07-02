@@ -62,7 +62,7 @@ celebration state. Real balances are also wired into Trip Home and Dashboard.
 Reports screen (`4g`): by-category donut chart, by-account view (money in/
 out, expense vs transfer).
 
-## Phase 10 — Currency conversion
+## Phase 10 — Currency conversion ✅ done
 
 Per-entry currency with rate snapshot, Frankfurter API integration,
 per-user display currency, daily rate caching (`exchange_rate_cache`).

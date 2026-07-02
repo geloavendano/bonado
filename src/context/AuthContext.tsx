@@ -18,6 +18,7 @@ interface AuthContextValue {
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signInAsGuest: (name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfile: (input: { name?: string; preferredCurrency?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -141,9 +142,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const updateProfile = useCallback(async (input: {
+    name?: string;
+    preferredCurrency?: string;
+  }) => {
+    if (!user) return false;
+    const { data, error } = await supabase
+      .from("users")
+      .update({
+        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+        ...(input.preferredCurrency !== undefined
+          ? { preferred_currency: input.preferredCurrency }
+          : {}),
+      })
+      .eq("id", user.id)
+      .select("*")
+      .single();
+    if (error) return false;
+    setUser(data as User);
+    return true;
+  }, [user]);
+
   const value = useMemo(
-    () => ({ session, user, loading, signInWithGoogle, signInAsGuest, signOut }),
-    [session, user, loading, signInWithGoogle, signInAsGuest, signOut],
+    () => ({ session, user, loading, signInWithGoogle, signInAsGuest, signOut, updateProfile }),
+    [session, user, loading, signInWithGoogle, signInAsGuest, signOut, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -11,11 +11,18 @@ import { formatMoney } from "@/lib/money";
 import { TripTabHeader } from "@/components/trip/TripTabHeader";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { ChevronDown } from "@/components/ui/ChevronDown";
+import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 
 export function TripReports() {
   const trip = useTripLayout();
   const { user } = useAuth();
   const { report, loading, error } = useTripReports(trip.id, user?.id);
+  const { rates } = useCurrencyRates(trip.default_currency);
+  const displayCurrency =
+    user?.preferred_currency && rates[user.preferred_currency]
+      ? user.preferred_currency
+      : trip.default_currency;
+  const displayRate = rates[displayCurrency] ?? 1;
   const expandedKey = `bonado:reports:${trip.id}:expanded`;
   const [expandedCategory, setExpandedCategory] = useState<string | null>(
     () => sessionStorage.getItem(expandedKey),
@@ -50,7 +57,7 @@ export function TripReports() {
                   You spent
                 </div>
                 <div className="mt-1 text-[21px] font-extrabold tracking-[-0.5px] text-teal-dark">
-                  {formatMoney(report.userTotal, trip.default_currency)}
+                  {formatMoney(report.userTotal * displayRate, displayCurrency)}
                 </div>
               </div>
               <div className="px-3 text-center">
@@ -58,7 +65,7 @@ export function TripReports() {
                   Group spent
                 </div>
                 <div className="mt-1 text-[21px] font-extrabold tracking-[-0.5px]">
-                  {formatMoney(report.groupTotal, trip.default_currency)}
+                  {formatMoney(report.groupTotal * displayRate, displayCurrency)}
                 </div>
               </div>
             </div>
@@ -104,7 +111,7 @@ export function TripReports() {
                       <span className="col-start-2 col-end-4 grid grid-cols-2 gap-3">
                         <span className="grid min-w-0">
                           <span className="truncate text-[12.5px] font-extrabold text-teal-dark">
-                            {formatMoney(category.userAmount, trip.default_currency)}
+                            {formatMoney(category.userAmount * displayRate, displayCurrency)}
                           </span>
                           <span className="text-[9.5px] font-semibold text-secondary">
                             You · {Math.round(userPercent)}% of your total
@@ -112,7 +119,7 @@ export function TripReports() {
                         </span>
                         <span className="grid min-w-0 text-right">
                           <span className="truncate text-[12.5px] font-extrabold">
-                            {formatMoney(category.groupAmount, trip.default_currency)}
+                            {formatMoney(category.groupAmount * displayRate, displayCurrency)}
                           </span>
                           <span className="text-[9.5px] font-semibold text-secondary">
                             Group · {Math.round(groupPercent)}% of total

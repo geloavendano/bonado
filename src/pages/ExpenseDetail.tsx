@@ -22,6 +22,13 @@ function labelForAdjustment(type: string) {
   return "Service charge";
 }
 
+function formatTimestamp(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function ExpenseDetail() {
   const { tripId, entryId } = useParams<{ tripId: string; entryId: string }>();
   const navigate = useNavigate();
@@ -315,6 +322,13 @@ export function ExpenseDetail() {
                 </div>
               </>
             )}
+
+            <div className="rounded-[16px] bg-track px-4 py-3 text-[11px] text-secondary">
+              <div>Created {formatTimestamp(expense.created_at)}</div>
+              {expense.last_edited_at && (
+                <div className="mt-1">Updated {formatTimestamp(expense.last_edited_at)}</div>
+              )}
+            </div>
 
             <SectionLabel>Receipt</SectionLabel>
             <input

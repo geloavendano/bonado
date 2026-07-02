@@ -91,6 +91,13 @@ export function TripBalances() {
   const displayRate = rates[displayCurrency] ?? (displayCurrency === trip.default_currency ? 1 : 0);
   const convert = (amount: number) => amount * displayRate;
 
+  useEffect(() => {
+    const preferred = user?.preferred_currency;
+    if (preferred && (preferred === trip.default_currency || rates[preferred])) {
+      setDisplayCurrency(preferred);
+    }
+  }, [rates, trip.default_currency, user?.preferred_currency]);
+
   const memberBalances = useMemo(
     () =>
       trip.members.map((member) => ({

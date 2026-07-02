@@ -342,6 +342,7 @@ export function AddExpense() {
       tripId: activeTripId,
       amount: numericAmount,
       currency,
+      tripDefaultCurrency: trip.default_currency,
       description: description.trim(),
       payee: payee.trim(),
       date,

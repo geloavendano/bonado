@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useTrips, type TripWithMembers } from "@/hooks/useTrips";
@@ -13,6 +14,9 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { buttonClasses } from "@/components/ui/Button";
 import { GuestBanner } from "@/components/trip/GuestBanner";
 import { formatMoney } from "@/lib/money";
+import { ALL_CURRENCIES } from "@/lib/currencies";
+import { ChevronDown } from "@/components/ui/ChevronDown";
+import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 
 function tripDateRange(trip: TripWithMembers): string {
   return new Date(trip.created_at).toLocaleDateString(undefined, {
@@ -21,25 +25,31 @@ function tripDateRange(trip: TripWithMembers): string {
   });
 }
 
-function BalanceStatus({ trip }: { trip: TripWithMembers }) {
+function BalanceStatus({ trip, displayCurrency }: { trip: TripWithMembers; displayCurrency: string }) {
+  const { rates } = useCurrencyRates(trip.default_currency);
+  const currency = rates[displayCurrency] ? displayCurrency : trip.default_currency;
+  const amount = trip.yourBalance * (rates[currency] ?? 1);
   if (trip.yourBalance === 0) {
     return <span className="text-[13px] font-semibold text-faint">Settled ✓</span>;
   }
   if (trip.yourBalance > 0) {
     return (
       <span className="text-[13px] font-bold text-owed">
-        You're owed {formatMoney(trip.yourBalance, trip.default_currency)}
+        You're owed {formatMoney(amount, currency)}
       </span>
     );
   }
   return (
     <span className="text-[13px] font-bold text-owe">
-      You owe {formatMoney(-trip.yourBalance, trip.default_currency)}
+      You owe {formatMoney(-amount, currency)}
     </span>
   );
 }
 
-function CurrentTripCard({ trip }: { trip: TripWithMembers }) {
+function CurrentTripCard({ trip, displayCurrency }: { trip: TripWithMembers; displayCurrency: string }) {
+  const { rates } = useCurrencyRates(trip.default_currency);
+  const currency = rates[displayCurrency] ? displayCurrency : trip.default_currency;
+  const amount = trip.yourBalance * (rates[currency] ?? 1);
   return (
     <Link to={`/trips/${trip.id}`} className="block">
       <Card className="rounded-[22px] overflow-hidden shadow-hero">
@@ -57,8 +67,8 @@ function CurrentTripCard({ trip }: { trip: TripWithMembers }) {
               {trip.yourBalance === 0
                 ? "Settled up"
                 : trip.yourBalance > 0
-                  ? `You're owed ${formatMoney(trip.yourBalance, trip.default_currency)}`
-                  : `You owe ${formatMoney(-trip.yourBalance, trip.default_currency)}`}
+                  ? `You're owed ${formatMoney(amount, currency)}`
+                  : `You owe ${formatMoney(-amount, currency)}`}
             </Pill>
           </div>
           <div className="text-[13px] text-secondary">
@@ -71,7 +81,7 @@ function CurrentTripCard({ trip }: { trip: TripWithMembers }) {
   );
 }
 
-function TripRow({ trip }: { trip: TripWithMembers }) {
+function TripRow({ trip, displayCurrency }: { trip: TripWithMembers; displayCurrency: string }) {
   return (
     <Link to={`/trips/${trip.id}`} className="block">
       <Card className="min-w-0 overflow-hidden rounded-[18px] p-3 flex items-center gap-3">
@@ -88,7 +98,7 @@ function TripRow({ trip }: { trip: TripWithMembers }) {
           </div>
         </div>
         <div className="max-w-[34%] shrink-0 text-right">
-          <BalanceStatus trip={trip} />
+          <BalanceStatus trip={trip} displayCurrency={displayCurrency} />
         </div>
       </Card>
     </Link>
@@ -96,10 +106,21 @@ function TripRow({ trip }: { trip: TripWithMembers }) {
 }
 
 export function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateProfile } = useAuth();
   const { trips, loading } = useTrips();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
 
   const [currentTrip, ...restTrips] = trips;
+
+  useEffect(() => {
+    function closeAccount(event: PointerEvent) {
+      if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false);
+    }
+    document.addEventListener("pointerdown", closeAccount);
+    return () => document.removeEventListener("pointerdown", closeAccount);
+  }, []);
 
   return (
     <PageShell>
@@ -108,9 +129,56 @@ export function Dashboard() {
           bonado<span className="text-teal">.</span>
         </div>
         {user && (
-          <button onClick={() => void signOut()} title="Sign out">
-            <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={38} />
-          </button>
+          <div ref={accountRef} className="relative z-30">
+            <button
+              onClick={() => setAccountOpen((open) => !open)}
+              aria-label="Account menu"
+              aria-expanded={accountOpen}
+            >
+              <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={38} />
+            </button>
+            {accountOpen && (
+              <div className="motion-reveal absolute right-0 top-12 w-[250px] rounded-[18px] bg-card p-3 shadow-floating">
+                <div className="flex items-center gap-3 border-b border-black/5 px-1 pb-3">
+                  <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={36} />
+                  <div className="min-w-0">
+                    <div className="truncate text-[13.5px] font-bold">{user.name}</div>
+                    <div className="truncate text-[10.5px] text-secondary">{user.email}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSettingsOpen((open) => !open)}
+                  className="flex w-full items-center justify-between px-1 py-3 text-left text-[12.5px] font-bold"
+                >
+                  Settings
+                  <ChevronDown className={settingsOpen ? "rotate-180" : ""} />
+                </button>
+                {settingsOpen && (
+                  <label className="motion-reveal relative mb-2 grid gap-1 text-[10px] font-bold uppercase tracking-[0.06em] text-secondary">
+                    Display currency
+                    <select
+                      value={user.preferred_currency}
+                      onChange={(event) => void updateProfile({ preferredCurrency: event.target.value })}
+                      className="appearance-none rounded-xl bg-tile py-2.5 pl-3 pr-9 font-bold text-ink outline-none"
+                    >
+                      {ALL_CURRENCIES.map((currency) => (
+                        <option key={currency.code} value={currency.code}>
+                          {currency.code} · {currency.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute bottom-2.5 right-3" />
+                  </label>
+                )}
+                <button
+                  onClick={() => void signOut()}
+                  className="w-full border-t border-black/5 px-1 pt-3 text-left text-[12.5px] font-bold text-owe"
+                >
+                  Log out
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -133,7 +201,7 @@ export function Dashboard() {
         {!loading && currentTrip && (
           <>
             <SectionLabel>Current trip</SectionLabel>
-            <CurrentTripCard trip={currentTrip} />
+            <CurrentTripCard trip={currentTrip} displayCurrency={user?.preferred_currency ?? currentTrip.default_currency} />
           </>
         )}
 
@@ -141,7 +209,7 @@ export function Dashboard() {
           <>
             <SectionLabel className="mt-1.5">All trips</SectionLabel>
             {restTrips.map((trip) => (
-              <TripRow key={trip.id} trip={trip} />
+              <TripRow key={trip.id} trip={trip} displayCurrency={user?.preferred_currency ?? trip.default_currency} />
             ))}
           </>
         )}

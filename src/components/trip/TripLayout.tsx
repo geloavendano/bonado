@@ -22,7 +22,8 @@ export function TripLayout() {
   return (
     <>
       <Outlet context={trip} />
-      {!location.pathname.includes("/expenses/") && <TripNav tripId={trip.id} />}
+      {!location.pathname.includes("/expenses/") &&
+        !location.pathname.includes("/settlements/") && <TripNav tripId={trip.id} />}
     </>
   );
 }

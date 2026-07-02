@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { invalidateExpense } from "@/hooks/useExpense";
 import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
 import { invalidateBalances } from "@/lib/balanceData";
+import { fetchExchangeRate } from "@/hooks/useCurrencyRates";
 
 export interface PayerAllocation {
   userId: string;
@@ -16,6 +17,7 @@ export interface SimpleExpenseInput {
   tripId: string;
   amount: number;
   currency: string;
+  tripDefaultCurrency: string;
   description: string;
   payee: string;
   date: string;
@@ -52,9 +54,21 @@ export function useCreateExpense() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function resolveRate(input: Pick<SimpleExpenseInput, "currency" | "tripDefaultCurrency">) {
+    return fetchExchangeRate(input.currency, input.tripDefaultCurrency);
+  }
+
   async function createExpense(input: SimpleExpenseInput) {
     setSubmitting(true);
     setError(null);
+    let exchangeRate: number;
+    try {
+      exchangeRate = await resolveRate(input);
+    } catch (rateError) {
+      setSubmitting(false);
+      setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
+      return false;
+    }
 
     const participantCount = input.participantIds.length;
     const baseShare = Math.floor((input.amount * 100) / participantCount) / 100;
@@ -73,10 +87,11 @@ export function useCreateExpense() {
       };
     });
 
-    const { error: createError } = await supabase.rpc("create_itemized_expense", {
+    const { error: createError } = await supabase.rpc("create_itemized_expense_with_rate", {
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
+      p_exchange_rate: exchangeRate,
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
@@ -95,11 +110,12 @@ export function useCreateExpense() {
       p_adjustments: [],
     });
 
-    setSubmitting(false);
     if (createError) {
+      setSubmitting(false);
       setError(createError.message);
       return false;
     }
+    setSubmitting(false);
 
     invalidateRecentEntries(input.tripId);
     invalidateBalances(input.tripId);
@@ -110,11 +126,20 @@ export function useCreateExpense() {
   async function createItemizedExpense(input: ItemizedExpenseInput) {
     setSubmitting(true);
     setError(null);
+    let exchangeRate: number;
+    try {
+      exchangeRate = await resolveRate(input);
+    } catch (rateError) {
+      setSubmitting(false);
+      setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
+      return false;
+    }
 
-    const { error: createError } = await supabase.rpc("create_itemized_expense", {
+    const { error: createError } = await supabase.rpc("create_itemized_expense_with_rate", {
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
+      p_exchange_rate: exchangeRate,
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
@@ -146,11 +171,12 @@ export function useCreateExpense() {
       })),
     });
 
-    setSubmitting(false);
     if (createError) {
+      setSubmitting(false);
       setError(createError.message);
       return false;
     }
+    setSubmitting(false);
 
     invalidateRecentEntries(input.tripId);
     invalidateBalances(input.tripId);
@@ -164,12 +190,21 @@ export function useCreateExpense() {
   ) {
     setSubmitting(true);
     setError(null);
+    let exchangeRate: number;
+    try {
+      exchangeRate = await resolveRate(input);
+    } catch (rateError) {
+      setSubmitting(false);
+      setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
+      return false;
+    }
 
-    const { error: replaceError } = await supabase.rpc("replace_expense", {
+    const { error: replaceError } = await supabase.rpc("replace_expense_with_rate", {
       p_entry_id: entryId,
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
+      p_exchange_rate: exchangeRate,
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
@@ -201,11 +236,12 @@ export function useCreateExpense() {
       })),
     });
 
-    setSubmitting(false);
     if (replaceError) {
+      setSubmitting(false);
       setError(replaceError.message);
       return false;
     }
+    setSubmitting(false);
 
     invalidateExpense(entryId);
     invalidateRecentEntries(input.tripId);

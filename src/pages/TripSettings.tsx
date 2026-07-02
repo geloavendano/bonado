@@ -12,6 +12,10 @@ import { useTrip } from "@/hooks/useTrip";
 import { useUpdateTrip } from "@/hooks/useUpdateTrip";
 import { useManageTripGuests } from "@/hooks/useManageTripGuests";
 import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
+import { useCoverPhotoUpload } from "@/hooks/useCoverPhotoUpload";
+import { SUGGESTED_CURRENCIES, ALL_CURRENCIES } from "@/lib/currencies";
+import { ChevronDown } from "@/components/ui/ChevronDown";
+import clsx from "clsx";
 
 export function TripSettings() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -26,9 +30,12 @@ export function TripSettings() {
     busyGuestId,
     error: guestError,
   } = useManageTripGuests();
+  const { upload, uploading, error: coverError } = useCoverPhotoUpload();
 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [currency, setCurrency] = useState("");
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
   const [confirmingGuestId, setConfirmingGuestId] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
@@ -37,12 +44,15 @@ export function TripSettings() {
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showInviteLink, setShowInviteLink] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const formFlow = useMobileFormFlow(formRef);
 
   useEffect(() => {
     if (trip) {
       setName(trip.name);
       setLocation(trip.location_name ?? "");
+      setCurrency(trip.default_currency);
+      setCoverPhotoUrl(trip.cover_photo_url);
     }
   }, [trip]);
 
@@ -55,18 +65,36 @@ export function TripSettings() {
   }
 
   if (!trip) return <Navigate to="/" replace />;
+  const previousCurrency = trip.default_currency;
 
-  const dirty = name.trim() !== trip.name || location.trim() !== (trip.location_name ?? "");
+  const dirty =
+    name.trim() !== trip.name ||
+    location.trim() !== (trip.location_name ?? "") ||
+    currency !== trip.default_currency ||
+    coverPhotoUrl !== trip.cover_photo_url;
 
   async function handleSave() {
     if (!tripId || name.trim().length === 0) return;
-    const ok = await updateTrip(tripId, { name: name.trim(), locationName: location.trim() });
+    const ok = await updateTrip(tripId, {
+      name: name.trim(),
+      locationName: location.trim(),
+      defaultCurrency: currency,
+      previousCurrency,
+      coverPhotoUrl,
+    });
     if (ok) {
       navigate(`/trips/${tripId}`, {
         replace: true,
         state: { toast: "Changes have been saved." },
       });
     }
+  }
+
+  async function handleCoverChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const url = await upload(file);
+    if (url) setCoverPhotoUrl(url);
   }
 
   async function handleRenameGuest(guestId: string) {
@@ -134,6 +162,66 @@ export function TripSettings() {
           placeholder="City, country"
           enterKeyHint="done"
         />
+
+        <SectionLabel>Trip currency</SectionLabel>
+        <div className="flex flex-wrap gap-2">
+          {SUGGESTED_CURRENCIES.map((item) => (
+            <button
+              key={item.code}
+              onClick={() => setCurrency(item.code)}
+              className={clsx(
+                "rounded-pill border-2 px-4 py-2 text-[13.5px] font-bold",
+                currency === item.code
+                  ? "border-teal bg-teal-tint text-teal-dark"
+                  : "border-transparent bg-card text-secondary shadow-card",
+              )}
+            >
+              {item.code} {item.symbol}
+            </button>
+          ))}
+          <div className="relative">
+            <select
+              value={currency}
+              onChange={(event) => setCurrency(event.target.value)}
+              className="appearance-none rounded-pill border-2 border-transparent bg-card py-2 pl-4 pr-9 text-[13.5px] font-bold text-secondary shadow-card outline-none"
+            >
+              {ALL_CURRENCIES.map((item) => (
+                <option key={item.code} value={item.code}>{item.code} · {item.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" />
+          </div>
+        </div>
+        {currency !== trip.default_currency && (
+          <p className="text-[11px] leading-relaxed text-secondary">
+            Existing expenses will be rebased to {currency} using the latest available rates.
+          </p>
+        )}
+
+        <SectionLabel>Cover photo</SectionLabel>
+        {coverPhotoUrl ? (
+          <img src={coverPhotoUrl} alt="Trip cover" className="h-[140px] w-full rounded-[18px] object-cover" />
+        ) : (
+          <div className="cover-placeholder grid h-[140px] place-items-center rounded-[18px] text-[11px] text-faint">
+            No cover photo
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleCoverChange} />
+        <div className="flex gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-pill bg-card px-4 py-2.5 text-[12.5px] font-bold text-teal shadow-card disabled:opacity-50"
+          >
+            {uploading ? "Uploading…" : "Change cover"}
+          </button>
+          {coverPhotoUrl && (
+            <button onClick={() => setCoverPhotoUrl(null)} className="px-3 py-2.5 text-[12.5px] font-bold text-owe">
+              Remove
+            </button>
+          )}
+        </div>
+        {coverError && <p className="text-[12.5px] text-owe">{coverError}</p>}
 
         {error && <p className="text-owe text-[13px]">{error}</p>}
 

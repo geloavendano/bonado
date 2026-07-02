@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface FrankfurterResponse {
   date: string;
@@ -23,6 +24,34 @@ function readCache(base: string) {
   } catch {
     return null;
   }
+}
+
+export async function fetchExchangeRate(base: string, target: string) {
+  if (base === target) return 1;
+  const cached = readCache(base);
+  if (cached?.rates[target]) return Number(cached.rates[target]);
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: databaseRate } = await supabase
+    .from("exchange_rate_cache")
+    .select("rate")
+    .eq("base_currency", base)
+    .eq("target_currency", target)
+    .gte("fetched_at", cutoff)
+    .maybeSingle();
+  if (databaseRate?.rate) return Number(databaseRate.rate);
+  const response = await fetch(
+    `https://api.frankfurter.dev/v1/latest?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(target)}`,
+  );
+  if (!response.ok) throw new Error(`No conversion rate is available for ${base} → ${target}.`);
+  const result = (await response.json()) as FrankfurterResponse;
+  const rate = Number(result.rates[target]);
+  if (!rate) throw new Error(`No conversion rate is available for ${base} → ${target}.`);
+  void supabase.rpc("cache_exchange_rate", {
+    p_base_currency: base,
+    p_target_currency: target,
+    p_rate: rate,
+  });
+  return rate;
 }
 
 export function useCurrencyRates(baseCurrency: string) {

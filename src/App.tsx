@@ -12,6 +12,8 @@ import { TripReports } from "@/pages/TripReports";
 import { GuestJoin } from "@/pages/GuestJoin";
 import { TripLayout } from "@/components/trip/TripLayout";
 import { NavigationRestoration } from "@/components/NavigationRestoration";
+import { SettlementDetail } from "@/pages/SettlementDetail";
+import { EditSettlement } from "@/pages/EditSettlement";
 
 const AddExpense = lazy(() =>
   import("@/pages/AddExpense").then((module) => ({ default: module.AddExpense })),
@@ -65,6 +67,8 @@ export default function App() {
             <Route path="expenses/new" element={<AddExpense />} />
             <Route path="expenses/:entryId" element={<ExpenseDetail />} />
             <Route path="expenses/:entryId/edit" element={<AddExpense />} />
+            <Route path="settlements/:settlementId" element={<SettlementDetail />} />
+            <Route path="settlements/:settlementId/edit" element={<EditSettlement />} />
           </Route>
           <Route
             path="/trips/:tripId/settings"
