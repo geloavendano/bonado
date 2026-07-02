@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Trip } from "@/types/schema";
+import { fetchBalances } from "@/lib/balanceData";
+import { useAuth } from "@/context/AuthContext";
 
 export interface TripWithMembers extends Trip {
   members: { id: string; name: string; avatar_url: string | null }[];
@@ -13,6 +15,7 @@ interface TripRow extends Trip {
 }
 
 export function useTrips() {
+  const { user } = useAuth();
   const [trips, setTrips] = useState<TripWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +39,18 @@ export function useTrips() {
         return;
       }
 
+      const rows = data ?? [];
+      const balanceRows = await Promise.all(
+        rows.map((trip) => fetchBalances(trip.id).catch(() => [])),
+      );
+      if (cancelled) return;
+
       setTrips(
-        (data ?? []).map(({ memberships, ...trip }) => ({
+        rows.map(({ memberships, ...trip }, index) => ({
           ...trip,
           members: memberships.flatMap((m) => (m.user ? [m.user] : [])),
-          yourBalance: 0,
+          yourBalance:
+            balanceRows[index].find((balance) => balance.user_id === user?.id)?.balance ?? 0,
         })),
       );
       setLoading(false);
@@ -50,7 +60,7 @@ export function useTrips() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user?.id]);
 
   return { trips, loading, error };
 }

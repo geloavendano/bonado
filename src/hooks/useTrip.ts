@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import type { Trip } from "@/types/schema";
+import { fetchBalances } from "@/lib/balanceData";
 
 export interface TripMember {
   id: string;
@@ -53,6 +54,7 @@ export function useTrip(tripId: string | undefined) {
       return;
     }
 
+    const balanceRows = await fetchBalances(tripId).catch(() => []);
     const { memberships, ...rest } = data;
     setTrip({
       ...rest,
@@ -60,7 +62,8 @@ export function useTrip(tripId: string | undefined) {
         m.user ? [{ ...m.user, role: m.role }] : [],
       ),
       isOwner: memberships.some((m) => m.user?.id === user?.id && m.role === "owner"),
-      yourBalance: 0,
+      yourBalance:
+        balanceRows.find((balance) => balance.user_id === user?.id)?.balance ?? 0,
     });
     setLoading(false);
   }, [tripId, user?.id]);

@@ -51,10 +51,11 @@ breakdown, private receipt photo, full expense editing (amount, currency,
 payers, payment accounts, and splits), and confirmed soft deletion
 (online only).
 
-## Phase 8 — Balances / settle up
+## Phase 8 — Balances / settle up ✅ done
 
 Balances screen (`4f`): net position per person, record-settlement bottom
-sheet, "trip settled" celebration state.
+sheet, suggested transfers, optional payment account, and "trip settled"
+celebration state. Real balances are also wired into Trip Home and Dashboard.
 
 ## Phase 9 — Reports
 

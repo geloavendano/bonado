@@ -1,27 +1,398 @@
+import { useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Toast } from "@/components/ui/Toast";
+import {
+  PaymentMethodPicker,
+  type PaymentMethod,
+} from "@/components/expense/PaymentMethodPicker";
 import { useTripLayout } from "@/components/trip/useTripLayout";
+import { useBalances } from "@/hooks/useBalances";
+import { useRecordSettlement } from "@/hooks/useRecordSettlement";
+import { useAuth } from "@/context/AuthContext";
+import { formatMoney, formatSignedMoney } from "@/lib/money";
+
+interface SuggestedSettlement {
+  fromUserId: string;
+  toUserId: string;
+  amount: number;
+}
+
+function todayForInput() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function buildSuggestions(
+  balances: { user_id: string; balance: number }[],
+): SuggestedSettlement[] {
+  const debtors = balances
+    .filter((row) => row.balance < -0.005)
+    .map((row) => ({ id: row.user_id, amount: -row.balance }))
+    .sort((a, b) => b.amount - a.amount);
+  const creditors = balances
+    .filter((row) => row.balance > 0.005)
+    .map((row) => ({ id: row.user_id, amount: row.balance }))
+    .sort((a, b) => b.amount - a.amount);
+  const suggestions: SuggestedSettlement[] = [];
+
+  let debtorIndex = 0;
+  let creditorIndex = 0;
+  while (debtorIndex < debtors.length && creditorIndex < creditors.length) {
+    const debtor = debtors[debtorIndex];
+    const creditor = creditors[creditorIndex];
+    const amount = Math.round(Math.min(debtor.amount, creditor.amount) * 100) / 100;
+    if (amount > 0) {
+      suggestions.push({
+        fromUserId: debtor.id,
+        toUserId: creditor.id,
+        amount,
+      });
+    }
+    debtor.amount -= amount;
+    creditor.amount -= amount;
+    if (debtor.amount < 0.005) debtorIndex += 1;
+    if (creditor.amount < 0.005) creditorIndex += 1;
+  }
+  return suggestions;
+}
 
 export function TripBalances() {
-  useTripLayout();
+  const trip = useTripLayout();
+  const { user } = useAuth();
+  const { balances, loading, error, reload } = useBalances(trip.id);
+  const { recordSettlement, saving, error: settlementError } = useRecordSettlement();
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [fromUserId, setFromUserId] = useState("");
+  const [toUserId, setToUserId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(todayForInput);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
+  const [paymentLabel, setPaymentLabel] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+
+  const memberBalances = useMemo(
+    () =>
+      trip.members.map((member) => ({
+        ...member,
+        balance:
+          balances.find((balance) => balance.user_id === member.id)?.balance ?? 0,
+      })),
+    [balances, trip.members],
+  );
+  const suggestions = useMemo(() => buildSuggestions(balances), [balances]);
+  const yourBalance =
+    balances.find((balance) => balance.user_id === user?.id)?.balance ?? 0;
+  const hasActivity = balances.some((balance) => balance.has_activity);
+  const hasEstimatedRates = balances.some((balance) => balance.has_estimated_rates);
+  const isSettled =
+    hasActivity && balances.every((balance) => Math.abs(balance.balance) < 0.005);
+
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const first = suggestions[0];
+    if (first) {
+      setFromUserId(first.fromUserId);
+      setToUserId(first.toUserId);
+      setAmount(String(first.amount));
+    } else {
+      setFromUserId((current) => current || user?.id || trip.members[0]?.id || "");
+      setToUserId((current) =>
+        current || trip.members.find((member) => member.id !== user?.id)?.id || "",
+      );
+    }
+  }, [sheetOpen, suggestions, trip.members, user?.id]);
+
+  useEffect(() => {
+    if (fromUserId && fromUserId === toUserId) {
+      setToUserId(
+        trip.members.find((member) => member.id !== fromUserId)?.id ?? "",
+      );
+    }
+  }, [fromUserId, toUserId, trip.members]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2800);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  function openSuggestion(suggestion?: SuggestedSettlement) {
+    if (suggestion) {
+      setFromUserId(suggestion.fromUserId);
+      setToUserId(suggestion.toUserId);
+      setAmount(String(suggestion.amount));
+    }
+    setSheetOpen(true);
+  }
+
+  async function handleSettlement() {
+    const numericAmount = Number(amount);
+    if (
+      !fromUserId ||
+      !toUserId ||
+      fromUserId === toUserId ||
+      numericAmount <= 0
+    ) {
+      return;
+    }
+    const ok = await recordSettlement({
+      tripId: trip.id,
+      fromUserId,
+      toUserId,
+      amount: numericAmount,
+      date,
+      paymentMethod,
+      paymentLabel,
+    });
+    if (ok) {
+      setSheetOpen(false);
+      setPaymentMethod("");
+      setPaymentLabel("");
+      await reload();
+      setToast("Settlement recorded.");
+    }
+  }
+
+  const personName = (id: string) =>
+    trip.members.find((member) => member.id === id)?.name ?? "Member";
 
   return (
     <PageShell>
-      <div className="text-center pt-4 pb-2 text-[16px] font-bold">Balances</div>
+      <div className="pb-2 pt-4 text-center text-[16px] font-bold">Balances</div>
 
-      <div className="flex flex-col gap-3.5 pt-2.5 pb-20">
-        <div className="bg-teal-tint rounded-[20px] px-[18px] py-5 text-center">
-          <div className="text-[11.5px] font-bold uppercase tracking-[0.09em] text-teal-dark/70">
-            Your position
-          </div>
-          <div className="text-[26px] font-extrabold text-teal-dark tracking-[-0.5px]">
-            Settled up
-          </div>
-        </div>
+      <div className="flex flex-col gap-3.5 pb-24 pt-2.5">
+        {loading && balances.length === 0 ? (
+          <>
+            <Skeleton className="h-[112px] w-full rounded-[20px]" />
+            <Skeleton className="h-[190px] w-full rounded-[18px]" />
+          </>
+        ) : (
+          <>
+            <div
+              className={clsx(
+                "relative overflow-hidden rounded-[20px] px-[18px] py-5 text-center",
+                isSettled ? "bg-teal text-white" : "bg-teal-tint",
+              )}
+            >
+              {isSettled && (
+                <>
+                  <span className="absolute left-8 top-4 size-2 rounded-full bg-white/50" />
+                  <span className="absolute right-10 top-7 size-1.5 rounded-full bg-mint" />
+                  <span className="absolute bottom-5 left-14 size-1 rounded-full bg-white/70" />
+                </>
+              )}
+              <div
+                className={clsx(
+                  "text-[11.5px] font-bold uppercase tracking-[0.09em]",
+                  isSettled ? "text-white/75" : "text-teal-dark/70",
+                )}
+              >
+                Your position
+              </div>
+              <div
+                className={clsx(
+                  "mt-1 text-[26px] font-extrabold tracking-[-0.5px]",
+                  isSettled ? "text-white" : yourBalance < 0 ? "text-owe" : "text-teal-dark",
+                )}
+              >
+                {Math.abs(yourBalance) < 0.005
+                  ? "Settled up"
+                  : yourBalance > 0
+                    ? `You're owed ${formatMoney(yourBalance, trip.default_currency)}`
+                    : `You owe ${formatMoney(-yourBalance, trip.default_currency)}`}
+              </div>
+              {isSettled && (
+                <div className="mt-1 text-[12px] font-semibold text-white/80">
+                  Everyone is even. Nicely done.
+                </div>
+              )}
+            </div>
 
-        <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-card">
-          Balances show up here once trip members start adding expenses.
-        </div>
+            {hasEstimatedRates && (
+              <div className="rounded-[14px] bg-track px-3 py-2.5 text-[11.5px] text-secondary">
+                Includes estimated foreign-currency amounts. Automatic conversion lands in Phase 10.
+              </div>
+            )}
+
+            <SectionLabel>By member</SectionLabel>
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+              {memberBalances
+                .sort((a, b) => b.balance - a.balance)
+                .map((member, index) => (
+                  <div
+                    key={member.id}
+                    className={clsx(
+                      "flex items-center gap-3 py-3",
+                      index < memberBalances.length - 1 && "border-b border-black/5",
+                    )}
+                  >
+                    <Avatar
+                      name={member.name}
+                      seed={member.id}
+                      avatarUrl={member.avatar_url}
+                      size={36}
+                    />
+                    <div className="min-w-0 flex-1 truncate text-[14px] font-semibold">
+                      {member.name}
+                    </div>
+                    <div
+                      className={clsx(
+                        "text-[13px] font-extrabold",
+                        member.balance > 0.005
+                          ? "text-owed"
+                          : member.balance < -0.005
+                            ? "text-owe"
+                            : "text-secondary",
+                      )}
+                    >
+                      {formatSignedMoney(member.balance, trip.default_currency)}
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {suggestions.length > 0 && (
+              <>
+                <SectionLabel>Suggested settlements</SectionLabel>
+                <div className="flex flex-col gap-2">
+                  {suggestions.map((suggestion) => (
+                    <button
+                      key={`${suggestion.fromUserId}-${suggestion.toUserId}`}
+                      onClick={() => openSuggestion(suggestion)}
+                      className="flex items-center gap-2 rounded-[16px] bg-card px-4 py-3 text-left shadow-card"
+                    >
+                      <div className="min-w-0 flex-1 text-[12.5px] text-secondary">
+                        <span className="font-bold text-ink">
+                          {personName(suggestion.fromUserId)}
+                        </span>{" "}
+                        pays{" "}
+                        <span className="font-bold text-ink">
+                          {personName(suggestion.toUserId)}
+                        </span>
+                      </div>
+                      <div className="text-[13px] font-extrabold text-teal-dark">
+                        {formatMoney(suggestion.amount, trip.default_currency)}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {trip.members.length > 1 && (
+              <Button fullWidth onClick={() => openSuggestion()}>
+                Record settlement
+              </Button>
+            )}
+          </>
+        )}
+        {(error || settlementError) && (
+          <p className="text-[12.5px] text-owe">{error ?? settlementError}</p>
+        )}
       </div>
+
+      {sheetOpen && (
+        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/20">
+          <div className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-sheet">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-faint-2/60" />
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                onClick={() => setSheetOpen(false)}
+                className="text-[13px] font-bold text-secondary"
+              >
+                Cancel
+              </button>
+              <div className="text-[16px] font-extrabold">Record settlement</div>
+              <div className="w-12" />
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+                <label className="flex min-w-0 flex-col gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-secondary">
+                  From
+                  <select
+                    value={fromUserId}
+                    onChange={(event) => setFromUserId(event.target.value)}
+                    className="min-w-0 rounded-xl bg-card px-3 py-3 text-[13px] font-semibold text-ink shadow-card outline-none"
+                  >
+                    {trip.members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="pb-3 text-secondary">→</span>
+                <label className="flex min-w-0 flex-col gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-secondary">
+                  To
+                  <select
+                    value={toUserId}
+                    onChange={(event) => setToUserId(event.target.value)}
+                    className="min-w-0 rounded-xl bg-card px-3 py-3 text-[13px] font-semibold text-ink shadow-card outline-none"
+                  >
+                    {trip.members
+                      .filter((member) => member.id !== fromUserId)
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-card">
+                <span className="text-[12px] font-bold text-secondary">
+                  {trip.default_currency}
+                </span>
+                <input
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  className="min-w-0 flex-1 bg-transparent text-right text-[24px] font-extrabold outline-none"
+                />
+              </div>
+
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="rounded-xl bg-card px-3 py-3 text-[13px] font-semibold shadow-card outline-none"
+              />
+
+              <PaymentMethodPicker
+                value={paymentMethod}
+                label={paymentLabel}
+                onChange={setPaymentMethod}
+                onLabelChange={setPaymentLabel}
+              />
+
+              <Button
+                fullWidth
+                disabled={
+                  saving ||
+                  Number(amount) <= 0 ||
+                  !fromUserId ||
+                  !toUserId ||
+                  fromUserId === toUserId
+                }
+                onClick={() => void handleSettlement()}
+              >
+                {saving ? "Recording…" : "Record settlement"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast message={toast} />
     </PageShell>
   );
 }

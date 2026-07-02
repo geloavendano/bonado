@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { invalidateExpense } from "@/hooks/useExpense";
 import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
+import { invalidateBalances } from "@/lib/balanceData";
 
 export function useExpenseMutations() {
   const [saving, setSaving] = useState(false);
@@ -40,7 +41,10 @@ export function useExpenseMutations() {
       return false;
     }
     invalidateExpense(entryId);
-    if (tripId) invalidateRecentEntries(tripId);
+    if (tripId) {
+      invalidateRecentEntries(tripId);
+      invalidateBalances(tripId);
+    }
     return true;
   }
 

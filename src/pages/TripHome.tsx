@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { isEntryUnread } from "@/lib/entryReadState";
 import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
+import { useBalances } from "@/hooks/useBalances";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & drink": "🍽",
@@ -28,6 +29,7 @@ export function TripHome() {
   const { user } = useAuth();
   const { entries, loading: entriesLoading, error: entriesError } =
     useRecentEntries(trip.id);
+  const { balances } = useBalances(trip.id);
   const [copied, setCopied] = useState(false);
   const toastMessage = useRouteToast();
   const [headerCompact, setHeaderCompact] = useState(false);
@@ -41,6 +43,9 @@ export function TripHome() {
     },
     new Map(),
   );
+  const yourBalance =
+    balances.find((balance) => balance.user_id === user?.id)?.balance ??
+    trip.yourBalance;
 
   const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
 
@@ -186,11 +191,11 @@ export function TripHome() {
               Your balance
             </div>
             <div className="text-[19px] font-extrabold text-teal-dark">
-              {trip.yourBalance === 0
+              {yourBalance === 0
                 ? "Settled up"
-                : trip.yourBalance > 0
-                  ? `You're owed ${formatMoney(trip.yourBalance, trip.default_currency)}`
-                  : `You owe ${formatMoney(-trip.yourBalance, trip.default_currency)}`}
+                : yourBalance > 0
+                  ? `You're owed ${formatMoney(yourBalance, trip.default_currency)}`
+                  : `You owe ${formatMoney(-yourBalance, trip.default_currency)}`}
             </div>
           </div>
           <div className="ml-auto text-[13.5px] font-bold text-teal">Details →</div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { invalidateExpense } from "@/hooks/useExpense";
 import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
+import { invalidateBalances } from "@/lib/balanceData";
 
 export interface PayerAllocation {
   userId: string;
@@ -101,6 +102,7 @@ export function useCreateExpense() {
     }
 
     invalidateRecentEntries(input.tripId);
+    invalidateBalances(input.tripId);
     navigate(`/trips/${input.tripId}`, { replace: true });
     return true;
   }
@@ -151,6 +153,7 @@ export function useCreateExpense() {
     }
 
     invalidateRecentEntries(input.tripId);
+    invalidateBalances(input.tripId);
     navigate(`/trips/${input.tripId}`, { replace: true });
     return true;
   }
@@ -203,6 +206,7 @@ export function useCreateExpense() {
 
     invalidateExpense(entryId);
     invalidateRecentEntries(input.tripId);
+    invalidateBalances(input.tripId);
     navigate(`/trips/${input.tripId}/expenses/${entryId}`, {
       replace: true,
       state: { toast: "Transaction changes have been saved." },
