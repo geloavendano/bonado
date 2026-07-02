@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { CoverPhoto } from "@/components/ui/CoverPhoto";
@@ -27,6 +27,8 @@ export function TripHome() {
   const { entries, loading: entriesLoading, error: entriesError } =
     useRecentEntries(trip.id);
   const [copied, setCopied] = useState(false);
+  const [headerCompact, setHeaderCompact] = useState(false);
+  const headerSentinelRef = useRef<HTMLDivElement>(null);
   const groupedEntries = entries.reduce<Map<string, typeof entries>>(
     (groups, entry) => {
       const group = groups.get(entry.date) ?? [];
@@ -38,6 +40,23 @@ export function TripHome() {
   );
 
   const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
+
+  useEffect(() => {
+    let frame = 0;
+    function updateHeader() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const top = headerSentinelRef.current?.getBoundingClientRect().top ?? 1;
+        setHeaderCompact(top <= 0);
+      });
+    }
+    updateHeader();
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateHeader);
+    };
+  }, []);
 
   async function shareInvite() {
     const shareData = {
@@ -60,44 +79,88 @@ export function TripHome() {
 
   return (
     <PageShell padded={false}>
-      <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-black/5 bg-bg/90 px-4 backdrop-blur-md">
+      <div className="relative">
+        <CoverPhoto
+          url={trip.cover_photo_url}
+          label={`trip cover — ${trip.location_name ?? trip.name}`}
+          className="h-[150px] w-full"
+        />
         <Link
           to="/"
-          className="grid size-9 place-items-center rounded-full bg-card text-secondary shadow-card"
+          className="absolute left-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-card"
           aria-label="Back to dashboard"
         >
           ←
         </Link>
-        <div className="min-w-0 flex-1 truncate px-3 text-center text-[16px] font-extrabold">
-          {trip.name}
-        </div>
         <Link
           to={`/trips/${trip.id}/settings`}
-          className="grid size-9 place-items-center rounded-full bg-card text-secondary shadow-card"
+          className="absolute right-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-card"
           aria-label="Trip settings"
         >
           ⚙︎
         </Link>
       </div>
 
-      <div>
-        <CoverPhoto
-          url={trip.cover_photo_url}
-          label={`trip cover — ${trip.location_name ?? trip.name}`}
-          className="h-[150px] w-full"
-        />
+      <div ref={headerSentinelRef} className="h-px" />
+      <div
+        className={
+          "sticky top-0 z-20 flex items-center bg-bg/95 backdrop-blur-md transition-[height,padding,border-color,box-shadow] duration-200 " +
+          (headerCompact
+            ? "h-14 border-b border-black/5 px-4 shadow-card"
+            : "h-[72px] border-b border-transparent px-6")
+        }
+      >
+        <Link
+          to="/"
+          aria-label="Back to dashboard"
+          className={
+            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-card transition-[width,opacity] duration-200 " +
+            (headerCompact
+              ? "pointer-events-auto h-9 w-9 opacity-100"
+              : "pointer-events-none h-9 w-0 opacity-0")
+          }
+        >
+          ←
+        </Link>
+        <div
+          className={
+            "min-w-0 flex-1 transition-[padding,text-align] duration-200 " +
+            (headerCompact ? "px-3 text-center" : "px-0 text-left")
+          }
+        >
+          <div
+            className={
+              "truncate font-extrabold tracking-[-0.4px] transition-[font-size] duration-200 " +
+              (headerCompact ? "text-[16px]" : "text-[21px]")
+            }
+          >
+            {trip.name}
+          </div>
+          <div
+            className={
+              "overflow-hidden text-[12.5px] font-semibold text-secondary transition-[height,opacity,margin] duration-200 " +
+              (headerCompact ? "h-0 opacity-0" : "h-5 opacity-100")
+            }
+          >
+            {trip.location_name}
+          </div>
+        </div>
+        <Link
+          to={`/trips/${trip.id}/settings`}
+          aria-label="Trip settings"
+          className={
+            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-card transition-[width,opacity] duration-200 " +
+            (headerCompact
+              ? "pointer-events-auto h-9 w-9 opacity-100"
+              : "pointer-events-none h-9 w-0 opacity-0")
+          }
+        >
+          ⚙︎
+        </Link>
       </div>
 
       <div className="flex flex-col gap-3.5 px-6 pt-4 pb-24">
         <GuestBanner />
-
-        <div>
-          {trip.location_name && (
-            <div className="text-[13px] font-semibold text-secondary">
-              {trip.location_name}
-            </div>
-          )}
-        </div>
 
         <div className="flex items-center gap-2.5">
           <Link to={`/trips/${trip.id}/settings`} aria-label="View members">
