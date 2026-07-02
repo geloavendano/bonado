@@ -41,6 +41,16 @@ function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+type GlobalSplitMode = "equal" | "percent" | "shares" | "exact" | "itemized";
+
+const SPLIT_MODES: { value: GlobalSplitMode; label: string }[] = [
+  { value: "equal", label: "Equal" },
+  { value: "percent", label: "%" },
+  { value: "shares", label: "Shares" },
+  { value: "exact", label: "Exact" },
+  { value: "itemized", label: "By item" },
+];
+
 export function AddExpense() {
   const { tripId } = useParams<{ tripId: string }>();
   const { user } = useAuth();
@@ -58,7 +68,8 @@ export function AddExpense() {
   const [payerAmounts, setPayerAmounts] = useState<Record<string, string>>({});
   const [payerMethods, setPayerMethods] = useState<Record<string, string>>({});
   const [participantIds, setParticipantIds] = useState<string[]>([]);
-  const [expenseMode, setExpenseMode] = useState<"simple" | "itemized">("simple");
+  const [splitMode, setSplitMode] = useState<GlobalSplitMode>("equal");
+  const [splitValues, setSplitValues] = useState<Record<string, string>>({});
   const [items, setItems] = useState<DraftItem[]>([]);
   const [editingItem, setEditingItem] = useState<DraftItem | null>(null);
   const [itemSheetOpen, setItemSheetOpen] = useState(false);
@@ -106,15 +117,32 @@ export function AddExpense() {
   const reconciliationRemaining = roundMoney(numericAmount - itemizedContentTotal);
   const itemizedValid =
     items.length > 0 && Math.abs(reconciliationRemaining) < 0.001;
+  const splitValueTotal = trip?.members.reduce(
+    (sum, member) => sum + (Number(splitValues[member.id]) || 0),
+    0,
+  ) ?? 0;
+  const customSplitValid =
+    splitMode === "percent"
+      ? Math.abs(splitValueTotal - 100) < 0.001
+      : splitMode === "exact"
+        ? roundMoney(splitValueTotal) === roundMoney(numericAmount)
+        : splitMode === "shares"
+          ? splitValueTotal > 0
+          : false;
+  const splitValid =
+    splitMode === "equal"
+      ? participantIds.length > 0
+      : splitMode === "itemized"
+        ? itemizedValid
+        : customSplitValid;
   const canSubmit =
     numericAmount > 0 &&
     currency.length === 3 &&
     description.trim().length > 0 &&
     categoryId !== null &&
     payerIds.length > 0 &&
-    (expenseMode === "itemized" || participantIds.length > 0) &&
     payerTotalMatches &&
-    (expenseMode === "simple" || itemizedValid) &&
+    splitValid &&
     !submitting;
 
   if (loading) {
@@ -127,6 +155,7 @@ export function AddExpense() {
 
   if (!trip || !tripId) return <Navigate to="/" replace />;
   const activeTripId = trip.id;
+  const activeTripMembers = trip.members;
 
   function togglePayer(memberId: string) {
     setPayerIds((current) => {
@@ -170,6 +199,34 @@ export function AddExpense() {
     });
   }
 
+  function buildGlobalShares() {
+    if (splitMode === "equal" || splitMode === "itemized") return [];
+    const active = activeTripMembers.filter(
+      (member) => (Number(splitValues[member.id]) || 0) > 0,
+    );
+    let allocated = 0;
+    return active.map((member, index) => {
+      const value = Number(splitValues[member.id]);
+      const calculated =
+        splitMode === "exact"
+          ? value
+          : splitMode === "percent"
+            ? numericAmount * (value / 100)
+            : numericAmount * (value / splitValueTotal);
+      const owedAmount =
+        index === active.length - 1
+          ? roundMoney(numericAmount - allocated)
+          : roundMoney(calculated);
+      allocated += owedAmount;
+      return {
+        userId: member.id,
+        shareType: splitMode,
+        shareValue: splitMode === "exact" ? null : value,
+        owedAmount,
+      };
+    });
+  }
+
   function handleSubmit() {
     const common = {
       tripId: activeTripId,
@@ -186,7 +243,7 @@ export function AddExpense() {
       })),
     };
 
-    if (expenseMode === "itemized") {
+    if (splitMode === "itemized") {
       const adjustments = [
         ...(Number(tax) > 0
           ? [{
@@ -213,6 +270,19 @@ export function AddExpense() {
           shares: item.shares,
         })),
         adjustments,
+      });
+      return;
+    }
+
+    if (splitMode !== "equal") {
+      void createItemizedExpense({
+        ...common,
+        items: [{
+          description: description.trim(),
+          amount: numericAmount,
+          shares: buildGlobalShares(),
+        }],
+        adjustments: [],
       });
       return;
     }
@@ -259,31 +329,6 @@ export function AddExpense() {
             {trip.default_currency} balance will be estimated until automatic rates land.
           </p>
         )}
-
-        <div className="grid grid-cols-2 rounded-pill bg-track p-1">
-          <button
-            onClick={() => setExpenseMode("simple")}
-            className={clsx(
-              "rounded-pill px-3 py-2 text-[12.5px] font-bold",
-              expenseMode === "simple"
-                ? "bg-card text-teal-dark shadow-card"
-                : "text-secondary",
-            )}
-          >
-            Simple split
-          </button>
-          <button
-            onClick={() => setExpenseMode("itemized")}
-            className={clsx(
-              "rounded-pill px-3 py-2 text-[12.5px] font-bold",
-              expenseMode === "itemized"
-                ? "bg-card text-teal-dark shadow-card"
-                : "text-secondary",
-            )}
-          >
-            Itemized
-          </button>
-        </div>
 
         <SectionLabel>What was it for?</SectionLabel>
         <Input
@@ -416,9 +461,26 @@ export function AddExpense() {
           </p>
         )}
 
-        {expenseMode === "simple" ? (
+        <SectionLabel className="mt-1">Split between</SectionLabel>
+        <div className="grid grid-cols-5 rounded-[16px] bg-track p-1">
+          {SPLIT_MODES.map((mode) => (
+            <button
+              key={mode.value}
+              onClick={() => setSplitMode(mode.value)}
+              className={clsx(
+                "rounded-[12px] px-1 py-2 text-[10.5px] font-bold",
+                splitMode === mode.value
+                  ? "bg-card text-teal-dark shadow-card"
+                  : "text-secondary",
+              )}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
+        {splitMode === "equal" ? (
           <>
-            <SectionLabel className="mt-1">Split equally between</SectionLabel>
             <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
               {trip.members.map((member, index) => {
                 const included = participantIds.includes(member.id);
@@ -471,9 +533,9 @@ export function AddExpense() {
               </p>
             )}
           </>
-        ) : (
+        ) : splitMode === "itemized" ? (
           <div className="motion-reveal flex flex-col gap-3.5">
-            <SectionLabel className="mt-1">Line items</SectionLabel>
+            <SectionLabel>Line items</SectionLabel>
             {items.length > 0 && (
               <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
                 {items.map((item, index) => {
@@ -576,6 +638,81 @@ export function AddExpense() {
                 <span>{itemizedValid ? "Reconciled" : "Remaining"}</span>
                 <span>{formatMoney(Math.abs(reconciliationRemaining), currency)}</span>
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="motion-reveal flex flex-col gap-2.5">
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+              {trip.members.map((member, index) => {
+                const value = Number(splitValues[member.id]) || 0;
+                const calculated =
+                  splitMode === "exact"
+                    ? value
+                    : splitMode === "percent"
+                      ? numericAmount * (value / 100)
+                      : splitValueTotal > 0
+                        ? numericAmount * (value / splitValueTotal)
+                        : 0;
+                return (
+                  <div
+                    key={member.id}
+                    className={clsx(
+                      "flex items-center gap-3 py-3",
+                      index < trip.members.length - 1 && "border-b border-black/5",
+                    )}
+                  >
+                    <Avatar
+                      name={member.name}
+                      seed={member.id}
+                      avatarUrl={member.avatar_url}
+                      size={34}
+                      ring={value > 0 ? "teal" : "none"}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13.5px] font-semibold">{member.name}</div>
+                      {value > 0 && splitMode !== "exact" && numericAmount > 0 && (
+                        <div className="text-[11px] text-secondary">
+                          {formatMoney(calculated, currency)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex w-[104px] items-center rounded-xl bg-tile px-2.5 py-2">
+                      {splitMode === "exact" && (
+                        <span className="mr-1 text-[10px] font-bold text-secondary">
+                          {currency}
+                        </span>
+                      )}
+                      <input
+                        value={splitValues[member.id] ?? ""}
+                        onChange={(event) =>
+                          setSplitValues((current) => ({
+                            ...current,
+                            [member.id]: event.target.value,
+                          }))
+                        }
+                        inputMode="decimal"
+                        aria-label={`${splitMode} split for ${member.name}`}
+                        className="min-w-0 flex-1 bg-transparent text-right text-[12.5px] font-bold outline-none"
+                      />
+                      {splitMode === "percent" && (
+                        <span className="ml-1 text-[11px] text-secondary">%</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div
+              className={clsx(
+                "text-right text-[12px] font-semibold",
+                customSplitValid ? "text-secondary" : "text-owe",
+              )}
+            >
+              {splitMode === "exact"
+                ? `${formatMoney(splitValueTotal, currency)} of ${formatMoney(numericAmount || 0, currency)}`
+                : splitMode === "percent"
+                  ? `${splitValueTotal}% of 100%`
+                  : `${splitValueTotal} total shares`}
             </div>
           </div>
         )}
