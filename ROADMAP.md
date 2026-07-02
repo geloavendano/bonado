@@ -30,10 +30,12 @@ SECURITY DEFINER RPC, works signed-out), join via anonymous auth or
 Google, auto-join once authenticated. Guest → registered claiming via
 Supabase identity linking (banner shown on Dashboard/Trip home).
 
-## Phase 5 — Expense entry (simple)
+## Phase 5 — Expense entry (simple) ✅ done
 
 Add expense screen (`3b`): amount, description, payee/date, category,
-multiple payers, equal-split toggle per person.
+multiple payers, equal-split toggle per person. Creation is atomic through
+a SECURITY DEFINER RPC, and saved expenses appear in Trip Home's recent
+entries feed.
 
 ## Phase 6 — Expense entry (itemized)
 
@@ -71,4 +73,3 @@ reconnect.
 
 Three-column desktop view (`4i`): trip list rail, wide entries view,
 balance rail.
-

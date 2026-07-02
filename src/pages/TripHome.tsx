@@ -6,10 +6,22 @@ import { AvatarStack } from "@/components/ui/AvatarStack";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useTripLayout } from "@/components/trip/useTripLayout";
 import { GuestBanner } from "@/components/trip/GuestBanner";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useRecentEntries } from "@/hooks/useRecentEntries";
 import { formatMoney } from "@/lib/money";
+
+const CATEGORY_ICONS: Record<string, string> = {
+  "Food & drink": "🍽",
+  Transport: "🚕",
+  Lodging: "🛏",
+  Groceries: "🛒",
+  Activities: "🎟",
+  Other: "•••",
+};
 
 export function TripHome() {
   const trip = useTripLayout();
+  const { entries, loading: entriesLoading } = useRecentEntries(trip.id);
   const [copied, setCopied] = useState(false);
 
   const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
@@ -102,9 +114,56 @@ export function TripHome() {
           <SectionLabel>Recent entries</SectionLabel>
         </div>
 
-        <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-card">
-          No expenses yet. Tap + to add the first one.
-        </div>
+        {entriesLoading ? (
+          <div className="flex flex-col gap-2.5">
+            <Skeleton className="h-[68px] w-full rounded-[18px]" />
+            <Skeleton className="h-[68px] w-full rounded-[18px]" />
+          </div>
+        ) : entries.length > 0 ? (
+          <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+            {entries.map((entry, index) => {
+              const total = entry.payments.reduce(
+                (sum, payment) => sum + Number(payment.amount_paid),
+                0,
+              );
+              const payerNames = entry.payments
+                .flatMap((payment) => (payment.user ? [payment.user.name] : []))
+                .join(", ");
+              const dateLabel = new Date(`${entry.date}T00:00:00`).toLocaleDateString(
+                undefined,
+                { month: "short", day: "numeric" },
+              );
+
+              return (
+                <div
+                  key={entry.id}
+                  className={
+                    "flex items-center gap-3 py-3.5" +
+                    (index < entries.length - 1 ? " border-b border-black/5" : "")
+                  }
+                >
+                  <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">
+                    {CATEGORY_ICONS[entry.category?.name ?? "Other"] ?? "•"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[14.5px] font-bold">{entry.description}</div>
+                    <div className="truncate text-[11.5px] text-secondary">
+                      {dateLabel}
+                      {payerNames ? ` · Paid by ${payerNames}` : ""}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-[14px] font-extrabold">
+                    {formatMoney(total, entry.currency)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-card">
+            No expenses yet. Tap + to add the first one.
+          </div>
+        )}
       </div>
     </PageShell>
   );

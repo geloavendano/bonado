@@ -9,8 +9,8 @@ import { TripSettings } from "@/pages/TripSettings";
 import { TripBalances } from "@/pages/TripBalances";
 import { TripReports } from "@/pages/TripReports";
 import { GuestJoin } from "@/pages/GuestJoin";
-import { ComingSoon } from "@/pages/ComingSoon";
 import { TripLayout } from "@/components/trip/TripLayout";
+import { AddExpense } from "@/pages/AddExpense";
 
 export default function App() {
   return (
@@ -59,7 +59,7 @@ export default function App() {
             path="/trips/:tripId/expenses/new"
             element={
               <ProtectedRoute>
-                <ComingSoon title="Add expense" />
+                <AddExpense />
               </ProtectedRoute>
             }
           />
