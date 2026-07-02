@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 export interface ReportTransaction {
   id: string;
   description: string;
+  payee: string | null;
   date: string;
   currency: string;
   groupAmount: number;
@@ -22,6 +23,7 @@ export interface CategoryReportRow {
 interface ReportEntry {
   id: string;
   description: string;
+  payee: string | null;
   date: string;
   currency: string;
   exchange_rate_to_trip_default: number;
@@ -64,7 +66,7 @@ export function useTripReports(tripId: string, userId: string | undefined) {
     const { data, error: queryError } = await supabase
       .from("entries")
       .select(`
-        id, description, date, currency, exchange_rate_to_trip_default, rate_is_estimated,
+        id, description, payee, date, currency, exchange_rate_to_trip_default, rate_is_estimated,
         category:categories(name),
         payments(amount_paid, user_id, user:users(name)),
         line_items(line_item_shares(user_id, owed_amount)),
@@ -128,6 +130,7 @@ export function useTripReports(tripId: string, userId: string | undefined) {
       row.transactions.push({
         id: entry.id,
         description: entry.description,
+        payee: entry.payee,
         date: entry.date,
         currency: entry.currency,
         groupAmount,

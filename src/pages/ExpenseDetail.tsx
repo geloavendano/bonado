@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
@@ -33,7 +33,6 @@ function labelForAdjustment(type: string) {
 export function ExpenseDetail() {
   const { tripId, entryId } = useParams<{ tripId: string; entryId: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const { expense, loading, reload } = useExpense(entryId);
   const { deleteExpense, saving, error } = useExpenseMutations();
@@ -43,7 +42,6 @@ export function ExpenseDetail() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const toastMessage = useRouteToast();
-  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
 
   useEffect(() => {
     const path = expense?.entry_attachments[0]?.storage_path;
@@ -139,14 +137,10 @@ export function ExpenseDetail() {
     <PageShell>
       <ScreenHeader
         title="Expense details"
-        onBack={() => navigate(returnTo ?? `/trips/${tripId}`)}
+        onBack={() => navigate(-1)}
         right={
           <button
-            onClick={() =>
-              navigate(`/trips/${tripId}/expenses/${entryId}/edit`, {
-                state: returnTo ? { returnTo } : undefined,
-              })
-            }
+            onClick={() => navigate(`/trips/${tripId}/expenses/${entryId}/edit`)}
             className="text-[12.5px] font-bold text-teal"
           >
             Edit

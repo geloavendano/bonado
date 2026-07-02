@@ -9,12 +9,14 @@ interface ToastRouteState {
 export function useRouteToast(duration = 2800) {
   const location = useLocation();
   const navigate = useNavigate();
-  const incoming = (location.state as ToastRouteState | null)?.toast ?? null;
+  const queued = sessionStorage.getItem("bonado:pending-toast");
+  const incoming = (location.state as ToastRouteState | null)?.toast ?? queued ?? null;
   const [message, setMessage] = useState<string | null>(incoming);
 
   useEffect(() => {
     if (!incoming) return;
     setMessage(incoming);
+    sessionStorage.removeItem("bonado:pending-toast");
     const nextState = { ...((location.state as ToastRouteState | null) ?? {}) };
     delete nextState.toast;
     navigate(`${location.pathname}${location.search}${location.hash}`, {

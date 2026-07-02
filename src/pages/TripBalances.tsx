@@ -15,6 +15,7 @@ import { useBalances } from "@/hooks/useBalances";
 import { useRecordSettlement } from "@/hooks/useRecordSettlement";
 import { useAuth } from "@/context/AuthContext";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
+import { TripTabHeader } from "@/components/trip/TripTabHeader";
 
 interface SuggestedSettlement {
   fromUserId: string;
@@ -165,7 +166,7 @@ export function TripBalances() {
 
   return (
     <PageShell>
-      <div className="pb-2 pt-4 text-center text-[16px] font-bold">Balances</div>
+      <TripTabHeader tripId={trip.id} title="Balances" />
 
       <div className="flex flex-col gap-3.5 pb-24 pt-2.5">
         {loading && balances.length === 0 ? (

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useTripReports } from "@/hooks/useTripReports";
 import { useAuth } from "@/context/AuthContext";
 import { formatMoney } from "@/lib/money";
+import { TripTabHeader } from "@/components/trip/TripTabHeader";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & drink": "🍽",
@@ -23,11 +24,21 @@ export function TripReports() {
   const trip = useTripLayout();
   const { user } = useAuth();
   const { report, loading, error } = useTripReports(trip.id, user?.id);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const expandedKey = `bonado:reports:${trip.id}:expanded`;
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(
+    () => sessionStorage.getItem(expandedKey),
+  );
+
+  function toggleCategory(name: string) {
+    const next = expandedCategory === name ? null : name;
+    setExpandedCategory(next);
+    if (next) sessionStorage.setItem(expandedKey, next);
+    else sessionStorage.removeItem(expandedKey);
+  }
 
   return (
     <PageShell>
-      <div className="pb-2 pt-4 text-center text-[16px] font-bold">Reports</div>
+      <TripTabHeader tripId={trip.id} title="Reports" />
 
       <div className="flex flex-col gap-3.5 pb-24 pt-2.5">
         {loading ? (
@@ -67,7 +78,7 @@ export function TripReports() {
             )}
 
             <SectionLabel>Spending breakdown</SectionLabel>
-            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-card">
+            <div className="rounded-[18px] bg-card px-4 shadow-card">
               {report.categories.map((category, index) => {
                 const expanded = expandedCategory === category.name;
                 const userPercent =
@@ -79,8 +90,11 @@ export function TripReports() {
                     className={clsx(index < report.categories.length - 1 && "border-b border-black/5")}
                   >
                     <button
-                      onClick={() => setExpandedCategory(expanded ? null : category.name)}
-                      className="grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3.5 text-left"
+                      onClick={() => toggleCategory(category.name)}
+                      className={clsx(
+                        "grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-card py-3.5 text-left",
+                        expanded && "sticky top-14 z-10",
+                      )}
                       aria-expanded={expanded}
                     >
                       <span className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">
@@ -123,7 +137,6 @@ export function TripReports() {
                           <Link
                             key={entry.id}
                             to={`/trips/${trip.id}/expenses/${entry.id}`}
-                            state={{ returnTo: `/trips/${trip.id}/reports` }}
                             className={clsx(
                               "flex items-center gap-3 py-3",
                               transactionIndex < category.transactions.length - 1 &&
@@ -135,20 +148,26 @@ export function TripReports() {
                                 {entry.description}
                               </div>
                               <div className="truncate text-[10.5px] text-secondary">
-                                {entry.payerNames.length
-                                  ? `Paid by ${entry.payerNames.join(", ")}`
-                                  : "No payer"}
+                                {entry.payee ? `Paid to ${entry.payee}` : "No payee"}
                               </div>
                             </div>
-                            <div className="shrink-0 text-right">
-                              <div className="text-[12.5px] font-extrabold">
-                                {formatMoney(entry.userAmount, entry.currency)}
-                              </div>
-                              {entry.userPaid > 0 && (
-                                <div className="text-[9.5px] font-semibold text-secondary">
-                                  Paid {formatMoney(entry.userPaid, entry.currency)}
+                            <div className="grid shrink-0 grid-cols-2 gap-3 text-right">
+                              <div>
+                                <div className="text-[12.5px] font-extrabold text-teal-dark">
+                                  {formatMoney(entry.userAmount, entry.currency)}
                                 </div>
-                              )}
+                                <div className="text-[9.5px] font-semibold text-secondary">
+                                  Your share
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[12.5px] font-extrabold">
+                                  {formatMoney(entry.groupAmount, entry.currency)}
+                                </div>
+                                <div className="text-[9.5px] font-semibold text-secondary">
+                                  Group
+                                </div>
+                              </div>
                             </div>
                             <span className="text-[12px] text-faint">›</span>
                           </Link>

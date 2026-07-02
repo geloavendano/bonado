@@ -11,6 +11,7 @@ import { TripBalances } from "@/pages/TripBalances";
 import { TripReports } from "@/pages/TripReports";
 import { GuestJoin } from "@/pages/GuestJoin";
 import { TripLayout } from "@/components/trip/TripLayout";
+import { NavigationRestoration } from "@/components/NavigationRestoration";
 
 const AddExpense = lazy(() =>
   import("@/pages/AddExpense").then((module) => ({ default: module.AddExpense })),
@@ -22,6 +23,7 @@ const ExpenseDetail = lazy(() =>
 export default function App() {
   return (
     <BrowserRouter>
+      <NavigationRestoration />
       <AuthProvider>
         <Suspense
           fallback={

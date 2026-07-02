@@ -161,7 +161,6 @@ export function useCreateExpense() {
   async function replaceExpense(
     entryId: string,
     input: ItemizedExpenseInput,
-    returnTo?: string,
   ) {
     setSubmitting(true);
     setError(null);
@@ -211,13 +210,11 @@ export function useCreateExpense() {
     invalidateExpense(entryId);
     invalidateRecentEntries(input.tripId);
     invalidateBalances(input.tripId);
-    navigate(`/trips/${input.tripId}/expenses/${entryId}`, {
-      replace: true,
-      state: {
-        toast: "Transaction changes have been saved.",
-        ...(returnTo ? { returnTo } : {}),
-      },
-    });
+    sessionStorage.setItem(
+      "bonado:pending-toast",
+      "Transaction changes have been saved.",
+    );
+    navigate(-1);
     return true;
   }
 

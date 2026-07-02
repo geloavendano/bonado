@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
 import { StickyActionBar } from "@/components/layout/StickyActionBar";
@@ -60,7 +60,6 @@ const SPLIT_MODES: { value: GlobalSplitMode; label: string }[] = [
 export function AddExpense() {
   const { entryId } = useParams<{ entryId?: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const trip = useTripLayout();
   const { expense, loading: expenseLoading } = useExpense(entryId);
@@ -75,7 +74,6 @@ export function AddExpense() {
   const initializedEntryRef = useRef<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const formFlow = useMobileFormFlow(formRef);
-  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
 
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("");
@@ -401,7 +399,7 @@ export function AddExpense() {
         ...common,
         items: expenseItems,
         adjustments,
-      }, returnTo);
+      });
       return;
     }
 
@@ -421,14 +419,7 @@ export function AddExpense() {
     <PageShell>
       <ScreenHeader
         title={entryId ? "Edit expense" : "Add expense"}
-        onBack={() =>
-          navigate(
-            entryId
-              ? `/trips/${trip.id}/expenses/${entryId}`
-              : `/trips/${trip.id}`,
-            entryId && returnTo ? { state: { returnTo } } : undefined,
-          )
-        }
+        onBack={() => navigate(-1)}
       />
 
       <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-28">
