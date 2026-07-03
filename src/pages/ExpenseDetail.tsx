@@ -133,7 +133,7 @@ export function ExpenseDetail() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="lg:max-w-[880px]">
       <ScreenHeader
         title="Expense details"
         onBack={() => navigate(-1)}
@@ -147,8 +147,8 @@ export function ExpenseDetail() {
         }
       />
 
-      <div className="flex flex-col gap-3.5 pb-28 pt-2.5">
-        <>
+      <div className="flex flex-col gap-3.5 pb-28 pt-2.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10">
+        <div className="flex min-w-0 flex-col gap-3.5">
             <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-[var(--shadow-card)]">
               <div className="mb-2 text-[12px] font-bold uppercase tracking-[0.09em] text-secondary">
                 <span className="inline-flex items-center gap-1.5">
@@ -249,7 +249,9 @@ export function ExpenseDetail() {
                 </div>
               ))}
             </div>
+        </div>
 
+        <div className="flex min-w-0 flex-col gap-3.5">
             {(expense.line_items.length > 1 || expense.adjustments.length > 0) && (
               <>
                 <SectionLabel>Items</SectionLabel>
@@ -389,8 +391,8 @@ export function ExpenseDetail() {
                 </button>
               )}
             </div>
-        </>
         {error && <p className="text-[12.5px] text-owe">{error}</p>}
+        </div>
       </div>
       <Toast message={toastMessage} />
     </PageShell>

@@ -91,9 +91,10 @@ Follow-up: the remaining pages also got `lg:` treatments — Dashboard is a
 two-column 880px layout (current-trip hero left, all-trips list right);
 Create trip, Trip settings, and Add expense are two-column 880px forms
 (primary fields left; cover photo / members+danger zone / paid-by+split
-right). Expense and settlement detail pages intentionally stay at the
-focused phone-width center column (receipt-style reads best narrow), as
-do Login and guest join.
+right). Expense detail is two-column too (receipt hero, your share,
+paid-by, and breakdown left; items, timestamps, receipt photo, and delete
+right). Settlement detail, Login, and guest join stay at the focused
+phone-width center column.
 
 ## Phase 13 — Dark mode ✅ done
 
