@@ -18,6 +18,8 @@ import { ALL_CURRENCIES } from "@/lib/currencies";
 import { ChevronDown } from "@/components/ui/ChevronDown";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
+import { useRouteToast } from "@/hooks/useRouteToast";
+import { Toast } from "@/components/ui/Toast";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "System" },
@@ -116,6 +118,7 @@ export function Dashboard() {
   const { user, signOut, updateProfile } = useAuth();
   const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const { trips, loading } = useTrips();
+  const toastMessage = useRouteToast();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
@@ -253,6 +256,7 @@ export function Dashboard() {
           + Create trip
         </Link>
       </StickyActionBar>
+      <Toast message={toastMessage} />
     </PageShell>
   );
 }
