@@ -26,10 +26,16 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
-function tripDateRange(trip: TripWithMembers): string {
-  if (!trip.start_date || !trip.end_date) return "Dates not set";
+function tripDateRange(trip: TripWithMembers): string | null {
+  if (!trip.start_date || !trip.end_date) return null;
   const start = new Date(`${trip.start_date}T00:00:00`);
   const end = new Date(`${trip.end_date}T00:00:00`);
+  const month = (date: Date) =>
+    date.toLocaleDateString(undefined, { month: "short" });
+  const day = (date: Date) =>
+    new Intl.NumberFormat(undefined).format(date.getDate());
+  const year = (date: Date) =>
+    new Intl.NumberFormat(undefined, { useGrouping: false }).format(date.getFullYear());
   const sameDay = trip.start_date === trip.end_date;
   const sameMonth =
     start.getFullYear() === end.getFullYear() &&
@@ -37,40 +43,15 @@ function tripDateRange(trip: TripWithMembers): string {
   const sameYear = start.getFullYear() === end.getFullYear();
 
   if (sameDay) {
-    return start.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return `${month(start)} ${day(start)}, ${year(start)}`;
   }
   if (sameMonth) {
-    return `${start.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-    })}–${end.toLocaleDateString(undefined, {
-      day: "numeric",
-      year: "numeric",
-    })}`;
+    return `${month(start)} ${day(start)}–${day(end)}, ${year(end)}`;
   }
   if (sameYear) {
-    return `${start.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-    })}–${end.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })}`;
+    return `${month(start)} ${day(start)}–${month(end)} ${day(end)}, ${year(end)}`;
   }
-  return `${start.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })}–${end.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })}`;
+  return `${month(start)} ${day(start)}, ${year(start)}–${month(end)} ${day(end)}, ${year(end)}`;
 }
 
 function BalanceStatus({ trip, displayCurrency }: { trip: TripWithMembers; displayCurrency: string }) {
@@ -98,6 +79,7 @@ function CurrentTripCard({ trip, displayCurrency }: { trip: TripWithMembers; dis
   const { rates } = useCurrencyRates(trip.default_currency);
   const currency = rates[displayCurrency] ? displayCurrency : trip.default_currency;
   const amount = trip.yourBalance * (rates[currency] ?? 1);
+  const dateRange = tripDateRange(trip);
   return (
     <Link to={`/trips/${trip.id}`} className="block">
       <Card className="rounded-[22px] overflow-hidden shadow-[var(--shadow-hero)]">
@@ -119,9 +101,11 @@ function CurrentTripCard({ trip, displayCurrency }: { trip: TripWithMembers; dis
                   : `You owe ${formatMoney(-amount, currency)}`}
             </Pill>
           </div>
-          <div className="text-[13px] text-secondary">
-            {[trip.location_name, tripDateRange(trip)].filter(Boolean).join(" · ")}
-          </div>
+          {(trip.location_name || dateRange) && (
+            <div className="text-[13px] text-secondary">
+              {[trip.location_name, dateRange].filter(Boolean).join(" · ")}
+            </div>
+          )}
           <AvatarStack people={trip.members} />
         </div>
       </Card>
@@ -139,6 +123,7 @@ function TripRow({
   currentUserId?: string;
 }) {
   const otherMembers = trip.members.filter((member) => member.id !== currentUserId);
+  const dateRange = tripDateRange(trip);
   return (
     <Link to={`/trips/${trip.id}`} className="block">
       <Card className="min-w-0 overflow-hidden rounded-[18px] p-3 flex items-center gap-3">
@@ -149,7 +134,9 @@ function TripRow({
         />
         <div className="flex-1 min-w-0">
           <div className="font-bold text-[15px] truncate">{trip.name}</div>
-          <div className="text-[12.5px] text-secondary">{tripDateRange(trip)}</div>
+          {dateRange && (
+            <div className="text-[12.5px] text-secondary">{dateRange}</div>
+          )}
           {otherMembers.length > 0 && (
             <div className="mt-1.5">
               <AvatarStack people={otherMembers} size={24} max={3} />
