@@ -235,7 +235,7 @@ export function Dashboard() {
 
         {!loading && currentTrip && (
           <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-x-8">
-            <div className="flex flex-col gap-3.5 min-w-0">
+            <div className="flex flex-col gap-3.5 min-w-0 lg:sticky lg:top-4">
               <SectionLabel>Current trip</SectionLabel>
               <CurrentTripCard trip={currentTrip} displayCurrency={user?.preferred_currency ?? currentTrip.default_currency} />
             </div>
