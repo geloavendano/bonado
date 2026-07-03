@@ -18,6 +18,8 @@ export interface Trip {
   name: string;
   created_by: string;
   created_at: string;
+  start_date: string | null;
+  end_date: string | null;
   default_currency: Currency;
   invite_link_token: string;
   location_name: string | null;

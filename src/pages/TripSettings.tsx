@@ -41,6 +41,8 @@ export function TripSettings() {
   const [locationPlaceId, setLocationPlaceId] = useState<string | null>(null);
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [currency, setCurrency] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
@@ -62,6 +64,8 @@ export function TripSettings() {
       setLocationPlaceId(trip.location_place_id);
       setLocationLat(trip.location_lat);
       setLocationLng(trip.location_lng);
+      setStartDate(trip.start_date ?? "");
+      setEndDate(trip.end_date ?? "");
       setCurrency(trip.default_currency);
       setCoverPhotoUrl(trip.cover_photo_url);
     }
@@ -81,11 +85,19 @@ export function TripSettings() {
   const dirty =
     name.trim() !== trip.name ||
     location.trim() !== (trip.location_name ?? "") ||
+    startDate !== (trip.start_date ?? "") ||
+    endDate !== (trip.end_date ?? "") ||
     currency !== trip.default_currency ||
     coverPhotoUrl !== trip.cover_photo_url;
 
   async function handleSave() {
-    if (!tripId || name.trim().length === 0) return;
+    if (
+      !tripId ||
+      name.trim().length === 0 ||
+      !startDate ||
+      !endDate ||
+      endDate < startDate
+    ) return;
     const ok = await updateTrip(tripId, {
       name: name.trim(),
       locationName: location.trim(),
@@ -95,6 +107,8 @@ export function TripSettings() {
       defaultCurrency: currency,
       previousCurrency,
       coverPhotoUrl,
+      startDate,
+      endDate,
     });
     if (ok) {
       navigate(`/trips/${tripId}`, {
@@ -205,6 +219,33 @@ export function TripSettings() {
             if (localCurrency) setCurrency(localCurrency);
           }}
         />
+
+        <SectionLabel>Trip dates</SectionLabel>
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+          <label className="flex min-w-0 flex-col gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-secondary">
+            Start
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(event) => {
+                const next = event.target.value;
+                setStartDate(next);
+                if (!endDate || endDate < next) setEndDate(next);
+              }}
+              className="w-full min-w-0"
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-secondary">
+            End
+            <Input
+              type="date"
+              min={startDate || undefined}
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="w-full min-w-0"
+            />
+          </label>
+        </div>
 
         <SectionLabel>Trip currency</SectionLabel>
         <div className="flex flex-wrap gap-2">
@@ -474,7 +515,15 @@ export function TripSettings() {
       <StickyActionBar bottomOffset={formFlow.keyboardOffset}>
         <Button
           fullWidth
-          disabled={!formFlow.keyboardOpen && (!dirty || saving || name.trim().length === 0)}
+          disabled={
+            !formFlow.keyboardOpen &&
+            (!dirty ||
+              saving ||
+              name.trim().length === 0 ||
+              !startDate ||
+              !endDate ||
+              endDate < startDate)
+          }
           onPointerDown={(event) => formFlow.keyboardOpen && event.preventDefault()}
           onClick={() => formFlow.keyboardOpen ? formFlow.advance() : void handleSave()}
         >

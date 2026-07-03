@@ -13,6 +13,8 @@ interface CreateTripInput {
   defaultCurrency: string;
   coverPhotoUrl: string | null;
   coverPhotoAttribution: string | null;
+  startDate: string;
+  endDate: string;
 }
 
 export function useCreateTrip() {
@@ -27,7 +29,7 @@ export function useCreateTrip() {
     setError(null);
 
     const { data: trip, error: rpcError } = await supabase
-      .rpc("create_trip", {
+      .rpc("create_trip_with_dates", {
         p_name: input.name,
         p_location_name: input.locationName,
         p_default_currency: input.defaultCurrency,
@@ -36,6 +38,8 @@ export function useCreateTrip() {
         p_location_lat: input.locationLat,
         p_location_lng: input.locationLng,
         p_cover_photo_attribution: input.coverPhotoAttribution,
+        p_start_date: input.startDate,
+        p_end_date: input.endDate,
       })
       .single<Trip>();
 

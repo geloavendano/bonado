@@ -12,6 +12,8 @@ interface UpdateTripInput {
   defaultCurrency: string;
   previousCurrency: string;
   coverPhotoUrl: string | null;
+  startDate: string;
+  endDate: string;
 }
 
 export function useUpdateTrip() {
@@ -56,7 +58,7 @@ export function useUpdateTrip() {
       }
     }
 
-    const { error: updateError } = await supabase.rpc("update_trip_settings", {
+    const { error: updateError } = await supabase.rpc("update_trip_settings_with_dates", {
       p_trip_id: tripId,
       p_name: input.name,
       p_location_name: input.locationName,
@@ -66,6 +68,8 @@ export function useUpdateTrip() {
       p_default_currency: input.defaultCurrency,
       p_cover_photo_url: input.coverPhotoUrl ?? "",
       p_rates: rates,
+      p_start_date: input.startDate,
+      p_end_date: input.endDate,
     });
 
     setSaving(false);

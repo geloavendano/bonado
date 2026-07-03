@@ -9,7 +9,6 @@ import { AvatarStack } from "@/components/ui/AvatarStack";
 import { CoverPhoto } from "@/components/ui/CoverPhoto";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { SectionLabel } from "@/components/ui/SectionLabel";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { buttonClasses } from "@/components/ui/Button";
 import { GuestBanner } from "@/components/trip/GuestBanner";
@@ -28,10 +27,50 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 ];
 
 function tripDateRange(trip: TripWithMembers): string {
-  return new Date(trip.created_at).toLocaleDateString(undefined, {
+  if (!trip.start_date || !trip.end_date) return "Dates not set";
+  const start = new Date(`${trip.start_date}T00:00:00`);
+  const end = new Date(`${trip.end_date}T00:00:00`);
+  const sameDay = trip.start_date === trip.end_date;
+  const sameMonth =
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth();
+  const sameYear = start.getFullYear() === end.getFullYear();
+
+  if (sameDay) {
+    return start.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+  if (sameMonth) {
+    return `${start.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })}–${end.toLocaleDateString(undefined, {
+      day: "numeric",
+      year: "numeric",
+    })}`;
+  }
+  if (sameYear) {
+    return `${start.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })}–${end.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })}`;
+  }
+  return `${start.toLocaleDateString(undefined, {
     month: "short",
+    day: "numeric",
     year: "numeric",
-  });
+  })}–${end.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })}`;
 }
 
 function BalanceStatus({ trip, displayCurrency }: { trip: TripWithMembers; displayCurrency: string }) {
@@ -90,7 +129,16 @@ function CurrentTripCard({ trip, displayCurrency }: { trip: TripWithMembers; dis
   );
 }
 
-function TripRow({ trip, displayCurrency }: { trip: TripWithMembers; displayCurrency: string }) {
+function TripRow({
+  trip,
+  displayCurrency,
+  currentUserId,
+}: {
+  trip: TripWithMembers;
+  displayCurrency: string;
+  currentUserId?: string;
+}) {
+  const otherMembers = trip.members.filter((member) => member.id !== currentUserId);
   return (
     <Link to={`/trips/${trip.id}`} className="block">
       <Card className="min-w-0 overflow-hidden rounded-[18px] p-3 flex items-center gap-3">
@@ -101,10 +149,12 @@ function TripRow({ trip, displayCurrency }: { trip: TripWithMembers; displayCurr
         />
         <div className="flex-1 min-w-0">
           <div className="font-bold text-[15px] truncate">{trip.name}</div>
-          <div className="text-[12.5px] text-secondary">
-            {tripDateRange(trip)} · {trip.members.length}{" "}
-            {trip.members.length === 1 ? "person" : "people"}
-          </div>
+          <div className="text-[12.5px] text-secondary">{tripDateRange(trip)}</div>
+          {otherMembers.length > 0 && (
+            <div className="mt-1.5">
+              <AvatarStack people={otherMembers} size={24} max={3} />
+            </div>
+          )}
         </div>
         <div className="max-w-[34%] shrink-0 text-right">
           <BalanceStatus trip={trip} displayCurrency={displayCurrency} />
@@ -236,15 +286,18 @@ export function Dashboard() {
         {!loading && currentTrip && (
           <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-x-8">
             <div className="flex flex-col gap-3.5 min-w-0 lg:sticky lg:top-4">
-              <SectionLabel>Current trip</SectionLabel>
               <CurrentTripCard trip={currentTrip} displayCurrency={user?.preferred_currency ?? currentTrip.default_currency} />
             </div>
 
             {restTrips.length > 0 && (
               <div className="flex flex-col gap-3.5 min-w-0">
-                <SectionLabel className="mt-1.5 lg:mt-0">All trips</SectionLabel>
                 {restTrips.map((trip) => (
-                  <TripRow key={trip.id} trip={trip} displayCurrency={user?.preferred_currency ?? trip.default_currency} />
+                  <TripRow
+                    key={trip.id}
+                    trip={trip}
+                    displayCurrency={user?.preferred_currency ?? trip.default_currency}
+                    currentUserId={user?.id}
+                  />
                 ))}
               </div>
             )}

@@ -27,6 +27,8 @@ export function CreateTrip() {
   const [locationPlaceId, setLocationPlaceId] = useState<string | null>(null);
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [unsplashQuery, setUnsplashQuery] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [coverPhotoAttribution, setCoverPhotoAttribution] = useState<string | null>(null);
@@ -39,7 +41,12 @@ export function CreateTrip() {
   const { upload, uploading, error: uploadError } = useCoverPhotoUpload();
   const { photos, loading: photosLoading, shuffle } = useCoverPhotoSuggestions(unsplashQuery);
 
-  const canSubmit = name.trim().length > 0 && !submitting;
+  const canSubmit =
+    name.trim().length > 0 &&
+    startDate.length > 0 &&
+    endDate.length > 0 &&
+    endDate >= startDate &&
+    !submitting;
   const isMoreCurrency = !SUGGESTED_CURRENCIES.some((c) => c.code === currency);
 
   useEffect(() => {
@@ -111,6 +118,33 @@ export function CreateTrip() {
             if (localCurrency) setCurrency(localCurrency);
           }}
         />
+
+        <SectionLabel>Trip dates</SectionLabel>
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+          <label className="flex min-w-0 flex-col gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-secondary">
+            Start
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(event) => {
+                const next = event.target.value;
+                setStartDate(next);
+                if (!endDate || endDate < next) setEndDate(next);
+              }}
+              className="w-full min-w-0"
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-secondary">
+            End
+            <Input
+              type="date"
+              min={startDate || undefined}
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="w-full min-w-0"
+            />
+          </label>
+        </div>
 
         <SectionLabel>Trip currency</SectionLabel>
         <div className="flex gap-2 flex-wrap">
@@ -236,6 +270,8 @@ export function CreateTrip() {
               defaultCurrency: currency,
               coverPhotoUrl,
               coverPhotoAttribution,
+              startDate,
+              endDate,
             });
           }}
         >
