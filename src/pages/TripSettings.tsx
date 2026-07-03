@@ -172,10 +172,15 @@ export function TripSettings() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="lg:max-w-[880px]">
       <ScreenHeader title="Trip settings" />
 
-      <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-28">
+      <div
+        ref={formRef}
+        {...formFlow.formProps}
+        className="flex flex-col gap-3.5 pt-2.5 pb-28 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10"
+      >
+        <div className="flex min-w-0 flex-col gap-3.5">
         <SectionLabel>Trip name</SectionLabel>
         <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus enterKeyHint="next" />
 
@@ -265,8 +270,10 @@ export function TripSettings() {
         {coverError && <p className="text-[12.5px] text-owe">{coverError}</p>}
 
         {error && <p className="text-owe text-[13px]">{error}</p>}
+        </div>
 
-        <div className="mt-2 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-3.5">
+        <div className="mt-2 flex items-center justify-between gap-3 lg:mt-0">
           <SectionLabel>Members · {trip.members.length}</SectionLabel>
           <button
             onClick={() => void shareInvite()}
@@ -461,6 +468,7 @@ export function TripSettings() {
             {deleteError && <p className="text-owe text-[13px]">{deleteError}</p>}
           </>
         )}
+        </div>
       </div>
 
       <StickyActionBar bottomOffset={formFlow.keyboardOffset}>

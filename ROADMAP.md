@@ -84,9 +84,16 @@ Three-column desktop view (`4i`), active at `lg:` (1024px+) widths on the
 three trip tabs (Entries/Balances/Reports): left trips rail (switch trips,
 `+ New trip`), center column with the existing tab content widened to fill
 the column, right balance rail (your position + per-person net + "Settle
-up") that stays visible regardless of which tab is active. Below `lg:`, or
-on Add expense/expense detail/settlement/trip settings/Dashboard/Create
-trip, layout is unchanged from the existing phone-width centered shell.
+up") that stays visible regardless of which tab is active. Below `lg:` the
+phone layout is unchanged.
+
+Follow-up: the remaining pages also got `lg:` treatments — Dashboard is a
+two-column 880px layout (current-trip hero left, all-trips list right);
+Create trip, Trip settings, and Add expense are two-column 880px forms
+(primary fields left; cover photo / members+danger zone / paid-by+split
+right). Expense and settlement detail pages intentionally stay at the
+focused phone-width center column (receipt-style reads best narrow), as
+do Login and guest join.
 
 ## Phase 13 — Dark mode ✅ done
 

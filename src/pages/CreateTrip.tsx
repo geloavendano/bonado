@@ -72,10 +72,15 @@ export function CreateTrip() {
   const alternates = photos.filter((photo) => photo.url !== coverPhotoUrl).slice(0, 3);
 
   return (
-    <PageShell>
+    <PageShell className="lg:max-w-[880px]">
       <ScreenHeader title="New trip" />
 
-      <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-24">
+      <div
+        ref={formRef}
+        {...formFlow.formProps}
+        className="flex flex-col gap-3.5 pt-2.5 pb-24 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10"
+      >
+        <div className="flex min-w-0 flex-col gap-3.5">
         <SectionLabel>Trip name</SectionLabel>
         <Input
           value={name}
@@ -151,7 +156,9 @@ export function CreateTrip() {
             />
           </div>
         </div>
+        </div>
 
+        <div className="flex min-w-0 flex-col gap-3.5">
         <SectionLabel>Cover photo</SectionLabel>
         {coverPhotoUrl ? (
           <img
@@ -210,6 +217,7 @@ export function CreateTrip() {
         {uploadError && <p className="text-owe text-[13px]">{uploadError}</p>}
 
         {error && <p className="text-owe text-[13px]">{error}</p>}
+        </div>
       </div>
 
       <StickyActionBar bottomOffset={formFlow.keyboardOffset}>

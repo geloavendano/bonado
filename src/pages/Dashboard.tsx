@@ -134,7 +134,7 @@ export function Dashboard() {
   }, []);
 
   return (
-    <PageShell>
+    <PageShell className="lg:max-w-[880px]">
       <div className="flex items-center justify-between pt-[18px] pb-1.5">
         <div className="text-2xl font-extrabold tracking-[-0.5px]">
           bonado<span className="text-teal">.</span>
@@ -234,19 +234,21 @@ export function Dashboard() {
         )}
 
         {!loading && currentTrip && (
-          <>
-            <SectionLabel>Current trip</SectionLabel>
-            <CurrentTripCard trip={currentTrip} displayCurrency={user?.preferred_currency ?? currentTrip.default_currency} />
-          </>
-        )}
+          <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-x-8">
+            <div className="flex flex-col gap-3.5 min-w-0">
+              <SectionLabel>Current trip</SectionLabel>
+              <CurrentTripCard trip={currentTrip} displayCurrency={user?.preferred_currency ?? currentTrip.default_currency} />
+            </div>
 
-        {!loading && restTrips.length > 0 && (
-          <>
-            <SectionLabel className="mt-1.5">All trips</SectionLabel>
-            {restTrips.map((trip) => (
-              <TripRow key={trip.id} trip={trip} displayCurrency={user?.preferred_currency ?? trip.default_currency} />
-            ))}
-          </>
+            {restTrips.length > 0 && (
+              <div className="flex flex-col gap-3.5 min-w-0">
+                <SectionLabel className="mt-1.5 lg:mt-0">All trips</SectionLabel>
+                {restTrips.map((trip) => (
+                  <TripRow key={trip.id} trip={trip} displayCurrency={user?.preferred_currency ?? trip.default_currency} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
       </div>

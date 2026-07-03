@@ -410,13 +410,18 @@ export function AddExpense() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="lg:max-w-[880px]">
       <ScreenHeader
         title={entryId ? "Edit expense" : "Add expense"}
         onBack={() => navigate(-1)}
       />
 
-      <div ref={formRef} {...formFlow.formProps} className="flex flex-col gap-3.5 pt-2.5 pb-28">
+      <div
+        ref={formRef}
+        {...formFlow.formProps}
+        className="flex flex-col gap-3.5 pt-2.5 pb-28 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10"
+      >
+        <div className="flex min-w-0 flex-col gap-3.5">
         <SectionLabel>Amount</SectionLabel>
         <div className="flex items-center rounded-[20px] bg-card px-5 py-3 shadow-[var(--shadow-card)] focus-within:ring-2 focus-within:ring-teal/40">
           <div className="relative mr-3">
@@ -505,8 +510,10 @@ export function AddExpense() {
             </button>
           ))}
         </div>
+        </div>
 
-        <SectionLabel className="mt-1">Paid by</SectionLabel>
+        <div className="flex min-w-0 flex-col gap-3.5">
+        <SectionLabel className="mt-1 lg:mt-0">Paid by</SectionLabel>
         <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
           {trip.members.map((member, index) => {
             const selected = payerIds.includes(member.id);
@@ -842,6 +849,7 @@ export function AddExpense() {
           </div>
         )}
         {error && <p className="text-[13px] text-owe">{error}</p>}
+        </div>
       </div>
 
       <StickyActionBar fade bottomOffset={formFlow.keyboardOffset}>
