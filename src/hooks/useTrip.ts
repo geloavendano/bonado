@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import type { Trip } from "@/types/schema";
@@ -31,9 +31,11 @@ export function useTrip(tripId: string | undefined) {
   const [trip, setTrip] = useState<TripWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef(0);
 
   const reload = useCallback(async () => {
     if (!tripId) return;
+    const requestId = ++requestRef.current;
     setLoading(true);
     const { data, error } = await supabase
       .from("trips")
@@ -42,6 +44,7 @@ export function useTrip(tripId: string | undefined) {
       .returns<TripRow[]>()
       .maybeSingle();
 
+    if (requestId !== requestRef.current) return;
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -55,6 +58,7 @@ export function useTrip(tripId: string | undefined) {
     }
 
     const balanceRows = await fetchBalances(tripId).catch(() => []);
+    if (requestId !== requestRef.current) return;
     const { memberships, ...rest } = data;
     setTrip({
       ...rest,

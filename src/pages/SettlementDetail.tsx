@@ -29,7 +29,7 @@ export function SettlementDetail() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="lg:max-w-[880px]">
       <ScreenHeader
         title="Settlement details"
         onBack={() => navigate(-1)}
@@ -42,7 +42,8 @@ export function SettlementDetail() {
           </button>
         }
       />
-      <div className="flex flex-col gap-3.5 pb-20 pt-2.5">
+      <div className="flex flex-col gap-3.5 pb-20 pt-2.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10">
+        <div className="flex min-w-0 flex-col gap-3.5">
         <div className="rounded-[22px] bg-card px-5 py-6 text-center shadow-[var(--shadow-card)]">
           <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-secondary">
             Settlement
@@ -70,7 +71,9 @@ export function SettlementDetail() {
             <div className="text-[10px] text-secondary">Received</div>
           </div>
         </div>
+        </div>
 
+        <div className="flex min-w-0 flex-col gap-3.5">
         {settlement.payment_account && (
           <div className="rounded-[16px] bg-card px-4 py-3 shadow-[var(--shadow-card)]">
             <div className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-secondary">Payment method</div>
@@ -85,6 +88,7 @@ export function SettlementDetail() {
           {settlement.updated_at && <div className="mt-1">Updated {timestamp(settlement.updated_at)}</div>}
         </div>
         {error && <p className="text-[12.5px] text-owe">{error}</p>}
+        </div>
       </div>
       <Toast message={toast} />
     </PageShell>
