@@ -1,7 +1,16 @@
 import clsx from "clsx";
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden="true" className={clsx("skeleton rounded-pill", className)} />;
+  const hasExplicitRadius = className
+    ?.split(/\s+/)
+    .some((classToken) => classToken === "rounded" || classToken.startsWith("rounded-"));
+
+  return (
+    <div
+      aria-hidden="true"
+      className={clsx("skeleton", !hasExplicitRadius && "rounded-pill", className)}
+    />
+  );
 }
 
 export function DashboardSkeleton() {
