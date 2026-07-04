@@ -173,8 +173,12 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       saved-rate currency conversion/fallback, and multi-party settlement
       balancing. GitHub Actions runs clean install, build/typecheck, oxlint,
       and tests on pushes to main and pull requests. Five tests pass.
-- [ ] 10. Overlay a11y — focus trap, Escape, focus restore (ConfirmDialog,
-      notification panel, sheets); arrow-key nav in mention dropdown.
+- [x] 10. Overlay a11y — DONE. Shared `useOverlayA11y` traps Tab/Shift+Tab,
+      closes on Escape, focuses the first interactive control, and restores
+      the trigger for ConfirmDialog, notifications, item editor, and settlement
+      sheet. Sheets have dialog semantics and outside-click close. Mention
+      suggestions expose listbox state with Arrow Up/Down, Enter, and Escape
+      keyboard control. Tests/build/lint pass.
 - [ ] 11. Client cache consolidation (TanStack Query or similar) —
       DEFERRED by user ("let's fix it later").
 - [ ] 12. Lazy-load all routes (>500 kB chunk warning).

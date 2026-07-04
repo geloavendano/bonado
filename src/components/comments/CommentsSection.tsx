@@ -71,6 +71,7 @@ function CommentComposer({
   const initialDisplayBody = displayBody(initialBody ?? "", members);
   const [body, setBody] = useState(initialDisplayBody);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // members picked from the dropdown; filtered on submit to those still in the text
@@ -97,6 +98,7 @@ function CommentComposer({
   function refreshMentionQuery(value: string, caret: number) {
     const match = /(^|\s)@([^\s@]*)$/.exec(value.slice(0, caret));
     setMentionQuery(match ? match[2] : null);
+    setActiveSuggestion(0);
   }
 
   function pickMention(member: TripMember) {
@@ -141,19 +143,51 @@ function CommentComposer({
             event.target.selectionStart ?? event.target.value.length,
           );
         }}
+        onKeyDown={(event) => {
+          if (suggestions.length === 0) return;
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setActiveSuggestion((index) => (index + 1) % suggestions.length);
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setActiveSuggestion(
+              (index) => (index - 1 + suggestions.length) % suggestions.length,
+            );
+          } else if (event.key === "Enter") {
+            event.preventDefault();
+            pickMention(suggestions[activeSuggestion]);
+          } else if (event.key === "Escape") {
+            event.preventDefault();
+            setMentionQuery(null);
+          }
+        }}
+        aria-activedescendant={
+          suggestions.length > 0
+            ? `mention-${suggestions[activeSuggestion]?.id}`
+            : undefined
+        }
         onBlur={() => setTimeout(() => setMentionQuery(null), 150)}
         className="w-full resize-none rounded-[16px] bg-tile px-3.5 py-3 text-[13.5px] text-ink outline-none placeholder:text-faint"
       />
       {suggestions.length > 0 && (
-        <div className="absolute inset-x-0 top-full z-20 -mt-1 max-h-[180px] overflow-y-auto rounded-[14px] bg-card py-1 shadow-[var(--shadow-floating)]">
-          {suggestions.map((member) => (
+        <div
+          role="listbox"
+          className="absolute inset-x-0 top-full z-20 -mt-1 max-h-[180px] overflow-y-auto rounded-[14px] bg-card py-1 shadow-[var(--shadow-floating)]"
+        >
+          {suggestions.map((member, index) => (
             <button
               key={member.id}
+              id={`mention-${member.id}`}
+              role="option"
+              aria-selected={index === activeSuggestion}
               onPointerDown={(event) => {
                 event.preventDefault();
                 pickMention(member);
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left"
+              className={
+                "flex w-full items-center gap-2.5 px-3 py-2 text-left " +
+                (index === activeSuggestion ? "bg-teal-tint" : "")
+              }
             >
               <Avatar
                 name={member.name}

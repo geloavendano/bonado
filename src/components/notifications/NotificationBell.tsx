@@ -7,6 +7,7 @@ import {
 } from "@/hooks/useNotifications";
 import { formatMoney } from "@/lib/money";
 import { timeAgo } from "@/lib/timeAgo";
+import { useOverlayA11y } from "@/hooks/useOverlayA11y";
 
 function BellIcon({ className }: { className?: string }) {
   return (
@@ -89,6 +90,7 @@ export function NotificationBell() {
   } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useOverlayA11y<HTMLDivElement>(open, () => setOpen(false));
 
   useEffect(() => {
     function closePanel(event: PointerEvent) {
@@ -145,7 +147,14 @@ export function NotificationBell() {
             className="fixed inset-0 z-40 bg-black/40 lg:hidden"
             onPointerDown={() => setOpen(false)}
           />
-          <div className="motion-reveal fixed inset-x-0 bottom-0 z-50 max-h-[70dvh] overflow-y-auto rounded-t-[26px] bg-card p-4 pb-[max(16px,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)] lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-12 lg:max-h-[480px] lg:w-[350px] lg:rounded-[18px] lg:p-3 lg:shadow-[var(--shadow-floating)]">
+          <div
+            ref={panelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Notifications"
+            className="motion-reveal fixed inset-x-0 bottom-0 z-50 max-h-[70dvh] overflow-y-auto rounded-t-[26px] bg-card p-4 pb-[max(16px,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)] lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-12 lg:max-h-[480px] lg:w-[350px] lg:rounded-[18px] lg:p-3 lg:shadow-[var(--shadow-floating)]"
+          >
             <div className="flex items-center justify-between px-1 pb-2">
               <div className="text-[14px] font-extrabold">Notifications</div>
               {unreadCount > 0 && (

@@ -20,6 +20,7 @@ import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "@/components/ui/ChevronDown";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
+import { useOverlayA11y } from "@/hooks/useOverlayA11y";
 import {
   buildSettlementSuggestions,
   type SuggestedSettlement,
@@ -47,6 +48,10 @@ export function TripBalances() {
   const [paymentLabel, setPaymentLabel] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState(trip.default_currency);
+  const settlementSheetRef = useOverlayA11y<HTMLDivElement>(
+    sheetOpen,
+    () => setSheetOpen(false),
+  );
   const {
     rates,
     currencies,
@@ -319,6 +324,8 @@ export function TripBalances() {
           role="presentation"
         >
           <div
+            ref={settlementSheetRef}
+            tabIndex={-1}
             className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
             onClick={(event) => event.stopPropagation()}
             role="dialog"

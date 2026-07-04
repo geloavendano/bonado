@@ -24,6 +24,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const close = useCallback(onCancel, [onCancel]);
+  const dialogRef = useOverlayA11y<HTMLDivElement>(true, close);
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
@@ -31,6 +33,8 @@ export function ConfirmDialog({
       role="presentation"
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         className="motion-reveal w-full max-w-[340px] rounded-[22px] bg-card p-5 shadow-[var(--shadow-floating)]"
         onClick={(event) => event.stopPropagation()}
         role="alertdialog"
@@ -64,3 +68,5 @@ export function ConfirmDialog({
     </div>
   );
 }
+import { useCallback } from "react";
+import { useOverlayA11y } from "@/hooks/useOverlayA11y";

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import type { TripMember } from "@/hooks/useTrip";
 import { formatMoney } from "@/lib/money";
 import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
+import { useOverlayA11y } from "@/hooks/useOverlayA11y";
 
 export type ItemSplitMode = "equal" | "exact" | "percent" | "shares";
 
@@ -72,6 +73,7 @@ export function ItemEditorSheet({
     ),
   );
   const formRef = useRef<HTMLDivElement>(null);
+  useOverlayA11y(true, onClose, formRef);
   const formFlow = useMobileFormFlow(formRef);
 
   const numericAmount = Number(amount);
@@ -138,10 +140,17 @@ export function ItemEditorSheet({
         top: formFlow.viewport.top,
         height: formFlow.viewport.height || "100dvh",
       }}
+      onClick={onClose}
+      role="presentation"
     >
       <div
         ref={formRef}
         {...formFlow.formProps}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={initial ? "Edit item" : "Add item"}
+        onClick={(event) => event.stopPropagation()}
         className="motion-reveal max-h-full w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-faint-2/60" />
