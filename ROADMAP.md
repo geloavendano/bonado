@@ -186,5 +186,8 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       The former 569 kB application chunk is split into page chunks (largest
       page ≈25 kB) plus shared vendor chunks below 254 kB; the >500 kB build
       warning is eliminated. Tests/build/lint pass.
-- [ ] 13. Notification retention — purge rows older than 6 months.
+- [x] 13. Notification retention — DONE (migration 0029). A locked-down
+      `purge_expired_notifications` function deletes delivery/read-state rows
+      older than six months, and pg_cron runs it daily at 03:15 UTC. Existing
+      jobs with the same name are replaced idempotently. Migration applied.
 - [ ] 14. Privacy policy + terms & conditions section in settings.
