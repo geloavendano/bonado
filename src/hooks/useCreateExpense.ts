@@ -5,6 +5,7 @@ import { invalidateExpense } from "@/hooks/useExpense";
 import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
 import { invalidateBalances } from "@/lib/balanceData";
 import { fetchExchangeRate } from "@/hooks/useCurrencyRates";
+import { allocateEqualShares } from "@/lib/moneyMath";
 
 export interface PayerAllocation {
   userId: string;
@@ -70,22 +71,13 @@ export function useCreateExpense() {
       return false;
     }
 
-    const participantCount = input.participantIds.length;
-    const baseShare = Math.floor((input.amount * 100) / participantCount) / 100;
-    let allocated = 0;
-    const equalShares = input.participantIds.map((userId, index) => {
-      const owedAmount =
-        index === participantCount - 1
-          ? Math.round((input.amount - allocated) * 100) / 100
-          : baseShare;
-      allocated += owedAmount;
-      return {
-        user_id: userId,
+    const equalShares = allocateEqualShares(input.amount, input.participantIds)
+      .map((share) => ({
+        user_id: share.userId,
         share_type: "equal",
         share_value: null,
-        owed_amount: owedAmount,
-      };
-    });
+        owed_amount: share.amount,
+      }));
 
     const { error: createError } = await supabase.rpc("create_itemized_expense_with_rate", {
       p_trip_id: input.tripId,

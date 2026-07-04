@@ -20,51 +20,15 @@ import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "@/components/ui/ChevronDown";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
-
-interface SuggestedSettlement {
-  fromUserId: string;
-  toUserId: string;
-  amount: number;
-}
+import {
+  buildSettlementSuggestions,
+  type SuggestedSettlement,
+} from "@/lib/moneyMath";
 
 function todayForInput() {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60_000;
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
-}
-
-function buildSuggestions(
-  balances: { user_id: string; balance: number }[],
-): SuggestedSettlement[] {
-  const debtors = balances
-    .filter((row) => row.balance < -0.005)
-    .map((row) => ({ id: row.user_id, amount: -row.balance }))
-    .sort((a, b) => b.amount - a.amount);
-  const creditors = balances
-    .filter((row) => row.balance > 0.005)
-    .map((row) => ({ id: row.user_id, amount: row.balance }))
-    .sort((a, b) => b.amount - a.amount);
-  const suggestions: SuggestedSettlement[] = [];
-
-  let debtorIndex = 0;
-  let creditorIndex = 0;
-  while (debtorIndex < debtors.length && creditorIndex < creditors.length) {
-    const debtor = debtors[debtorIndex];
-    const creditor = creditors[creditorIndex];
-    const amount = Math.round(Math.min(debtor.amount, creditor.amount) * 100) / 100;
-    if (amount > 0) {
-      suggestions.push({
-        fromUserId: debtor.id,
-        toUserId: creditor.id,
-        amount,
-      });
-    }
-    debtor.amount -= amount;
-    creditor.amount -= amount;
-    if (debtor.amount < 0.005) debtorIndex += 1;
-    if (creditor.amount < 0.005) creditorIndex += 1;
-  }
-  return suggestions;
 }
 
 export function TripBalances() {
@@ -102,7 +66,7 @@ export function TripBalances() {
       })),
     [balances, trip.members],
   );
-  const suggestions = useMemo(() => buildSuggestions(balances), [balances]);
+  const suggestions = useMemo(() => buildSettlementSuggestions(balances), [balances]);
   const yourBalance =
     balances.find((balance) => balance.user_id === user?.id)?.balance ?? 0;
   const hasActivity = balances.some((balance) => balance.has_activity);

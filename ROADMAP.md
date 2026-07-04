@@ -167,8 +167,12 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       authoritative comment_mentions rows, longest names first. Missing former
       members render safely as `@Former member`. Migration applied; build/lint
       pass.
-- [ ] 9. Automated tests + CI — Vitest for money math (split rounding,
-      conversions, balances), GitHub Actions running tsc + oxlint + tests.
+- [x] 9. Automated tests + CI — DONE. Added Vitest and extracted pure,
+      integer-cent equal-split and settlement-suggestion utilities used by
+      production flows. Tests cover remainder allocation, empty participants,
+      saved-rate currency conversion/fallback, and multi-party settlement
+      balancing. GitHub Actions runs clean install, build/typecheck, oxlint,
+      and tests on pushes to main and pull requests. Five tests pass.
 - [ ] 10. Overlay a11y — focus trap, Escape, focus restore (ConfirmDialog,
       notification panel, sheets); arrow-key nav in mention dropdown.
 - [ ] 11. Client cache consolidation (TanStack Query or similar) —
