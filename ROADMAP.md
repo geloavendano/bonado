@@ -108,7 +108,7 @@ Dashboard account menu (next to display currency), persisted to
 devices) and cached in `localStorage` otherwise, applied via a blocking
 inline script in `index.html` to avoid a flash of the wrong theme.
 
-## Phase 14 — Hardening & completeness (in progress, 2026-07-05)
+## Phase 14 — Hardening & completeness ✅ done (2026-07-05)
 
 Approved work program, implemented one item at a time, each committed and
 pushed separately. **If you are an agent picking this up mid-stream: check
@@ -186,8 +186,9 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       sheet. Sheets have dialog semantics and outside-click close. Mention
       suggestions expose listbox state with Arrow Up/Down, Enter, and Escape
       keyboard control. Tests/build/lint pass.
-- [ ] 11. Client cache consolidation (TanStack Query or similar) —
-      DEFERRED by user ("let's fix it later").
+- 11. Client cache consolidation (TanStack Query or similar) — intentionally
+      deferred by user ("let's fix it later"). This is a future architecture
+      refactor, not an incomplete Phase 14 user-facing build.
 - [x] 12. Lazy-load all routes — DONE. Every page route now loads through
       React.lazy while auth, routing, and shared trip layout remain eager.
       The former 569 kB application chunk is split into page chunks (largest
