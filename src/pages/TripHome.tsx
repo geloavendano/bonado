@@ -19,6 +19,7 @@ import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { convertEntryAmount } from "@/lib/convertEntryAmount";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export function TripHome() {
   const trip = useTripLayout();
@@ -111,13 +112,16 @@ export function TripHome() {
         >
           ←
         </Link>
-        <Link
-          to={`/trips/${trip.id}/settings`}
-          className="absolute right-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
-          aria-label="Trip settings"
-        >
-          ⚙︎
-        </Link>
+        <div className="absolute right-4 top-3 flex items-center gap-2">
+          <NotificationBell />
+          <Link
+            to={`/trips/${trip.id}/settings`}
+            className="grid size-[38px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
+            aria-label="Trip settings"
+          >
+            ⚙︎
+          </Link>
+        </div>
       </div>
 
       <div ref={headerSentinelRef} className="h-px" />

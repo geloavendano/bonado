@@ -148,7 +148,10 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       exact unread count rather than the loaded-page length. Build/lint pass.
       Follow-up manual check with >20 records of each transaction type to
       confirm no gaps at interleaved date/timestamp page boundaries.
-- [ ] 5. Notification bell on trip pages (currently Dashboard-only).
+- [x] 5. Notification bell on trip pages — DONE. Entries exposes the bell
+      beside trip settings over the cover; the shared sticky tab header puts
+      the same notification panel on Balances and Reports. It retains exact
+      unread counts and paginated loading from item 4. Build/lint pass.
 - [ ] 6. Offline sync (create-only PWA queue) — PENDING USER DECISION,
       feasible per assessment; not started.
 - [ ] 7. Unify unread systems — drop localStorage entryReadState; derive

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export function TripTabHeader({
   tripId,
@@ -19,7 +20,9 @@ export function TripTabHeader({
       <div className="min-w-0 flex-1 truncate px-3 text-center text-[16px] font-bold">
         {title}
       </div>
-      <div className="size-9 flex-none" />
+      <div className="flex size-9 flex-none justify-end">
+        <NotificationBell />
+      </div>
     </div>
   );
 }
