@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/Avatar";
 import {
   useNotifications,
@@ -92,14 +93,6 @@ export function NotificationBell() {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useOverlayA11y<HTMLDivElement>(open, () => setOpen(false));
 
-  useEffect(() => {
-    function closePanel(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("pointerdown", closePanel);
-    return () => document.removeEventListener("pointerdown", closePanel);
-  }, []);
-
   function openNotification(notification: NotificationItem) {
     setOpen(false);
     void markRead(notification.id);
@@ -121,6 +114,15 @@ export function NotificationBell() {
     }
   }
 
+  const bellRect = open ? containerRef.current?.getBoundingClientRect() : null;
+  const desktopPanelStyle =
+    typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+      ? {
+          top: (bellRect?.bottom ?? 48) + 8,
+          right: Math.max(12, window.innerWidth - (bellRect?.right ?? window.innerWidth)),
+        }
+      : undefined;
+
   return (
     <div ref={containerRef} className="relative z-30">
       <button
@@ -141,10 +143,10 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            className="fixed inset-0 z-[100] bg-black/40 lg:bg-transparent"
             onPointerDown={() => setOpen(false)}
           />
           <div
@@ -153,7 +155,8 @@ export function NotificationBell() {
             role="dialog"
             aria-modal="true"
             aria-label="Notifications"
-            className="motion-reveal fixed inset-x-0 bottom-0 z-50 max-h-[70dvh] overflow-y-auto rounded-t-[26px] bg-card p-4 pb-[max(16px,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)] lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-12 lg:max-h-[480px] lg:w-[350px] lg:rounded-[18px] lg:p-3 lg:shadow-[var(--shadow-floating)]"
+            style={desktopPanelStyle}
+            className="motion-reveal fixed inset-x-0 bottom-0 z-[110] max-h-[70dvh] overflow-y-auto rounded-t-[26px] bg-card p-4 pb-[max(16px,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)] lg:inset-x-auto lg:bottom-auto lg:max-h-[480px] lg:w-[350px] lg:rounded-[18px] lg:p-3 lg:shadow-[var(--shadow-floating)]"
           >
             <div className="flex items-center justify-between px-1 pb-2">
               <div className="text-[14px] font-extrabold">Notifications</div>
@@ -225,7 +228,8 @@ export function NotificationBell() {
               </button>
             )}
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   );
