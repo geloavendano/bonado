@@ -181,6 +181,10 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       keyboard control. Tests/build/lint pass.
 - [ ] 11. Client cache consolidation (TanStack Query or similar) —
       DEFERRED by user ("let's fix it later").
-- [ ] 12. Lazy-load all routes (>500 kB chunk warning).
+- [x] 12. Lazy-load all routes — DONE. Every page route now loads through
+      React.lazy while auth, routing, and shared trip layout remain eager.
+      The former 569 kB application chunk is split into page chunks (largest
+      page ≈25 kB) plus shared vendor chunks below 254 kB; the >500 kB build
+      warning is eliminated. Tests/build/lint pass.
 - [ ] 13. Notification retention — purge rows older than 6 months.
 - [ ] 14. Privacy policy + terms & conditions section in settings.

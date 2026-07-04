@@ -3,19 +3,23 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Login } from "@/pages/Login";
-import { Dashboard } from "@/pages/Dashboard";
-import { CreateTrip } from "@/pages/CreateTrip";
-import { TripHome } from "@/pages/TripHome";
-import { TripSettings } from "@/pages/TripSettings";
-import { TripBalances } from "@/pages/TripBalances";
-import { TripReports } from "@/pages/TripReports";
-import { GuestJoin } from "@/pages/GuestJoin";
 import { TripLayout } from "@/components/trip/TripLayout";
 import { NavigationRestoration } from "@/components/NavigationRestoration";
-import { SettlementDetail } from "@/pages/SettlementDetail";
-import { EditSettlement } from "@/pages/EditSettlement";
 
+const Login = lazy(() => import("@/pages/Login").then(({ Login }) => ({ default: Login })));
+const Dashboard = lazy(() => import("@/pages/Dashboard").then(({ Dashboard }) => ({ default: Dashboard })));
+const CreateTrip = lazy(() => import("@/pages/CreateTrip").then(({ CreateTrip }) => ({ default: CreateTrip })));
+const TripHome = lazy(() => import("@/pages/TripHome").then(({ TripHome }) => ({ default: TripHome })));
+const TripSettings = lazy(() => import("@/pages/TripSettings").then(({ TripSettings }) => ({ default: TripSettings })));
+const TripBalances = lazy(() => import("@/pages/TripBalances").then(({ TripBalances }) => ({ default: TripBalances })));
+const TripReports = lazy(() => import("@/pages/TripReports").then(({ TripReports }) => ({ default: TripReports })));
+const GuestJoin = lazy(() => import("@/pages/GuestJoin").then(({ GuestJoin }) => ({ default: GuestJoin })));
+const SettlementDetail = lazy(() =>
+  import("@/pages/SettlementDetail").then(({ SettlementDetail }) => ({ default: SettlementDetail })),
+);
+const EditSettlement = lazy(() =>
+  import("@/pages/EditSettlement").then(({ EditSettlement }) => ({ default: EditSettlement })),
+);
 const AddExpense = lazy(() =>
   import("@/pages/AddExpense").then((module) => ({ default: module.AddExpense })),
 );
