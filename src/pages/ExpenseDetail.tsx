@@ -18,6 +18,7 @@ import { useTripLayout } from "@/components/trip/useTripLayout";
 import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 function labelForAdjustment(type: string) {
   if (type === "tax") return "Tax";
@@ -376,32 +377,25 @@ export function ExpenseDetail() {
             <CommentsSection entryId={entryId} members={trip.members} />
 
             <div className="mt-3">
-              {confirmingDelete ? (
-                <div className="motion-reveal flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => void handleDelete()}
-                    disabled={saving || !navigator.onLine}
-                    className="rounded-pill bg-owe-tint px-4 py-2.5 text-[13px] font-bold text-owe disabled:opacity-50"
-                  >
-                    Delete expense
-                  </button>
-                  <button
-                    onClick={() => setConfirmingDelete(false)}
-                    className="rounded-pill px-4 py-2.5 text-[13px] font-semibold text-secondary"
-                  >
-                    Keep
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmingDelete(true)}
-                  className="w-full py-3 text-center text-[13px] font-bold text-owe"
-                >
-                  Delete expense
-                </button>
-              )}
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                className="w-full py-3 text-center text-[13px] font-bold text-owe"
+              >
+                Delete expense
+              </button>
             </div>
         {error && <p className="text-[12.5px] text-owe">{error}</p>}
+        {confirmingDelete && (
+          <ConfirmDialog
+            title="Delete this expense?"
+            description={`"${expense.description}" will be removed for everyone on this trip. This can't be undone.`}
+            confirmLabel="Delete expense"
+            destructive
+            busy={saving || !navigator.onLine}
+            onConfirm={() => void handleDelete()}
+            onCancel={() => setConfirmingDelete(false)}
+          />
+        )}
         </div>
       </div>
       <Toast message={toastMessage} />
