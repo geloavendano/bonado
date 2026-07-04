@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { invalidateExpense } from "@/hooks/useExpense";
@@ -55,9 +55,18 @@ export function useCreateExpense() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One id per form attempt, kept across failed retries so a create whose
+  // response was lost after the server committed dedups instead of
+  // duplicating; cleared only once the expense is saved or queued.
+  const pendingEntryId = useRef<string | null>(null);
 
   async function resolveRate(input: Pick<SimpleExpenseInput, "currency" | "tripDefaultCurrency">) {
     return fetchExchangeRate(input.currency, input.tripDefaultCurrency);
+  }
+
+  function claimEntryId() {
+    pendingEntryId.current ??= crypto.randomUUID();
+    return pendingEntryId.current;
   }
 
   async function submitCreate(
@@ -66,6 +75,7 @@ export function useCreateExpense() {
   ) {
     if (!navigator.onLine) {
       await queueExpense(tripId, payload);
+      pendingEntryId.current = null;
       setSubmitting(false);
       navigate(`/trips/${tripId}`, {
         replace: true,
@@ -74,7 +84,7 @@ export function useCreateExpense() {
       return true;
     }
     const { error: createError } = await supabase.rpc(
-      "create_itemized_expense_with_rate",
+      "create_expense_idempotent",
       payload,
     );
     if (createError) {
@@ -82,6 +92,7 @@ export function useCreateExpense() {
       setError(createError.message);
       return false;
     }
+    pendingEntryId.current = null;
     setSubmitting(false);
     invalidateRecentEntries(tripId);
     invalidateBalances(tripId);
@@ -110,6 +121,7 @@ export function useCreateExpense() {
       }));
 
     const payload = {
+      p_entry_id: claimEntryId(),
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
@@ -147,6 +159,7 @@ export function useCreateExpense() {
     }
 
     const payload = {
+      p_entry_id: claimEntryId(),
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,

@@ -58,10 +58,12 @@ export async function flushExpenseQueue() {
       remaining.push(item);
       continue;
     }
-    const { error } = await supabase.rpc(
-      "create_itemized_expense_with_rate",
-      item.payload,
-    );
+    // Older queue items predate p_entry_id in the payload; the queue item id
+    // is already a UUID, so reuse it as the idempotency key for those.
+    const { error } = await supabase.rpc("create_expense_idempotent", {
+      p_entry_id: item.id,
+      ...item.payload,
+    });
     if (error) {
       remaining.push(item);
       if (!navigator.onLine) {
