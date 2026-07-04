@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -11,6 +11,8 @@ import { useTripLayout } from "@/components/trip/useTripLayout";
 import { formatMoney } from "@/lib/money";
 import { markTransactionNotificationsRead } from "@/lib/notificationReadState";
 import { CommentsSection } from "@/components/comments/CommentsSection";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useSettlementMutations } from "@/hooks/useSettlementMutations";
 
 function timestamp(value: string) {
   return new Date(value).toLocaleString(undefined, {
@@ -24,6 +26,8 @@ export function SettlementDetail() {
   const navigate = useNavigate();
   const trip = useTripLayout();
   const { settlement, loading, error } = useSettlement(settlementId);
+  const { deleteSettlement, saving, error: deleteError } = useSettlementMutations();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const toast = useRouteToast();
 
   useEffect(() => {
@@ -33,6 +37,16 @@ export function SettlementDetail() {
   if (loading) return <PageShell><FormPageSkeleton /></PageShell>;
   if (!tripId || !settlementId || !settlement) {
     return <Navigate to={tripId ? `/trips/${tripId}` : "/"} replace />;
+  }
+
+  async function handleDelete() {
+    if (!tripId || !settlementId) return;
+    if (await deleteSettlement(settlementId, tripId)) {
+      navigate(`/trips/${tripId}`, {
+        replace: true,
+        state: { toast: "Settlement deleted." },
+      });
+    }
   }
 
   return (
@@ -96,7 +110,28 @@ export function SettlementDetail() {
         </div>
 
         <CommentsSection settlementId={settlementId} members={trip.members} />
-        {error && <p className="text-[12.5px] text-owe">{error}</p>}
+        <div className="mt-3">
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            className="w-full py-3 text-center text-[13px] font-bold text-owe"
+          >
+            Delete settlement
+          </button>
+        </div>
+        {(error || deleteError) && (
+          <p className="text-[12.5px] text-owe">{error ?? deleteError}</p>
+        )}
+        {confirmingDelete && (
+          <ConfirmDialog
+            title="Delete this settlement?"
+            description="This settlement will be removed for everyone on this trip and balances will be recalculated. This can't be undone."
+            confirmLabel={saving ? "Deleting…" : "Delete settlement"}
+            destructive
+            busy={saving || !navigator.onLine}
+            onConfirm={() => void handleDelete()}
+            onCancel={() => setConfirmingDelete(false)}
+          />
+        )}
         </div>
       </div>
       <Toast message={toast} />

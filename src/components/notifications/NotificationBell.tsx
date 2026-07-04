@@ -50,6 +50,8 @@ function describe(notification: NotificationItem): {
       return { title: `${actor} recorded a settlement`, detail: amount };
     case "settlement_edited":
       return { title: `${actor} updated a settlement`, detail: amount };
+    case "settlement_deleted":
+      return { title: `${actor} deleted a settlement`, detail: null };
     case "comment_added":
       return {
         title: `${actor} commented on ${notification.entry ? `"${expense}"` : "a settlement"}`,
@@ -93,6 +95,8 @@ export function NotificationBell() {
       navigate(
         `/trips/${notification.trip_id}/settlements/${notification.settlement_id}`,
       );
+    } else {
+      navigate(`/trips/${notification.trip_id}`);
     }
   }
 

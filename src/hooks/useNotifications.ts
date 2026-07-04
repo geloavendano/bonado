@@ -7,6 +7,7 @@ export type NotificationKind =
   | "expense_deleted"
   | "settlement_created"
   | "settlement_edited"
+  | "settlement_deleted"
   | "comment_added"
   | "comment_mention";
 

@@ -120,11 +120,15 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       policy helpers used in RLS must stay executable by the API roles).
       Verified: owner direct update OK, member direct update blocked,
       member RPC rejected.
-- [ ] 2. Settlement deletion — `delete_settlement` RPC + Delete button with
-      `ConfirmDialog` on SettlementDetail. Notify involved users
-      (`settlement_deleted` kind); note notifications.settlement_id FK is
-      on-delete-cascade, so a hard delete wipes its own notification —
-      either notify with a trip-level reference or keep a tombstone.
+- [x] 2. Settlement deletion — DONE (migration 0026 +
+      `useSettlementMutations` + `ConfirmDialog` on SettlementDetail).
+      Uses a hard delete and then creates a retained trip-level
+      `settlement_deleted` notification for the payer, recipient, and creator;
+      balances and transaction-history caches are invalidated. Migration 0026
+      is applied to production; the API schema recognizes the RPC and rejects
+      anonymous execution as intended. Build/lint pass. Follow-up manual check:
+      delete a real settlement with two signed-in members and confirm the trip
+      toast, history removal, recalculated balances, and recipient notification.
 - [ ] 3. Member removal / leave trip — `remove_trip_member` RPC reassigns
       the member's payments, line_item_shares, adjustment_shares,
       settlement from/to/created_by, and entries.created_by (per-trip) to
