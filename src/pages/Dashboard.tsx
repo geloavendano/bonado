@@ -245,6 +245,16 @@ export function Dashboard() {
                     </div>
                   </div>
                 )}
+                {settingsOpen && (
+                  <div className="motion-reveal mb-2 flex gap-3 border-t border-hairline px-1 pt-3 text-[11.5px] font-semibold normal-case tracking-normal">
+                    <Link to="/legal/privacy" className="text-teal">
+                      Privacy
+                    </Link>
+                    <Link to="/legal/terms" className="text-teal">
+                      Terms
+                    </Link>
+                  </div>
+                )}
                 <button
                   onClick={() => void signOut()}
                   className="w-full border-t border-hairline px-1 pt-3 text-left text-[12.5px] font-bold text-owe"

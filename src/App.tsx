@@ -20,6 +20,12 @@ const SettlementDetail = lazy(() =>
 const EditSettlement = lazy(() =>
   import("@/pages/EditSettlement").then(({ EditSettlement }) => ({ default: EditSettlement })),
 );
+const PrivacyPolicy = lazy(() =>
+  import("@/pages/Legal").then(({ PrivacyPolicy }) => ({ default: PrivacyPolicy })),
+);
+const TermsConditions = lazy(() =>
+  import("@/pages/Legal").then(({ TermsConditions }) => ({ default: TermsConditions })),
+);
 const AddExpense = lazy(() =>
   import("@/pages/AddExpense").then((module) => ({ default: module.AddExpense })),
 );
@@ -51,6 +57,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+          <Route path="/legal/terms" element={<TermsConditions />} />
           <Route
             path="/trips/new"
             element={

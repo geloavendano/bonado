@@ -190,4 +190,9 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       `purge_expired_notifications` function deletes delivery/read-state rows
       older than six months, and pg_cron runs it daily at 03:15 UTC. Existing
       jobs with the same name are replaced idempotently. Migration applied.
-- [ ] 14. Privacy policy + terms & conditions section in settings.
+- [x] 14. Privacy policy + terms & conditions — DONE. Account → Settings
+      links to responsive, lazy-loaded in-app legal pages describing Bonado's
+      actual authentication, trip data, receipts, notifications, providers,
+      retention, currency estimates, user responsibilities, and limitations.
+      Effective date is July 5, 2026. Tests/build/lint pass. Legal counsel
+      review remains advisable before a broad public launch.
