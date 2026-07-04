@@ -152,8 +152,15 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       beside trip settings over the cover; the shared sticky tab header puts
       the same notification panel on Balances and Reports. It retains exact
       unread counts and paginated loading from item 4. Build/lint pass.
-- [ ] 6. Offline sync (create-only PWA queue) — PENDING USER DECISION,
-      feasible per assessment; not started.
+- [x] 6. Offline sync (create-only PWA queue) — DONE. The installable PWA
+      precaches its app shell. New simple and itemized expenses with a
+      resolved/default cached exchange rate queue in account-scoped
+      localStorage while offline, show a persistent pending count, retry in
+      order on reconnect/app start, invalidate history/balance caches, and
+      show a sync toast. Edits, settlements, deletions, and receipt uploads
+      intentionally remain online-only. Tests/build/lint and service-worker
+      generation pass. Manual follow-up: install on mobile, create an expense
+      in airplane mode, reconnect, and verify exactly one server entry.
 - [x] 7. Unify unread systems — DONE. Removed localStorage
       `entryReadState`; `useUnreadTransactions` derives expense and settlement
       dots from the signed-in viewer's unread database notifications. Viewing

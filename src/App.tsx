@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TripLayout } from "@/components/trip/TripLayout";
 import { NavigationRestoration } from "@/components/NavigationRestoration";
+import { OfflineSyncRunner } from "@/components/OfflineSyncRunner";
 
 const Login = lazy(() => import("@/pages/Login").then(({ Login }) => ({ default: Login })));
 const Dashboard = lazy(() => import("@/pages/Dashboard").then(({ Dashboard }) => ({ default: Dashboard })));
@@ -39,6 +40,7 @@ export default function App() {
       <NavigationRestoration />
       <AuthProvider>
         <ThemeProvider>
+        <OfflineSyncRunner />
         <Suspense
           fallback={
             <div className="min-h-dvh bg-bg px-6 pt-10">

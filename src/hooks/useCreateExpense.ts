@@ -6,6 +6,7 @@ import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
 import { invalidateBalances } from "@/lib/balanceData";
 import { fetchExchangeRate } from "@/hooks/useCurrencyRates";
 import { allocateEqualShares } from "@/lib/moneyMath";
+import { queueExpense } from "@/lib/offlineExpenseQueue";
 
 export interface PayerAllocation {
   userId: string;
@@ -59,6 +60,35 @@ export function useCreateExpense() {
     return fetchExchangeRate(input.currency, input.tripDefaultCurrency);
   }
 
+  async function submitCreate(
+    tripId: string,
+    payload: Record<string, unknown>,
+  ) {
+    if (!navigator.onLine) {
+      await queueExpense(tripId, payload);
+      setSubmitting(false);
+      navigate(`/trips/${tripId}`, {
+        replace: true,
+        state: { toast: "Expense queued. It will sync when you’re online." },
+      });
+      return true;
+    }
+    const { error: createError } = await supabase.rpc(
+      "create_itemized_expense_with_rate",
+      payload,
+    );
+    if (createError) {
+      setSubmitting(false);
+      setError(createError.message);
+      return false;
+    }
+    setSubmitting(false);
+    invalidateRecentEntries(tripId);
+    invalidateBalances(tripId);
+    navigate(`/trips/${tripId}`, { replace: true });
+    return true;
+  }
+
   async function createExpense(input: SimpleExpenseInput) {
     setSubmitting(true);
     setError(null);
@@ -79,7 +109,7 @@ export function useCreateExpense() {
         owed_amount: share.amount,
       }));
 
-    const { error: createError } = await supabase.rpc("create_itemized_expense_with_rate", {
+    const payload = {
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
@@ -100,19 +130,8 @@ export function useCreateExpense() {
         shares: equalShares,
       }],
       p_adjustments: [],
-    });
-
-    if (createError) {
-      setSubmitting(false);
-      setError(createError.message);
-      return false;
-    }
-    setSubmitting(false);
-
-    invalidateRecentEntries(input.tripId);
-    invalidateBalances(input.tripId);
-    navigate(`/trips/${input.tripId}`, { replace: true });
-    return true;
+    };
+    return submitCreate(input.tripId, payload);
   }
 
   async function createItemizedExpense(input: ItemizedExpenseInput) {
@@ -127,7 +146,7 @@ export function useCreateExpense() {
       return false;
     }
 
-    const { error: createError } = await supabase.rpc("create_itemized_expense_with_rate", {
+    const payload = {
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
@@ -161,19 +180,8 @@ export function useCreateExpense() {
           owed_amount: share.owedAmount,
         })),
       })),
-    });
-
-    if (createError) {
-      setSubmitting(false);
-      setError(createError.message);
-      return false;
-    }
-    setSubmitting(false);
-
-    invalidateRecentEntries(input.tripId);
-    invalidateBalances(input.tripId);
-    navigate(`/trips/${input.tripId}`, { replace: true });
-    return true;
+    };
+    return submitCreate(input.tripId, payload);
   }
 
   async function replaceExpense(
