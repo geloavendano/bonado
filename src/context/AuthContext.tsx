@@ -16,8 +16,10 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
+  signInWithApple: (redirectTo?: string) => Promise<void>;
   signInAsGuest: (name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<string | null>;
   updateProfile: (input: {
     name?: string;
     preferredCurrency?: string;
@@ -147,6 +149,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const signInWithApple = useCallback(async (redirectTo?: string) => {
+    await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: redirectTo ?? window.location.origin },
+    });
+  }, []);
+
+  const deleteAccount = useCallback(async (): Promise<string | null> => {
+    const { error } = await supabase.rpc("delete_account");
+    if (error) return error.message;
+    // The auth user no longer exists server-side; drop the local session.
+    await supabase.auth.signOut().catch(() => undefined);
+    setUser(null);
+    setSession(null);
+    return null;
+  }, []);
+
   const signInAsGuest = useCallback(async (name: string) => {
     const { error } = await supabase.auth.signInAnonymously({
       options: { data: { full_name: name } },
@@ -184,8 +203,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const value = useMemo(
-    () => ({ session, user, loading, signInWithGoogle, signInAsGuest, signOut, updateProfile }),
-    [session, user, loading, signInWithGoogle, signInAsGuest, signOut, updateProfile],
+    () => ({
+      session, user, loading, signInWithGoogle, signInWithApple,
+      signInAsGuest, signOut, deleteAccount, updateProfile,
+    }),
+    [
+      session, user, loading, signInWithGoogle, signInWithApple,
+      signInAsGuest, signOut, deleteAccount, updateProfile,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

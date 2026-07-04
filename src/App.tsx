@@ -28,6 +28,9 @@ const PrivacyPolicy = lazy(() =>
 const TermsConditions = lazy(() =>
   import("@/pages/Legal").then(({ TermsConditions }) => ({ default: TermsConditions })),
 );
+const DeleteAccountInfo = lazy(() =>
+  import("@/pages/Legal").then(({ DeleteAccountInfo }) => ({ default: DeleteAccountInfo })),
+);
 const AddExpense = lazy(() =>
   import("@/pages/AddExpense").then((module) => ({ default: module.AddExpense })),
 );
@@ -63,6 +66,7 @@ export default function App() {
           />
           <Route path="/legal/privacy" element={<PrivacyPolicy />} />
           <Route path="/legal/terms" element={<TermsConditions />} />
+          <Route path="/legal/delete-account" element={<DeleteAccountInfo />} />
           <Route
             path="/trips/new"
             element={

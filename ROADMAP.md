@@ -249,13 +249,22 @@ dependency, not all items are store blockers.
       from a logo via `npx @capacitor/assets generate`.
 
 **Tier 2 — store requirements**
-- [ ] Sign in with Apple (App Store guideline 4.8; Supabase provider).
-- [ ] Account deletion: generalize `remove_trip_member`'s placeholder
-      reassignment across all trips, then delete users row + auth user.
-      Google also requires a web-accessible deletion-request page — the
-      web app itself can host it.
-- [ ] Store listings: privacy disclosures (data-collection forms),
-      screenshots, support contact.
+- [x] Sign in with Apple — code DONE: `signInWithApple` in AuthContext and
+      a Login button gated behind `VITE_ENABLE_APPLE_SIGNIN=true`. OWNER
+      TODO: create the Apple Services ID/key, enable the Apple provider in
+      Supabase Auth, then set the env flag in Vercel (and native env).
+- [x] Account deletion — DONE (0032 `delete_account`): sole-member trips
+      deleted outright; owned shared trips transfer ownership to the
+      earliest-joined member; every shared trip gets 0027-style placeholder
+      reassignment plus comments.author_id / trips.created_by; payment
+      account references nulled; bonado + auth user rows removed. UI in the
+      Dashboard account menu behind a destructive ConfirmDialog; public
+      how-to page at `/legal/delete-account` (Google deletion-URL
+      requirement). Verified live: deleted account's ledger survives under
+      a placeholder, balances unchanged, auth session invalidated.
+- [ ] Store listings — OWNER TODO: privacy disclosure forms (data types
+      collected: identity, financial ledger entries, photos), screenshots,
+      support contact email.
 
 **Tier 3 — mobile experience**
 - [ ] Push notifications: device-token table + trigger/edge function on

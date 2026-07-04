@@ -131,3 +131,39 @@ export function TermsConditions() {
   );
 }
 
+
+export function DeleteAccountInfo() {
+  return (
+    <LegalPage title="Delete your account">
+      <p>
+        You can permanently delete your Bonado account and sign-in from inside
+        the app at any time.
+      </p>
+      <Section title="How to delete your account">
+        <p>
+          Sign in, open the Dashboard, tap your avatar in the top-right
+          corner, and choose "Delete account". After you confirm, your account
+          and sign-in credentials are removed immediately.
+        </p>
+      </Section>
+      <Section title="What happens to your data">
+        <p>
+          Your profile, sign-in identity, payment accounts, notifications, and
+          personal preferences are deleted. Trips where you are the only
+          member are deleted entirely, including their expenses and receipts.
+          In trips you share with other people, the expenses and settlements
+          you took part in remain visible to those members under an unclaimed
+          placeholder carrying your display name, so their balances stay
+          correct — this retained ledger data is no longer linked to any
+          sign-in identity.
+        </p>
+      </Section>
+      <Section title="Questions">
+        <p>
+          If you cannot access the app to delete your account, contact support
+          through the store listing and we will process the deletion for you.
+        </p>
+      </Section>
+    </LegalPage>
+  );
+}

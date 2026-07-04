@@ -2,8 +2,10 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 
+const appleSignInEnabled = import.meta.env.VITE_ENABLE_APPLE_SIGNIN === "true";
+
 export function Login() {
-  const { user, loading, signInWithGoogle } = useAuth();
+  const { user, loading, signInWithGoogle, signInWithApple } = useAuth();
 
   if (!loading && user) {
     return <Navigate to="/" replace />;
@@ -21,14 +23,26 @@ export function Login() {
           and settle up.
         </p>
 
-        <Button
-          variant="outline"
-          fullWidth
-          className="!border-[var(--color-faint-2)] !text-ink flex items-center justify-center gap-2"
-          onClick={() => void signInWithGoogle()}
-        >
-          <span className="text-base">Ⓖ</span> Continue with Google
-        </Button>
+        <div className="flex w-full flex-col gap-3">
+          <Button
+            variant="outline"
+            fullWidth
+            className="!border-[var(--color-faint-2)] !text-ink flex items-center justify-center gap-2"
+            onClick={() => void signInWithGoogle()}
+          >
+            <span className="text-base">Ⓖ</span> Continue with Google
+          </Button>
+          {appleSignInEnabled && (
+            <Button
+              variant="outline"
+              fullWidth
+              className="!border-[var(--color-faint-2)] !text-ink flex items-center justify-center gap-2"
+              onClick={() => void signInWithApple()}
+            >
+              <span className="text-base"></span> Continue with Apple
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

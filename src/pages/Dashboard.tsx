@@ -13,6 +13,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { buttonClasses } from "@/components/ui/Button";
 import { GuestBanner } from "@/components/trip/GuestBanner";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatMoney } from "@/lib/money";
 import { ALL_CURRENCIES } from "@/lib/currencies";
 import { ChevronDown } from "@/components/ui/ChevronDown";
@@ -153,13 +154,27 @@ function TripRow({
 }
 
 export function Dashboard() {
-  const { user, signOut, updateProfile } = useAuth();
+  const { user, signOut, deleteAccount, updateProfile } = useAuth();
   const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const { trips, loading, loadingMore, hasMore, loadMore } = useTrips();
   const toastMessage = useRouteToast();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmingAccountDelete, setConfirmingAccountDelete] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [accountDeleteError, setAccountDeleteError] = useState<string | null>(null);
   const accountRef = useRef<HTMLDivElement>(null);
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    const errorMessage = await deleteAccount();
+    setDeletingAccount(false);
+    if (errorMessage) {
+      setAccountDeleteError(errorMessage);
+      return;
+    }
+    window.location.assign("/login");
+  }
 
   const [currentTrip, ...restTrips] = trips;
 
@@ -261,12 +276,39 @@ export function Dashboard() {
                 >
                   Log out
                 </button>
+                <button
+                  onClick={() => {
+                    setAccountOpen(false);
+                    setConfirmingAccountDelete(true);
+                  }}
+                  className="w-full px-1 pt-2.5 text-left text-[11.5px] font-semibold text-secondary"
+                >
+                  Delete account
+                </button>
               </div>
             )}
           </div>
           </div>
         )}
       </div>
+
+      {confirmingAccountDelete && (
+        <ConfirmDialog
+          title="Delete your account?"
+          description={
+            accountDeleteError ??
+            "Your account and sign-in are permanently removed. Trips where you're the only member are deleted; in shared trips your expenses and settlements stay visible under an unclaimed placeholder with your name. This can't be undone."
+          }
+          confirmLabel={deletingAccount ? "Deleting…" : "Delete account"}
+          destructive
+          busy={deletingAccount}
+          onConfirm={() => void handleDeleteAccount()}
+          onCancel={() => {
+            setConfirmingAccountDelete(false);
+            setAccountDeleteError(null);
+          }}
+        />
+      )}
 
       <div className="flex flex-col gap-3.5 pt-3.5 pb-20">
         <GuestBanner />
