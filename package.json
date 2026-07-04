@@ -8,9 +8,16 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cap:sync": "npm run build && cap sync",
+    "cap:ios": "npm run cap:sync && cap open ios",
+    "cap:android": "npm run cap:sync && cap open android"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/preferences": "^8.0.1",
     "@supabase/supabase-js": "^2.110.0",
     "clsx": "^2.1.1",
     "react": "^19.2.7",
@@ -18,6 +25,8 @@
     "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",

@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["REPLACE_TEAM_ID.com.bonado.app"],
+        "paths": ["/join/*", "/trips/*", "/legal/*"]
+      }
+    ]
+  }
+}

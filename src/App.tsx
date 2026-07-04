@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TripLayout } from "@/components/trip/TripLayout";
 import { NavigationRestoration } from "@/components/NavigationRestoration";
 import { OfflineSyncRunner } from "@/components/OfflineSyncRunner";
+import { NativeShell } from "@/components/NativeShell";
 
 const Login = lazy(() => import("@/pages/Login").then(({ Login }) => ({ default: Login })));
 const Dashboard = lazy(() => import("@/pages/Dashboard").then(({ Dashboard }) => ({ default: Dashboard })));
@@ -40,6 +41,7 @@ export default function App() {
       <NavigationRestoration />
       <AuthProvider>
         <ThemeProvider>
+        <NativeShell />
         <OfflineSyncRunner />
         <Suspense
           fallback={

@@ -213,26 +213,40 @@ exists, and React Native would discard the entire frontend). Ordered by
 dependency, not all items are store blockers.
 
 **Tier 0 — do now, benefits web too**
-- [ ] Idempotent expense creation: RPCs generate entry ids server-side
-      (0010), so a retried create after a dropped response duplicates the
-      expense — despite 0001 designing `entries.id` as client-generated for
-      exactly this. Add `p_entry_id` to the create RPCs with
-      on-conflict-do-nothing, pass a client UUID (offline queue included).
-- [ ] Confirm privacy/terms pages are reachable signed-out at stable public
-      URLs (both stores require a public privacy policy link).
+- [x] Idempotent expense creation — DONE (0030,
+      `create_expense_idempotent`): retry with same client UUID
+      short-circuits; graph re-keyed via child moves. Hook keeps one id per
+      form attempt; queue flush falls back to the queue item id for legacy
+      payloads. Verified: double-call → one entry under the client id.
+- [x] Legal pages verified reachable signed-out at `/legal/privacy` and
+      `/legal/terms` (public routes outside ProtectedRoute; no change
+      needed).
 
-**Tier 1 — Capacitor foundation**
-- [ ] Capacitor shell, app icons/splash, iOS/Android projects in repo.
-- [ ] Universal links / app links: `/join/:token` invites, transaction
-      deep links, and the Supabase OAuth callback (custom scheme or
-      universal link redirect).
-- [ ] Android hardware back button → router history (Capacitor App plugin).
-- [ ] Supabase session in secure storage (Keychain/Keystore via a custom
-      supabase-js storage adapter) + refresh session on app resume
-      (background WebView suspends token refresh timers).
-- [ ] Minimum-supported-version gate checked at launch (cheap kill switch;
-      shipped binaries lag DB changes). Keep the existing additive RPC
-      evolution convention (`*_with_rate`, `*_with_dates`) as policy.
+**Tier 1 — Capacitor foundation** (code DONE; needs owner credentials to finish)
+- [x] Capacitor 8 shell: `capacitor.config.ts` (appId `com.bonado.app`,
+      changeable pre-submission), `ios/` + `android/` projects committed,
+      `cap:sync` / `cap:ios` / `cap:android` npm scripts. Icons/splash NOT
+      generated yet — needs a 1024px logo source (`@capacitor/assets`).
+- [x] `NativeShell` (mounted in App, no-op on web): Android back button →
+      history/exit; auth `startAutoRefresh`/`stopAutoRefresh` on app
+      state changes; `appUrlOpen` deep-link routing including the Supabase
+      OAuth PKCE `?code=` callback via `exchangeCodeForSession`.
+- [x] Session storage adapter: Capacitor Preferences (out of evictable
+      WebView localStorage) via `src/lib/nativeStorage.ts`; upgrading to
+      Keychain/Keystore later is a same-surface adapter swap.
+- [x] Min-version gate: `bonado.app_config` (0031, read-only via RLS,
+      edited from dashboard) checked at native launch; blocking
+      "Update required" screen. Fails open if the check errors.
+- [x] Universal-link web artifacts: `/.well-known/apple-app-site-association`
+      + `assetlinks.json` (placeholders) and the AASA content-type header
+      in vercel.json.
+- [ ] OWNER TODOS to finish links/OAuth on device: replace
+      `REPLACE_TEAM_ID` (Apple team id) in AASA and the release-signing
+      SHA256 in assetlinks.json; add the Associated Domains entitlement
+      (`applinks:<your-domain>`) in Xcode and the `autoVerify` intent
+      filter for the domain in AndroidManifest.xml; add the production
+      domain to Supabase Auth redirect allow-list; generate icons/splash
+      from a logo via `npx @capacitor/assets generate`.
 
 **Tier 2 — store requirements**
 - [ ] Sign in with Apple (App Store guideline 4.8; Supabase provider).

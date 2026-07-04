@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
+import { nativeAuthStorage } from "@/lib/nativeStorage";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as
@@ -18,5 +20,18 @@ if (!isSupabaseConfigured) {
 export const supabase = createClient(
   supabaseUrl ?? "https://placeholder.supabase.co",
   supabaseAnonKey ?? "placeholder-anon-key",
-  { db: { schema: "bonado" } },
+  {
+    db: { schema: "bonado" },
+    // In the native shell, sessions live in app-scoped storage and OAuth
+    // redirects arrive via appUrlOpen deep links (see NativeShell), not the
+    // page URL.
+    auth: Capacitor.isNativePlatform()
+      ? {
+          storage: nativeAuthStorage,
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false,
+        }
+      : {},
+  },
 );

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">bonado</string>
+    <string name="title_activity_main">bonado</string>
+    <string name="package_name">com.bonado.app</string>
+    <string name="custom_url_scheme">com.bonado.app</string>
+</resources>
