@@ -19,5 +19,6 @@ export async function markTransactionNotificationsRead(target: {
   } else {
     return;
   }
-  await query;
+  const { error } = await query;
+  if (!error) window.dispatchEvent(new Event("bonado:notifications-read"));
 }

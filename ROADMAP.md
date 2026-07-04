@@ -154,8 +154,12 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       unread counts and paginated loading from item 4. Build/lint pass.
 - [ ] 6. Offline sync (create-only PWA queue) — PENDING USER DECISION,
       feasible per assessment; not started.
-- [ ] 7. Unify unread systems — drop localStorage entryReadState; derive
-      TripHome unread dots from the DB notifications table (cross-device).
+- [x] 7. Unify unread systems — DONE. Removed localStorage
+      `entryReadState`; `useUnreadTransactions` derives expense and settlement
+      dots from the signed-in viewer's unread database notifications. Viewing
+      a transaction, opening a notification, or marking all read broadcasts a
+      shared refresh event so feed dots update without a reload. State now
+      follows the user across devices. Build/lint pass.
 - [ ] 8. Mention tokens — store `@[user_id]` in comment bodies, resolve to
       current member names at render (renames reflect everywhere).
 - [ ] 9. Automated tests + CI — Vitest for money math (split rounding,

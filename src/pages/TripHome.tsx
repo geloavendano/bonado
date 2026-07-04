@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useRecentEntries } from "@/hooks/useRecentEntries";
 import { formatMoney } from "@/lib/money";
 import { useAuth } from "@/context/AuthContext";
-import { isEntryUnread } from "@/lib/entryReadState";
 import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { useBalances } from "@/hooks/useBalances";
@@ -20,6 +19,7 @@ import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { convertEntryAmount } from "@/lib/convertEntryAmount";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { useUnreadTransactions } from "@/hooks/useUnreadTransactions";
 
 export function TripHome() {
   const trip = useTripLayout();
@@ -34,6 +34,8 @@ export function TripHome() {
   } =
     useRecentEntries(trip.id);
   const { balances } = useBalances(trip.id);
+  const { entryIds: unreadEntryIds, settlementIds: unreadSettlementIds } =
+    useUnreadTransactions(trip.id);
   const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
   const [copied, setCopied] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("");
@@ -289,6 +291,7 @@ export function TripHome() {
                   trip.default_currency,
                   rates,
                 );
+                const unread = unreadSettlementIds.has(entry.id);
                 return (
                   <Link
                     key={`settlement-${entry.id}`}
@@ -323,7 +326,13 @@ export function TripHome() {
                       {isReceiver ? "+" : isSender ? "−" : ""}
                       {formatMoney(settlementDisplay.amount, settlementDisplay.currency)}
                     </div>
-                    <span className="size-2 flex-none" />
+                    <span
+                      aria-label={unread ? "Unread transaction" : undefined}
+                      className={
+                        "size-2 flex-none rounded-full " +
+                        (unread ? "bg-teal" : "bg-transparent")
+                      }
+                    />
                   </Link>
                 );
               }
@@ -354,7 +363,7 @@ export function TripHome() {
                 payment.user ? [payment.user] : [],
               );
               const payerNames = payers.map((payer) => payer.name).join(", ");
-              const unread = Boolean(user && isEntryUnread(entry, user.id));
+              const unread = unreadEntryIds.has(entry.id);
               const shareDisplay = convertEntryAmount(
                 yourShare,
                 entry.currency,

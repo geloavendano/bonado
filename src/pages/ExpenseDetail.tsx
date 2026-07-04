@@ -11,7 +11,6 @@ import { useExpenseMutations } from "@/hooks/useExpenseMutations";
 import { useReceiptUpload } from "@/hooks/useReceiptUpload";
 import { supabase } from "@/lib/supabase";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
-import { markEntryRead } from "@/lib/entryReadState";
 import { markTransactionNotificationsRead } from "@/lib/notificationReadState";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 import { useTripLayout } from "@/components/trip/useTripLayout";
@@ -64,10 +63,6 @@ export function ExpenseDetail() {
       cancelled = true;
     };
   }, [expense]);
-
-  useEffect(() => {
-    if (expense && user) markEntryRead(expense, user.id);
-  }, [expense, user]);
 
   useEffect(() => {
     if (entryId) void markTransactionNotificationsRead({ entryId });

@@ -80,12 +80,14 @@ export function useNotifications() {
       .from("notifications")
       .update({ read_at: new Date().toISOString() })
       .eq("id", id);
+    window.dispatchEvent(new Event("bonado:notifications-read"));
   }, []);
 
   const markAllRead = useCallback(async () => {
     setNotifications([]);
     setUnreadCount(0);
     await supabase.rpc("mark_all_notifications_read");
+    window.dispatchEvent(new Event("bonado:notifications-read"));
   }, []);
 
   const loadMore = useCallback(async () => {
