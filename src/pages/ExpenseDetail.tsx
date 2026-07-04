@@ -12,6 +12,9 @@ import { useReceiptUpload } from "@/hooks/useReceiptUpload";
 import { supabase } from "@/lib/supabase";
 import { formatMoney, formatSignedMoney } from "@/lib/money";
 import { markEntryRead } from "@/lib/entryReadState";
+import { markTransactionNotificationsRead } from "@/lib/notificationReadState";
+import { CommentsSection } from "@/components/comments/CommentsSection";
+import { useTripLayout } from "@/components/trip/useTripLayout";
 import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
@@ -33,6 +36,7 @@ export function ExpenseDetail() {
   const { tripId, entryId } = useParams<{ tripId: string; entryId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const trip = useTripLayout();
   const { expense, loading, reload } = useExpense(entryId);
   const { deleteExpense, saving, error } = useExpenseMutations();
   const { uploadReceipt, uploading, error: uploadError } = useReceiptUpload();
@@ -63,6 +67,10 @@ export function ExpenseDetail() {
   useEffect(() => {
     if (expense && user) markEntryRead(expense, user.id);
   }, [expense, user]);
+
+  useEffect(() => {
+    if (entryId) void markTransactionNotificationsRead({ entryId });
+  }, [entryId]);
 
   const breakdown = useMemo(() => {
     if (!expense) return [];
@@ -364,6 +372,8 @@ export function ExpenseDetail() {
               </button>
             )}
             {uploadError && <p className="text-[12.5px] text-owe">{uploadError}</p>}
+
+            <CommentsSection entryId={entryId} members={trip.members} />
 
             <div className="mt-3">
               {confirmingDelete ? (

@@ -12,6 +12,7 @@ import { Pill } from "@/components/ui/Pill";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { buttonClasses } from "@/components/ui/Button";
 import { GuestBanner } from "@/components/trip/GuestBanner";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { formatMoney } from "@/lib/money";
 import { ALL_CURRENCIES } from "@/lib/currencies";
 import { ChevronDown } from "@/components/ui/ChevronDown";
@@ -177,6 +178,8 @@ export function Dashboard() {
           bonado<span className="text-teal">.</span>
         </div>
         {user && (
+          <div className="flex items-center gap-2.5">
+            <NotificationBell />
           <div ref={accountRef} className="relative z-30">
             <button
               onClick={() => setAccountOpen((open) => !open)}
@@ -250,6 +253,7 @@ export function Dashboard() {
                 </button>
               </div>
             )}
+          </div>
           </div>
         )}
       </div>

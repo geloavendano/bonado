@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -8,6 +9,8 @@ import { useSettlement } from "@/hooks/useSettlement";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { useTripLayout } from "@/components/trip/useTripLayout";
 import { formatMoney } from "@/lib/money";
+import { markTransactionNotificationsRead } from "@/lib/notificationReadState";
+import { CommentsSection } from "@/components/comments/CommentsSection";
 
 function timestamp(value: string) {
   return new Date(value).toLocaleString(undefined, {
@@ -22,6 +25,10 @@ export function SettlementDetail() {
   const trip = useTripLayout();
   const { settlement, loading, error } = useSettlement(settlementId);
   const toast = useRouteToast();
+
+  useEffect(() => {
+    if (settlementId) void markTransactionNotificationsRead({ settlementId });
+  }, [settlementId]);
 
   if (loading) return <PageShell><FormPageSkeleton /></PageShell>;
   if (!tripId || !settlementId || !settlement) {
@@ -87,6 +94,8 @@ export function SettlementDetail() {
           <div>Created {timestamp(settlement.created_at)}</div>
           {settlement.updated_at && <div className="mt-1">Updated {timestamp(settlement.updated_at)}</div>}
         </div>
+
+        <CommentsSection settlementId={settlementId} members={trip.members} />
         {error && <p className="text-[12.5px] text-owe">{error}</p>}
         </div>
       </div>

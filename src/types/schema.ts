@@ -145,6 +145,44 @@ export interface Settlement {
   payment_account_id: string | null;
 }
 
+export interface Comment {
+  id: string;
+  trip_id: string;
+  entry_id: string | null;
+  settlement_id: string | null;
+  author_id: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+}
+
+export interface CommentMention {
+  comment_id: string;
+  user_id: string;
+}
+
+export type NotificationKind =
+  | "expense_created"
+  | "expense_edited"
+  | "expense_deleted"
+  | "settlement_created"
+  | "settlement_edited"
+  | "comment_added"
+  | "comment_mention";
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  actor_id: string;
+  trip_id: string;
+  kind: NotificationKind;
+  entry_id: string | null;
+  settlement_id: string | null;
+  comment_id: string | null;
+  created_at: string;
+  read_at: string | null;
+}
+
 export interface ExchangeRateCache {
   id: string;
   base_currency: Currency;
