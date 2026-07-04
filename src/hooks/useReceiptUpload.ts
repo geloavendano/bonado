@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { compressImage } from "@/lib/compressImage";
 
 export function useReceiptUpload() {
   const { session, user } = useAuth();
@@ -12,11 +13,12 @@ export function useReceiptUpload() {
     setUploading(true);
     setError(null);
 
-    const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    const upload = await compressImage(file);
+    const extension = upload.name.split(".").pop()?.toLowerCase() ?? "jpg";
     const path = `${session.user.id}/${entryId}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from("receipts")
-      .upload(path, file, { contentType: file.type, upsert: false });
+      .upload(path, upload, { contentType: upload.type, upsert: false });
 
     if (uploadError) {
       setError(uploadError.message);

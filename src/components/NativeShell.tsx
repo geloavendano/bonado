@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
+import { registerForPush, pushTapLink } from "@/lib/pushRegistration";
 
 function versionBelow(current: string, minimum: string): boolean {
   const parse = (value: string) =>
@@ -22,7 +25,21 @@ function versionBelow(current: string, minimum: string): boolean {
  */
 export function NativeShell() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [updateRequired, setUpdateRequired] = useState(false);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || !user) return;
+    void registerForPush(user.id);
+    const tapListener = PushNotifications.addListener(
+      "pushNotificationActionPerformed",
+      (event) => {
+        const link = pushTapLink(event.notification.data);
+        if (link) navigate(link);
+      },
+    );
+    return () => void tapListener.then((l) => l.remove());
+  }, [user, navigate]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;

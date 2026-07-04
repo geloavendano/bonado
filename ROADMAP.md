@@ -267,16 +267,28 @@ dependency, not all items are store blockers.
       support contact email.
 
 **Tier 3 — mobile experience**
-- [ ] Push notifications: device-token table + trigger/edge function on
-      notification insert → FCM (covers APNs); notification tap deep-links
-      to the transaction. Biggest single backend work item.
-- [ ] Receipts: Capacitor camera plugin, permission prompts, client-side
-      compression, resumable/retried uploads.
-- [ ] Move offline queue from localStorage to Capacitor Preferences/SQLite.
-- [ ] Crash reporting (e.g. Sentry) — store builds are far harder to debug
-      than the web app.
-- [ ] Audit safe areas/keyboard on device (mostly done: safe-area insets,
-      useMobileFormFlow); dynamic type is nice-to-have.
+- [x] Push notifications — scaffolding DONE, delivery dormant until
+      Firebase is wired. Shipped: `bonado.device_tokens` (0033, RLS own
+      rows), fire-and-forget pg_net trigger on notification inserts
+      (exception-guarded; verified it doesn't break the write path),
+      deployed `push-dispatch` edge function (FCM HTTP v1, service-account
+      JWT, stale-token cleanup, returns `{skipped:true}` without the
+      secret), native registration + tap deep-linking in
+      NativeShell/pushRegistration. OWNER TODO to activate: create a
+      Firebase project, `supabase secrets set FIREBASE_SERVICE_ACCOUNT=…`,
+      add google-services.json (Android) + APNs key in Firebase (iOS),
+      re-deploy function.
+- [x] Receipt compression — client-side canvas downscale to 1600px JPEG
+      before upload (falls back to the original on failure); works on web
+      too. Native camera plugin not needed for v1 — the existing file
+      input opens the camera/picker sheet inside Capacitor.
+- [ ] Move offline queue from localStorage to Capacitor Preferences/SQLite
+      (async refactor of offlineExpenseQueue + OfflineSyncRunner).
+- [ ] Crash reporting (Sentry) — needs a DSN; gate init behind
+      `VITE_SENTRY_DSN`.
+- [ ] On-device audit: safe areas/keyboard (mostly covered by existing
+      insets + useMobileFormFlow), Android back-button feel, first real
+      iOS/Android builds (`npm run cap:ios` / `cap:android`).
 
 Deferred/rejected from external review: server-generated idempotency keys
 (client-generated ids are the schema's own design and work offline);
