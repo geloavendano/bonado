@@ -116,10 +116,10 @@ the checkboxes below and `git log` to see where work stopped; each item is
 independent unless noted.** Notifications/comments (Phase 11.5, migration
 0023) shipped 2026-07-05; deletion confirm modals (`ConfirmDialog`) too.
 
-- [ ] 1. Owner-only trip edits — replace `trips_update` RLS policy
-      (any-member, 0001_init.sql:313) with owner-only (memberships
-      role='owner'). `update_trip_settings` RPC is security definer and
-      unaffected. Check no client code PATCHes `trips` directly first.
+- [x] 1. Owner-only trip edits — DONE (0024 policy + 0025 grant fix;
+      policy helpers used in RLS must stay executable by the API roles).
+      Verified: owner direct update OK, member direct update blocked,
+      member RPC rejected.
 - [ ] 2. Settlement deletion — `delete_settlement` RPC + Delete button with
       `ConfirmDialog` on SettlementDetail. Notify involved users
       (`settlement_deleted` kind); note notifications.settlement_id FK is
