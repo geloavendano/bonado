@@ -8,7 +8,10 @@ const NOTIFICATION_SELECT = `
   trip:trips(id, name, default_currency),
   entry:entries(id, description, status),
   settlement:settlements(id, amount),
-  comment:comments(id, body)
+  comment:comments(
+    id, body,
+    comment_mentions(user:users(id, name))
+  )
 `;
 
 export type NotificationKind =
@@ -38,7 +41,13 @@ export interface NotificationItem {
   trip: { id: string; name: string; default_currency: string } | null;
   entry: { id: string; description: string; status: string } | null;
   settlement: { id: string; amount: number } | null;
-  comment: { id: string; body: string } | null;
+  comment: {
+    id: string;
+    body: string;
+    comment_mentions: {
+      user: { id: string; name: string } | null;
+    }[];
+  } | null;
 }
 
 export function useNotifications() {

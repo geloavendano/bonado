@@ -38,6 +38,16 @@ function describe(notification: NotificationItem): {
         notification.trip?.default_currency ?? "USD",
       )
     : null;
+  const commentBody =
+    notification.comment?.body.replace(
+      /@\[([0-9a-f-]{36})\]/gi,
+      (_, id: string) =>
+        `@${
+          notification.comment?.comment_mentions.find(
+            (mention) => mention.user?.id === id,
+          )?.user?.name ?? "Former member"
+        }`,
+    ) ?? null;
 
   switch (notification.kind) {
     case "expense_created":
@@ -55,12 +65,12 @@ function describe(notification: NotificationItem): {
     case "comment_added":
       return {
         title: `${actor} commented on ${notification.entry ? `"${expense}"` : "a settlement"}`,
-        detail: notification.comment?.body ?? null,
+        detail: commentBody,
       };
     case "comment_mention":
       return {
         title: `${actor} mentioned you in a comment`,
-        detail: notification.comment?.body ?? null,
+        detail: commentBody,
       };
   }
 }

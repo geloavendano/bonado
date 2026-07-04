@@ -160,8 +160,13 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       a transaction, opening a notification, or marking all read broadcasts a
       shared refresh event so feed dots update without a reload. State now
       follows the user across devices. Build/lint pass.
-- [ ] 8. Mention tokens — store `@[user_id]` in comment bodies, resolve to
-      current member names at render (renames reflect everywhere).
+- [x] 8. Mention tokens — DONE. Composer text remains human-readable, but
+      selected mentions are stored as stable `@[user_id]` tokens and resolved
+      against current member names in comments and notification previews.
+      Migration 0028 backfills legacy `@Display Name` bodies using the
+      authoritative comment_mentions rows, longest names first. Missing former
+      members render safely as `@Former member`. Migration applied; build/lint
+      pass.
 - [ ] 9. Automated tests + CI — Vitest for money math (split rounding,
       conversions, balances), GitHub Actions running tsc + oxlint + tests.
 - [ ] 10. Overlay a11y — focus trap, Escape, focus restore (ConfirmDialog,

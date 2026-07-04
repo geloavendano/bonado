@@ -10,22 +10,43 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Highlights @Name tokens that match trip members. */
+const MENTION_TOKEN = /@\[([0-9a-f-]{36})\]/gi;
+
+function displayBody(body: string, members: TripMember[]) {
+  const names = new Map(members.map((member) => [member.id, member.name]));
+  return body.replace(MENTION_TOKEN, (_, id: string) => `@${names.get(id) ?? "Former member"}`);
+}
+
+function encodeBody(body: string, picked: Map<string, string>) {
+  return [...picked]
+    .sort(([, left], [, right]) => right.length - left.length)
+    .reduce(
+      (encoded, [id, name]) =>
+        encoded.replace(
+          new RegExp(`@${escapeRegExp(name)}(?=\\s|$|[.,!?;:])`, "g"),
+          `@[${id}]`,
+        ),
+      body,
+    );
+}
+
+/** Resolves stable mention IDs against current member names. */
 function renderBody(body: string, members: TripMember[]): ReactNode {
-  const names = members
-    .map((member) => escapeRegExp(member.name))
-    .sort((a, b) => b.length - a.length);
-  if (names.length === 0) return body;
-  const parts = body.split(new RegExp(`@(${names.join("|")})`, "g"));
-  return parts.map((part, index) =>
-    index % 2 === 1 ? (
-      <span key={index} className="font-bold text-teal">
-        @{part}
-      </span>
-    ) : (
-      part
-    ),
-  );
+  const names = new Map(members.map((member) => [member.id, member.name]));
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  for (const match of body.matchAll(MENTION_TOKEN)) {
+    const index = match.index ?? 0;
+    if (index > cursor) parts.push(body.slice(cursor, index));
+    parts.push(
+      <span key={`${index}-${match[1]}`} className="font-bold text-teal">
+        @{names.get(match[1]) ?? "Former member"}
+      </span>,
+    );
+    cursor = index + match[0].length;
+  }
+  if (cursor < body.length) parts.push(body.slice(cursor));
+  return parts.length > 0 ? parts : body;
 }
 
 interface ComposerProps {
@@ -47,7 +68,8 @@ function CommentComposer({
   onSubmit,
   onCancel,
 }: ComposerProps) {
-  const [body, setBody] = useState(initialBody ?? "");
+  const initialDisplayBody = displayBody(initialBody ?? "", members);
+  const [body, setBody] = useState(initialDisplayBody);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -55,7 +77,11 @@ function CommentComposer({
   const picked = useRef<Map<string, string>>(
     new Map(
       members
-        .filter((member) => (initialBody ?? "").includes(`@${member.name}`))
+        .filter(
+          (member) =>
+            (initialBody ?? "").includes(`@[${member.id}]`) ||
+            initialDisplayBody.includes(`@${member.name}`),
+        )
         .map((member) => [member.id, member.name]),
     ),
   );
@@ -93,7 +119,7 @@ function CommentComposer({
       .filter(([, name]) => trimmed.includes(`@${name}`))
       .map(([id]) => id);
     setSubmitting(true);
-    const ok = await onSubmit(trimmed, mentionIds);
+    const ok = await onSubmit(encodeBody(trimmed, picked.current), mentionIds);
     setSubmitting(false);
     if (ok && !initialBody) {
       setBody("");
