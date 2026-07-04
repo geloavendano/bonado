@@ -16,6 +16,7 @@ import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 import { useCoverPhotoUpload } from "@/hooks/useCoverPhotoUpload";
 import { SUGGESTED_CURRENCIES, ALL_CURRENCIES } from "@/lib/currencies";
 import { ChevronDown } from "@/components/ui/ChevronDown";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LocationField } from "@/components/trip/LocationField";
 import { getCurrencyForCountry } from "@/lib/countryCurrency";
 import clsx from "clsx";
@@ -476,37 +477,24 @@ export function TripSettings() {
         {trip.isOwner && (
           <>
             <SectionLabel className="mt-2 text-owe">Danger zone</SectionLabel>
-            {confirmingDelete ? (
-              <div className="motion-reveal flex flex-col gap-2 rounded-[18px] bg-owe-tint p-4">
-                <p className="text-[12.5px] font-semibold text-owe">
-                  This permanently deletes {trip.name} and all of its expenses and
-                  settlements for everyone. This can't be undone.
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => void handleDeleteTrip()}
-                    disabled={deleting}
-                    className="rounded-pill bg-owe px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
-                  >
-                    {deleting ? "Deleting…" : "Delete trip"}
-                  </button>
-                  <button
-                    onClick={() => setConfirmingDelete(false)}
-                    className="rounded-pill px-4 py-2.5 text-[13px] font-semibold text-owe"
-                  >
-                    Keep trip
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmingDelete(true)}
-                className="w-full rounded-[18px] bg-card px-4 py-3.5 text-center text-[13.5px] font-bold text-owe shadow-[var(--shadow-card)]"
-              >
-                Delete trip
-              </button>
-            )}
+            <button
+              onClick={() => setConfirmingDelete(true)}
+              className="w-full rounded-[18px] bg-card px-4 py-3.5 text-center text-[13.5px] font-bold text-owe shadow-[var(--shadow-card)]"
+            >
+              Delete trip
+            </button>
             {deleteError && <p className="text-owe text-[13px]">{deleteError}</p>}
+            {confirmingDelete && (
+              <ConfirmDialog
+                title={`Delete ${trip.name}?`}
+                description="This permanently deletes the trip and all of its expenses and settlements for everyone. This can't be undone."
+                confirmLabel={deleting ? "Deleting…" : "Delete trip"}
+                destructive
+                busy={deleting}
+                onConfirm={() => void handleDeleteTrip()}
+                onCancel={() => setConfirmingDelete(false)}
+              />
+            )}
           </>
         )}
         </div>
