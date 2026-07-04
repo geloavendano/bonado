@@ -204,3 +204,57 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       retention, currency estimates, user responsibilities, and limitations.
       Effective date is July 5, 2026. Tests/build/lint pass. Legal counsel
       review remains advisable before a broad public launch.
+
+## Phase 15 — Mobile app release (planned, not started)
+
+Target: ship iOS/Android via **Capacitor** wrapping the existing React app
+(decided rationale: the UI is already mobile-first, PWA/service worker
+exists, and React Native would discard the entire frontend). Ordered by
+dependency, not all items are store blockers.
+
+**Tier 0 — do now, benefits web too**
+- [ ] Idempotent expense creation: RPCs generate entry ids server-side
+      (0010), so a retried create after a dropped response duplicates the
+      expense — despite 0001 designing `entries.id` as client-generated for
+      exactly this. Add `p_entry_id` to the create RPCs with
+      on-conflict-do-nothing, pass a client UUID (offline queue included).
+- [ ] Confirm privacy/terms pages are reachable signed-out at stable public
+      URLs (both stores require a public privacy policy link).
+
+**Tier 1 — Capacitor foundation**
+- [ ] Capacitor shell, app icons/splash, iOS/Android projects in repo.
+- [ ] Universal links / app links: `/join/:token` invites, transaction
+      deep links, and the Supabase OAuth callback (custom scheme or
+      universal link redirect).
+- [ ] Android hardware back button → router history (Capacitor App plugin).
+- [ ] Supabase session in secure storage (Keychain/Keystore via a custom
+      supabase-js storage adapter) + refresh session on app resume
+      (background WebView suspends token refresh timers).
+- [ ] Minimum-supported-version gate checked at launch (cheap kill switch;
+      shipped binaries lag DB changes). Keep the existing additive RPC
+      evolution convention (`*_with_rate`, `*_with_dates`) as policy.
+
+**Tier 2 — store requirements**
+- [ ] Sign in with Apple (App Store guideline 4.8; Supabase provider).
+- [ ] Account deletion: generalize `remove_trip_member`'s placeholder
+      reassignment across all trips, then delete users row + auth user.
+      Google also requires a web-accessible deletion-request page — the
+      web app itself can host it.
+- [ ] Store listings: privacy disclosures (data-collection forms),
+      screenshots, support contact.
+
+**Tier 3 — mobile experience**
+- [ ] Push notifications: device-token table + trigger/edge function on
+      notification insert → FCM (covers APNs); notification tap deep-links
+      to the transaction. Biggest single backend work item.
+- [ ] Receipts: Capacitor camera plugin, permission prompts, client-side
+      compression, resumable/retried uploads.
+- [ ] Move offline queue from localStorage to Capacitor Preferences/SQLite.
+- [ ] Crash reporting (e.g. Sentry) — store builds are far harder to debug
+      than the web app.
+- [ ] Audit safe areas/keyboard on device (mostly done: safe-area insets,
+      useMobileFormFlow); dynamic type is nice-to-have.
+
+Deferred/rejected from external review: server-generated idempotency keys
+(client-generated ids are the schema's own design and work offline);
+full React Native rebuild.
