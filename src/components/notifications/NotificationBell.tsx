@@ -67,7 +67,16 @@ function describe(notification: NotificationItem): {
 
 export function NotificationBell() {
   const navigate = useNavigate();
-  const { notifications, loading, markRead, markAllRead } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    markRead,
+    markAllRead,
+  } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -99,8 +108,6 @@ export function NotificationBell() {
       navigate(`/trips/${notification.trip_id}`);
     }
   }
-
-  const unreadCount = notifications.length;
 
   return (
     <div ref={containerRef} className="relative z-30">
@@ -189,6 +196,15 @@ export function NotificationBell() {
                 </button>
               );
             })}
+            {hasMore && (
+              <button
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="w-full py-3 text-center text-[12px] font-bold text-teal disabled:opacity-50"
+              >
+                {loadingMore ? "Loading…" : "Load more notifications"}
+              </button>
+            )}
           </div>
         </>
       )}

@@ -275,8 +275,17 @@ export function CommentsSection({
   members,
 }: CommentsSectionProps) {
   const { user } = useAuth();
-  const { comments, loading, error, addComment, updateComment, deleteComment } =
-    useComments({ entryId, settlementId });
+  const {
+    comments,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    error,
+    addComment,
+    updateComment,
+    deleteComment,
+  } = useComments({ entryId, settlementId });
 
   return (
     <>
@@ -309,6 +318,15 @@ export function CommentsSection({
                 onDelete={() => deleteComment(comment.id)}
               />
             ))}
+            {hasMore && (
+              <button
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="w-full py-2.5 text-center text-[12px] font-bold text-teal disabled:opacity-50"
+              >
+                {loadingMore ? "Loading…" : "Load earlier comments"}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+const PAGE_SIZE = 20;
+const NOTIFICATION_SELECT = `
+  id, kind, created_at, trip_id, entry_id, settlement_id,
+  actor:users!notifications_actor_id_fkey(id, name, avatar_url),
+  trip:trips(id, name, default_currency),
+  entry:entries(id, description, status),
+  settlement:settlements(id, amount),
+  comment:comments(id, body)
+`;
+
 export type NotificationKind =
   | "expense_created"
   | "expense_edited"
@@ -34,23 +44,19 @@ export interface NotificationItem {
 export function useNotifications() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const reload = useCallback(async () => {
-    const { data } = await supabase
+    const { data, count } = await supabase
       .from("notifications")
-      .select(`
-        id, kind, created_at, trip_id, entry_id, settlement_id,
-        actor:users!notifications_actor_id_fkey(id, name, avatar_url),
-        trip:trips(id, name, default_currency),
-        entry:entries(id, description, status),
-        settlement:settlements(id, amount),
-        comment:comments(id, body)
-      `)
+      .select(NOTIFICATION_SELECT, { count: "exact" })
       .is("read_at", null)
       .order("created_at", { ascending: false })
-      .limit(100)
+      .range(0, PAGE_SIZE - 1)
       .returns<NotificationItem[]>();
     setNotifications(data ?? []);
+    setUnreadCount(count ?? data?.length ?? 0);
     setLoading(false);
   }, []);
 
@@ -69,6 +75,7 @@ export function useNotifications() {
 
   const markRead = useCallback(async (id: string) => {
     setNotifications((current) => current.filter((n) => n.id !== id));
+    setUnreadCount((current) => Math.max(0, current - 1));
     await supabase
       .from("notifications")
       .update({ read_at: new Date().toISOString() })
@@ -77,8 +84,33 @@ export function useNotifications() {
 
   const markAllRead = useCallback(async () => {
     setNotifications([]);
+    setUnreadCount(0);
     await supabase.rpc("mark_all_notifications_read");
   }, []);
 
-  return { notifications, loading, reload, markRead, markAllRead };
+  const loadMore = useCallback(async () => {
+    if (loadingMore || notifications.length >= unreadCount) return;
+    setLoadingMore(true);
+    const { data } = await supabase
+      .from("notifications")
+      .select(NOTIFICATION_SELECT)
+      .is("read_at", null)
+      .order("created_at", { ascending: false })
+      .range(notifications.length, notifications.length + PAGE_SIZE - 1)
+      .returns<NotificationItem[]>();
+    setNotifications((current) => [...current, ...(data ?? [])]);
+    setLoadingMore(false);
+  }, [loadingMore, notifications.length, unreadCount]);
+
+  return {
+    notifications,
+    unreadCount,
+    loading,
+    loadingMore,
+    hasMore: notifications.length < unreadCount,
+    loadMore,
+    reload,
+    markRead,
+    markAllRead,
+  };
 }

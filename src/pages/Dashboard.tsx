@@ -155,7 +155,7 @@ function TripRow({
 export function Dashboard() {
   const { user, signOut, updateProfile } = useAuth();
   const { preference: themePreference, setPreference: setThemePreference } = useTheme();
-  const { trips, loading } = useTrips();
+  const { trips, loading, loadingMore, hasMore, loadMore } = useTrips();
   const toastMessage = useRouteToast();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -290,6 +290,15 @@ export function Dashboard() {
                     currentUserId={user?.id}
                   />
                 ))}
+                {hasMore && (
+                  <button
+                    onClick={() => void loadMore()}
+                    disabled={loadingMore}
+                    className="rounded-[16px] bg-card px-4 py-3 text-[13px] font-bold text-teal shadow-[var(--shadow-card)] disabled:opacity-50"
+                  >
+                    {loadingMore ? "Loading…" : "Load more trips"}
+                  </button>
+                )}
               </div>
             )}
           </div>

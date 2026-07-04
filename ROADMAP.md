@@ -139,8 +139,15 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       applied; API exposure/auth denial and build/lint verified. Follow-up
       manual check: remove a member with expenses and settlements, verify
       balances remain unchanged, then claim the resulting temporary member.
-- [ ] 4. Pagination — trips list, TripHome entries feed, comments,
-      notifications (range + "load more").
+- [x] 4. Pagination — DONE. Trips load 10 at a time; the merged TripHome
+      expense/settlement chronology independently pages each source in
+      batches of 20 and re-sorts the combined feed; comments and unread
+      notifications load 20 at a time. Dashboard, desktop TripsRail,
+      transaction history, comments, and notification panel expose explicit
+      loading/disabled "Load more" controls. Notification badge uses the
+      exact unread count rather than the loaded-page length. Build/lint pass.
+      Follow-up manual check with >20 records of each transaction type to
+      confirm no gaps at interleaved date/timestamp page boundaries.
 - [ ] 5. Notification bell on trip pages (currently Dashboard-only).
 - [ ] 6. Offline sync (create-only PWA queue) — PENDING USER DECISION,
       feasible per assessment; not started.

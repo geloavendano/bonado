@@ -23,7 +23,14 @@ import { convertEntryAmount } from "@/lib/convertEntryAmount";
 export function TripHome() {
   const trip = useTripLayout();
   const { user } = useAuth();
-  const { entries, loading: entriesLoading, error: entriesError } =
+  const {
+    entries,
+    loading: entriesLoading,
+    loadingMore: entriesLoadingMore,
+    hasMore: hasMoreEntries,
+    loadMore: loadMoreEntries,
+    error: entriesError,
+  } =
     useRecentEntries(trip.id);
   const { balances } = useBalances(trip.id);
   const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
@@ -420,6 +427,15 @@ export function TripHome() {
                 </section>
               );
             })}
+            {hasMoreEntries && (
+              <button
+                onClick={() => void loadMoreEntries()}
+                disabled={entriesLoadingMore}
+                className="mt-3 rounded-[16px] bg-card px-4 py-3 text-[13px] font-bold text-teal shadow-[var(--shadow-card)] disabled:opacity-50"
+              >
+                {entriesLoadingMore ? "Loading…" : "Load more transactions"}
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-[var(--shadow-card)]">
