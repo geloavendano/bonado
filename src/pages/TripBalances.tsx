@@ -180,6 +180,10 @@ export function TripBalances() {
             onChange={setDisplayCurrency}
             currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
             disabled={ratesLoading}
+            pinned={[
+              { value: trip.default_currency, label: `Trip default · ${trip.default_currency}` },
+              ...(user ? [{ value: user.preferred_currency, label: `Preferred · ${user.preferred_currency}` }] : []),
+            ]}
           />
         </div>
         {ratesError && (

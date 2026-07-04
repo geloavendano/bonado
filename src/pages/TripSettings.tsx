@@ -191,7 +191,7 @@ export function TripSettings() {
     const inviteUrl = `${window.location.origin}/join/${trip!.invite_link_token}`;
     const shareData = {
       title: `Join ${trip!.name} on bonado`,
-      text: `You're invited to ${trip!.name}`,
+      text: `You've been invited to "${trip!.name}" on bonado, a shared expense tracker for groups. Join to log expenses together, see who owes what, and settle up:`,
       url: inviteUrl,
     };
     if (navigator.share) {

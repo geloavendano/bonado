@@ -83,7 +83,7 @@ export function TripHome() {
   async function shareInvite() {
     const shareData = {
       title: `Join ${trip!.name} on bonado`,
-      text: `You're invited to ${trip!.name}`,
+      text: `You've been invited to "${trip!.name}" on bonado, a shared expense tracker for groups. Join to log expenses together, see who owes what, and settle up:`,
       url: inviteUrl,
     };
     if (navigator.share) {
@@ -237,7 +237,11 @@ export function TripHome() {
               onChange={setDisplayCurrency}
               currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
               disabled={ratesLoading}
-              allowOriginal
+              pinned={[
+                { value: "", label: "Original" },
+                { value: trip.default_currency, label: `Trip default · ${trip.default_currency}` },
+                ...(user ? [{ value: user.preferred_currency, label: `Preferred · ${user.preferred_currency}` }] : []),
+              ]}
               aria-label="Transaction display currency"
             />
           )}
