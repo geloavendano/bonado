@@ -129,12 +129,16 @@ independent unless noted.** Notifications/comments (Phase 11.5, migration
       anonymous execution as intended. Build/lint pass. Follow-up manual check:
       delete a real settlement with two signed-in members and confirm the trip
       toast, history removal, recalculated balances, and recipient notification.
-- [ ] 3. Member removal / leave trip — `remove_trip_member` RPC reassigns
-      the member's payments, line_item_shares, adjustment_shares,
-      settlement from/to/created_by, and entries.created_by (per-trip) to
-      an unregistered placeholder user ("temporary member" equivalent),
-      then deletes the membership. Owner can remove anyone; anyone can
-      remove self (leave). UI in TripSettings members list.
+- [x] 3. Member removal / leave trip — DONE (migration 0027 +
+      `useManageTripMembers` + confirmation UI in TripSettings). Removing a
+      registered non-owner reassigns trip-scoped payments, shares,
+      settlements, entry creator/editor, and attachment uploader references
+      to a claimable unregistered placeholder with the same name, then removes
+      the account's membership. Owners can remove non-owners; non-owners can
+      leave. Owners must transfer ownership before leaving. Migration is
+      applied; API exposure/auth denial and build/lint verified. Follow-up
+      manual check: remove a member with expenses and settlements, verify
+      balances remain unchanged, then claim the resulting temporary member.
 - [ ] 4. Pagination — trips list, TripHome entries feed, comments,
       notifications (range + "load more").
 - [ ] 5. Notification bell on trip pages (currently Dashboard-only).

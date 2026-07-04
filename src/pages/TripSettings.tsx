@@ -20,10 +20,13 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LocationField } from "@/components/trip/LocationField";
 import { getCurrencyForCountry } from "@/lib/countryCurrency";
 import clsx from "clsx";
+import { useManageTripMembers } from "@/hooks/useManageTripMembers";
+import { useAuth } from "@/context/AuthContext";
 
 export function TripSettings() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { trip, loading, reload } = useTrip(tripId);
   const { updateTrip, saving, error } = useUpdateTrip();
   const { deleteTrip, deleting, error: deleteError } = useDeleteTrip();
@@ -35,6 +38,11 @@ export function TripSettings() {
     busyGuestId,
     error: guestError,
   } = useManageTripGuests();
+  const {
+    removeMember,
+    busyMemberId,
+    error: memberError,
+  } = useManageTripMembers();
   const { upload, uploading, error: coverError } = useCoverPhotoUpload();
 
   const [name, setName] = useState("");
@@ -54,6 +62,7 @@ export function TripSettings() {
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showInviteLink, setShowInviteLink] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingMemberId, setConfirmingMemberId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formFlow = useMobileFormFlow(formRef);
@@ -140,6 +149,22 @@ export function TripSettings() {
       setEditingGuestId(null);
       setConfirmingGuestId(null);
       await reload();
+    }
+  }
+
+  async function handleRemoveMember(memberId: string) {
+    if (!tripId) return;
+    const leaving = memberId === user?.id;
+    if (await removeMember(tripId, memberId)) {
+      setConfirmingMemberId(null);
+      if (leaving) {
+        navigate("/", {
+          replace: true,
+          state: { toast: `You left ${trip?.name ?? "the trip"}.` },
+        });
+      } else {
+        await reload();
+      }
     }
   }
 
@@ -469,10 +494,47 @@ export function TripSettings() {
                   </div>
                 )
               )}
+              {member.is_registered &&
+                member.role !== "owner" &&
+                (trip.isOwner || member.id === user?.id) && (
+                  <button
+                    onClick={() => setConfirmingMemberId(member.id)}
+                    disabled={busyMemberId === member.id}
+                    className="rounded-pill px-2.5 py-1.5 text-[12px] font-bold text-owe disabled:opacity-50"
+                  >
+                    {member.id === user?.id ? "Leave" : "Remove"}
+                  </button>
+                )}
             </div>
           ))}
         </div>
-        {guestError && <p className="text-owe text-[13px]">{guestError}</p>}
+        {(guestError || memberError) && (
+          <p className="text-owe text-[13px]">{guestError ?? memberError}</p>
+        )}
+        {confirmingMemberId && (() => {
+          const member = trip.members.find(({ id }) => id === confirmingMemberId);
+          if (!member) return null;
+          const leaving = member.id === user?.id;
+          return (
+            <ConfirmDialog
+              title={leaving ? `Leave ${trip.name}?` : `Remove ${member.name}?`}
+              description={
+                leaving
+                  ? "Your expenses and balances will remain under an unclaimed temporary member so the trip records stay accurate."
+                  : `${member.name}'s expenses and balances will remain under an unclaimed temporary member so the trip records stay accurate.`
+              }
+              confirmLabel={
+                busyMemberId === member.id
+                  ? leaving ? "Leaving…" : "Removing…"
+                  : leaving ? "Leave trip" : "Remove member"
+              }
+              destructive
+              busy={busyMemberId === member.id || !navigator.onLine}
+              onConfirm={() => void handleRemoveMember(member.id)}
+              onCancel={() => setConfirmingMemberId(null)}
+            />
+          );
+        })()}
 
         {trip.isOwner && (
           <>
