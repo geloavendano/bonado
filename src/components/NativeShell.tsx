@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { Browser } from "@capacitor/browser";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { registerForPush, pushTapLink } from "@/lib/pushRegistration";
@@ -67,6 +68,8 @@ export function NativeShell() {
             const opened = new URL(url);
             const code = opened.searchParams.get("code");
             if (code) {
+              // returning from the system-browser OAuth hop
+              await Browser.close().catch(() => undefined);
               await supabase.auth.exchangeCodeForSession(code);
               navigate("/", { replace: true });
               return;

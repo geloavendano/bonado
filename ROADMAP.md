@@ -300,3 +300,38 @@ dependency, not all items are store blockers.
 Deferred/rejected from external review: server-generated idempotency keys
 (client-generated ids are the schema's own design and work offline);
 full React Native rebuild.
+
+### iOS-first / TestFlight scoping (2026-07-06)
+
+Decision: ship **iOS only for now, via TestFlight**. Android stays in the
+repo (`android/`, assetlinks.json) but is deferred — `npx cap sync android`
+revives it when wanted.
+
+Shipped for TestFlight readiness (no enrollment needed):
+- Native OAuth done right: `signInWithProvider` opens the system browser
+  (Google blocks OAuth in embedded WebViews) with PKCE + the `bonado://`
+  custom scheme registered in Info.plist; NativeShell closes the browser
+  and exchanges the code on `appUrlOpen`. Universal links NOT required for
+  TestFlight.
+- Info.plist: camera + photo-library usage descriptions (receipt photos),
+  `ITSAppUsesNonExemptEncryption=false` (skips the export-compliance
+  question every build).
+- Placeholder icon + splash (teal "b." wordmark) generated into
+  `ios/App/App/Assets.xcassets` via `@capacitor/assets` from
+  `assets/logo.png` — regenerate from a real logo the same way whenever
+  branding lands.
+
+Remaining once Apple enrollment lands (TestFlight order of operations):
+1. Supabase Auth: add `bonado://auth-callback` to the redirect allow-list
+   (Dashboard → Auth → URL Configuration). Without this the native Google
+   sign-in redirect is rejected.
+2. Xcode: open via `npm run cap:ios`, set the signing team on the App
+   target, bump `MARKETING_VERSION`/build number.
+3. App Store Connect: create the app (bundle id `com.bonado.app` — change
+   it in capacitor.config.ts + Xcode first if a different id is wanted;
+   it must be unique and can't change after the first upload).
+4. Archive → upload → TestFlight internal testing. Privacy policy URL:
+   `/legal/privacy`; deletion info: `/legal/delete-account`.
+5. Optional before wider beta: Sign in with Apple provider (code is ready,
+   flip `VITE_ENABLE_APPLE_SIGNIN`), Firebase + APNs key for push
+   (scaffolding ready), Associated Domains for universal links.

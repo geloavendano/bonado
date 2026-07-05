@@ -8,8 +8,36 @@ import {
   type ReactNode,
 } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@/types/schema";
+
+// Native OAuth must leave the WebView (Google rejects embedded user agents):
+// open the provider URL in the system browser and come back through the
+// bonado:// scheme, handled by NativeShell's appUrlOpen listener.
+const NATIVE_AUTH_REDIRECT = "bonado://auth-callback";
+
+async function signInWithProvider(
+  provider: "google" | "apple",
+  redirectTo?: string,
+) {
+  if (Capacitor.isNativePlatform()) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: NATIVE_AUTH_REDIRECT, skipBrowserRedirect: true },
+    });
+    if (error || !data.url) {
+      throw error ?? new Error("Could not start sign-in");
+    }
+    await Browser.open({ url: data.url });
+    return;
+  }
+  await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: redirectTo ?? window.location.origin },
+  });
+}
 
 interface AuthContextValue {
   session: Session | null;
@@ -143,17 +171,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async (redirectTo?: string) => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: redirectTo ?? window.location.origin },
-    });
+    await signInWithProvider("google", redirectTo);
   }, []);
 
   const signInWithApple = useCallback(async (redirectTo?: string) => {
-    await supabase.auth.signInWithOAuth({
-      provider: "apple",
-      options: { redirectTo: redirectTo ?? window.location.origin },
-    });
+    await signInWithProvider("apple", redirectTo);
   }, []);
 
   const deleteAccount = useCallback(async (): Promise<string | null> => {

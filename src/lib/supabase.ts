@@ -31,6 +31,9 @@ export const supabase = createClient(
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: false,
+          // PKCE keeps the OAuth round-trip safe across the system-browser
+          // hop; the code verifier lives in the Preferences-backed storage.
+          flowType: "pkce",
         }
       : {},
   },
