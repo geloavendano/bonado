@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   flushExpenseQueue,
-  readExpenseQueue,
+  loadExpenseQueue,
+  queuedExpenseCount,
 } from "@/lib/offlineExpenseQueue";
 
 export function OfflineSyncRunner() {
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(() => readExpenseQueue().length);
+  const [pending, setPending] = useState(0);
 
   useEffect(() => {
     let timer = 0;
     async function sync() {
-      const before = readExpenseQueue().length;
+      const before = (await loadExpenseQueue()).length;
       setPending(before);
       if (before === 0) return;
       const result = await flushExpenseQueue();
@@ -26,11 +27,12 @@ export function OfflineSyncRunner() {
       }
     }
     void sync();
-    window.addEventListener("online", sync);
-    const updateCount = () => setPending(readExpenseQueue().length);
+    const onOnline = () => void sync();
+    window.addEventListener("online", onOnline);
+    const updateCount = () => setPending(queuedExpenseCount());
     window.addEventListener("bonado:offline-queue-change", updateCount);
     return () => {
-      window.removeEventListener("online", sync);
+      window.removeEventListener("online", onOnline);
       window.removeEventListener("bonado:offline-queue-change", updateCount);
       window.clearTimeout(timer);
     };

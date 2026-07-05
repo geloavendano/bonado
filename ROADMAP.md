@@ -282,10 +282,17 @@ dependency, not all items are store blockers.
       before upload (falls back to the original on failure); works on web
       too. Native camera plugin not needed for v1 — the existing file
       input opens the camera/picker sheet inside Capacitor.
-- [ ] Move offline queue from localStorage to Capacitor Preferences/SQLite
-      (async refactor of offlineExpenseQueue + OfflineSyncRunner).
-- [ ] Crash reporting (Sentry) — needs a DSN; gate init behind
-      `VITE_SENTRY_DSN`.
+- [x] Offline queue storage — DONE: async adapter keeps localStorage on
+      web and uses Capacitor Preferences on native (app-scoped, not
+      evictable WebView site data); in-memory mirror keeps pending-count
+      reads synchronous. Verified on web: queue offline → flush once on
+      reconnect → idempotent no-op after. Native branch is the same code
+      path; confirm during the on-device audit.
+- [x] Crash reporting — DONE, dormant: `initErrorReporting()` dynamically
+      imports @sentry/react only when `VITE_SENTRY_DSN` is set (zero
+      bundle cost otherwise; errors-only, no tracing, no PII). OWNER TODO:
+      create a free Sentry project and set the env var in Vercel + native
+      builds. No Apple enrollment needed.
 - [ ] On-device audit: safe areas/keyboard (mostly covered by existing
       insets + useMobileFormFlow), Android back-button feel, first real
       iOS/Android builds (`npm run cap:ios` / `cap:android`).

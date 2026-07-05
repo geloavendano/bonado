@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
 import { supabase } from "@/lib/supabase";
 import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
 import { invalidateBalances } from "@/lib/balanceData";
@@ -12,17 +14,41 @@ export interface QueuedExpense {
   payload: Record<string, unknown>;
 }
 
-export function readExpenseQueue(): QueuedExpense[] {
+// In the native shell the queue lives in Capacitor Preferences (app-scoped
+// storage the OS won't evict with WebView site data); the web keeps
+// localStorage. An in-memory mirror keeps count reads synchronous.
+let cache: QueuedExpense[] | null = null;
+
+async function readStore(): Promise<QueuedExpense[]> {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as QueuedExpense[];
+    const raw = Capacitor.isNativePlatform()
+      ? (await Preferences.get({ key: KEY })).value
+      : localStorage.getItem(KEY);
+    return raw ? (JSON.parse(raw) as QueuedExpense[]) : [];
   } catch {
     return [];
   }
 }
 
-function writeExpenseQueue(queue: QueuedExpense[]) {
-  localStorage.setItem(KEY, JSON.stringify(queue));
+async function writeStore(queue: QueuedExpense[]): Promise<void> {
+  cache = queue;
+  const raw = JSON.stringify(queue);
+  if (Capacitor.isNativePlatform()) {
+    await Preferences.set({ key: KEY, value: raw });
+  } else {
+    localStorage.setItem(KEY, raw);
+  }
   window.dispatchEvent(new Event("bonado:offline-queue-change"));
+}
+
+export async function loadExpenseQueue(): Promise<QueuedExpense[]> {
+  cache ??= await readStore();
+  return cache;
+}
+
+/** Synchronous count from the in-memory mirror (0 until first load). */
+export function queuedExpenseCount(): number {
+  return cache?.length ?? 0;
 }
 
 export async function queueExpense(
@@ -32,8 +58,9 @@ export async function queueExpense(
   const { data } = await supabase.auth.getSession();
   const authUserId = data.session?.user.id;
   if (!authUserId) throw new Error("Sign in before saving an offline expense.");
-  writeExpenseQueue([
-    ...readExpenseQueue(),
+  const queue = await loadExpenseQueue();
+  await writeStore([
+    ...queue,
     {
       id: crypto.randomUUID(),
       authUserId,
@@ -45,12 +72,12 @@ export async function queueExpense(
 }
 
 export async function flushExpenseQueue() {
-  if (!navigator.onLine) return { synced: 0, remaining: readExpenseQueue().length };
+  const queue = await loadExpenseQueue();
+  if (!navigator.onLine) return { synced: 0, remaining: queue.length };
   const { data } = await supabase.auth.getSession();
   const authUserId = data.session?.user.id;
-  if (!authUserId) return { synced: 0, remaining: readExpenseQueue().length };
+  if (!authUserId) return { synced: 0, remaining: queue.length };
 
-  const queue = readExpenseQueue();
   const remaining: QueuedExpense[] = [];
   let synced = 0;
   for (const item of queue) {
@@ -76,7 +103,6 @@ export async function flushExpenseQueue() {
     invalidateRecentEntries(item.tripId);
     invalidateBalances(item.tripId);
   }
-  writeExpenseQueue(remaining);
+  await writeStore(remaining);
   return { synced, remaining: remaining.length };
 }
-
