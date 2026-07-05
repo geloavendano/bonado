@@ -109,12 +109,12 @@ export function TripHome() {
         />
         <Link
           to="/"
-          className="absolute left-4 top-3 grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
+          className="absolute left-4 top-[max(12px,env(safe-area-inset-top))] grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
           aria-label="Back to dashboard"
         >
           ←
         </Link>
-        <div className="absolute right-4 top-3 flex items-center gap-2">
+        <div className="absolute right-4 top-[max(12px,env(safe-area-inset-top))] flex items-center gap-2">
           <NotificationBell />
           <Link
             to={`/trips/${trip.id}/settings`}
@@ -129,10 +129,10 @@ export function TripHome() {
       <div ref={headerSentinelRef} className="h-px" />
       <div
         className={
-          "sticky top-0 z-20 flex items-center bg-bg/95 backdrop-blur-md transition-[height,padding,border-color,box-shadow] duration-200 " +
+          "sticky top-0 z-20 flex items-center bg-bg/95 pt-[env(safe-area-inset-top)] backdrop-blur-md transition-[min-height,padding,border-color,box-shadow] duration-200 " +
           (headerCompact
-            ? "h-14 border-b border-hairline px-4 shadow-[var(--shadow-card)]"
-            : "h-[72px] border-b border-transparent px-6")
+            ? "min-h-14 border-b border-hairline px-4 shadow-[var(--shadow-card)]"
+            : "min-h-[72px] border-b border-transparent px-6")
         }
       >
         <Link

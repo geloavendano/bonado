@@ -22,7 +22,7 @@ export function BackButton({ onClick }: { onClick?: () => void }) {
 
 export function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
   return (
-    <div className="flex items-center justify-between pt-4 pb-2">
+    <div className="flex items-center justify-between pt-[max(16px,env(safe-area-inset-top))] pb-2">
       <BackButton onClick={onBack} />
       <div className="text-[16px] font-bold">{title}</div>
       <div className="w-9 flex justify-end">{right}</div>

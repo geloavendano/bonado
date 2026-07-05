@@ -188,7 +188,7 @@ export function Dashboard() {
 
   return (
     <PageShell className="lg:max-w-[880px]">
-      <div className="flex items-center justify-between pt-[18px] pb-1.5">
+      <div className="flex items-center justify-between pt-[max(18px,env(safe-area-inset-top))] pb-1.5">
         <div className="text-2xl font-extrabold tracking-[-0.5px]">
           bonado<span className="text-teal">.</span>
         </div>
