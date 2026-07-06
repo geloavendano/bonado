@@ -1,5 +1,6 @@
 import { useRef, type TouchEventHandler } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { runTripPaneTransition } from "@/lib/tripPaneTransition";
 
 const TAB_PATHS = ["", "/balances", "/reports"] as const;
 const SWIPE_THRESHOLD = 64;
@@ -49,9 +50,18 @@ export function useTripTabSwipe(tripId: string, enabled: boolean) {
     const nextPath = TAB_PATHS[nextIndex];
     if (nextPath === undefined) return;
 
-    navigate(`${base}${nextPath}`, {
-      replace: true,
-      state: { transition: deltaX < 0 ? "tab-left" : "tab-right" },
+    const direction = deltaX < 0 ? "left" : "right";
+    runTripPaneTransition(direction, (usingViewTransition) => {
+      navigate(`${base}${nextPath}`, {
+        replace: true,
+        state: {
+          transition: usingViewTransition
+            ? "tab-view"
+            : direction === "left"
+              ? "tab-left"
+              : "tab-right",
+        },
+      });
     });
   };
 

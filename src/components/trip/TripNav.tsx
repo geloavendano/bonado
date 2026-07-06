@@ -1,5 +1,6 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
+import { runTripPaneTransition } from "@/lib/tripPaneTransition";
 
 const TABS = [
   { key: "entries", label: "Entries", icon: "▤", path: "" },
@@ -9,6 +10,7 @@ const TABS = [
 
 export function TripNav({ tripId }: { tripId: string }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const base = `/trips/${tripId}`;
   const activeIndex = Math.max(
     0,
@@ -60,10 +62,24 @@ export function TripNav({ tripId }: { tripId: string }) {
                 key={tab.key}
                 to={href}
                 replace
-                state={{
-                  transition: TABS.findIndex((item) => item.key === tab.key) > activeIndex
-                    ? "tab-left"
-                    : "tab-right",
+                onClick={(event) => {
+                  event.preventDefault();
+                  const direction =
+                    TABS.findIndex((item) => item.key === tab.key) > activeIndex
+                      ? "left"
+                      : "right";
+                  runTripPaneTransition(direction, (usingViewTransition) => {
+                    navigate(href, {
+                      replace: true,
+                      state: {
+                        transition: usingViewTransition
+                          ? "tab-view"
+                          : direction === "left"
+                            ? "tab-left"
+                            : "tab-right",
+                      },
+                    });
+                  });
                 }}
                 className={classes}
               >

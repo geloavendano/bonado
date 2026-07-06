@@ -136,6 +136,7 @@ body,
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
@@ -232,13 +233,13 @@ a:active {
 }
 
 @keyframes tab-from-right {
-  from { opacity: 0; transform: translateX(22px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 @keyframes tab-from-left {
-  from { opacity: 0; transform: translateX(-22px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 @keyframes sheet-up {
@@ -247,9 +248,86 @@ a:active {
 }
 
 .motion-page-forward { animation: page-forward 240ms var(--ease-standard) both; }
-.motion-tab-left { animation: tab-from-right 220ms var(--ease-standard) both; }
-.motion-tab-right { animation: tab-from-left 220ms var(--ease-standard) both; }
+.motion-tab-left { animation: tab-from-right 300ms var(--ease-standard) both; }
+.motion-tab-right { animation: tab-from-left 300ms var(--ease-standard) both; }
+.motion-tab-view { animation: none; }
 .motion-sheet-up { animation: sheet-up 260ms var(--ease-standard) both; }
+
+.trip-pane {
+  view-transition-name: trip-pane;
+}
+
+.trip-pane-ghost {
+  position: fixed;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--color-bg);
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-standard);
+  animation-fill-mode: both;
+}
+
+.trip-pane-ghost * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.trip-pane-ghost-left {
+  animation-name: trip-pane-exit-left;
+}
+
+.trip-pane-ghost-right {
+  animation-name: trip-pane-exit-right;
+}
+
+::view-transition-group(trip-pane) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-standard);
+  overflow: clip;
+}
+
+::view-transition-image-pair(trip-pane) {
+  isolation: isolate;
+}
+
+::view-transition-old(trip-pane),
+::view-transition-new(trip-pane) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-standard);
+}
+
+:root[data-trip-pane-direction="left"]::view-transition-old(trip-pane) {
+  animation-name: trip-pane-exit-left;
+}
+
+:root[data-trip-pane-direction="left"]::view-transition-new(trip-pane) {
+  animation-name: trip-pane-enter-right;
+}
+
+:root[data-trip-pane-direction="right"]::view-transition-old(trip-pane) {
+  animation-name: trip-pane-exit-right;
+}
+
+:root[data-trip-pane-direction="right"]::view-transition-new(trip-pane) {
+  animation-name: trip-pane-enter-left;
+}
+
+@keyframes trip-pane-exit-left {
+  to { transform: translateX(-100%); }
+}
+
+@keyframes trip-pane-enter-right {
+  from { transform: translateX(100%); }
+}
+
+@keyframes trip-pane-exit-right {
+  to { transform: translateX(100%); }
+}
+
+@keyframes trip-pane-enter-left {
+  from { transform: translateX(-100%); }
+}
 
 @keyframes reveal-enter {
   from {

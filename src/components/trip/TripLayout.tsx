@@ -24,7 +24,7 @@ export function TripLayout() {
     <>
       <div className="lg:mx-auto lg:flex lg:max-w-[1180px] lg:items-start">
         {showTabChrome && <TripsRail activeTripId={tripId ?? ""} />}
-        <div className="lg:min-w-0 lg:flex-1" {...tabSwipe}>
+        <div className="trip-pane min-w-0 overflow-x-clip lg:flex-1" {...tabSwipe}>
           {loading || !activeTrip ? (
             <PageShell padded={false} wide>
               <TripPageSkeleton cover />

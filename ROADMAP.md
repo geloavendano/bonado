@@ -377,6 +377,10 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
       level. Non-edge horizontal swipes move between adjacent panes, all tab
       changes replace the active pane, and native edge Back exits directly to
       Dashboard instead of replaying previously viewed tabs.
+- [x] Carousel pane motion — tab taps and horizontal swipes push the outgoing
+      and incoming trip panes in opposite directions while the navigation dock
+      stays fixed. Uses same-document view transitions where available and a
+      snapshot animation fallback for older WebViews.
 - [x] Native launch — Capacitor SplashScreen holds the launch artwork through
       auth/startup resolution, then a signed-in cold launch opens the trip with
       the newest `last_activity_at`; Back still returns to Dashboard.
