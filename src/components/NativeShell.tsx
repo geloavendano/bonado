@@ -79,7 +79,7 @@ export function NativeShell() {
         const tabMatch = pathname.match(/^\/trips\/([^/]+)\/(?:balances|reports)$/);
         const tripMatch = pathname.match(/^\/trips\/([^/]+)$/);
         if (tabMatch) {
-          navigate(`/trips/${tabMatch[1]}`, { replace: true });
+          navigate("/", { replace: true });
         } else if (tripMatch) {
           navigate("/", { replace: true });
         } else if (pathname === "/" || !canGoBack) {

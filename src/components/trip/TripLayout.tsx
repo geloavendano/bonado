@@ -5,6 +5,7 @@ import { TripsRail } from "@/components/trip/TripsRail";
 import { BalanceRail } from "@/components/trip/BalanceRail";
 import { BalanceRailSkeleton, TripPageSkeleton } from "@/components/ui/Skeleton";
 import { useTrip } from "@/hooks/useTrip";
+import { useTripTabSwipe } from "@/hooks/useTripTabSwipe";
 
 export function TripLayout() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -15,6 +16,7 @@ export function TripLayout() {
   const showTabChrome =
     !location.pathname.includes("/expenses/") &&
     !location.pathname.includes("/settlements/");
+  const tabSwipe = useTripTabSwipe(tripId ?? "", showTabChrome);
 
   if (!loading && !trip) return <Navigate to="/" replace />;
 
@@ -22,7 +24,7 @@ export function TripLayout() {
     <>
       <div className="lg:mx-auto lg:flex lg:max-w-[1180px] lg:items-start">
         {showTabChrome && <TripsRail activeTripId={tripId ?? ""} />}
-        <div className="lg:min-w-0 lg:flex-1">
+        <div className="lg:min-w-0 lg:flex-1" {...tabSwipe}>
           {loading || !activeTrip ? (
             <PageShell padded={false} wide>
               <TripPageSkeleton cover />

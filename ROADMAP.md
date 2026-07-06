@@ -371,9 +371,12 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
 - [x] Route data cache — trips, trip shell data, balances, reports, expenses,
       settlements, and transaction history retain cached data while quietly
       revalidating after remount, avoiding full-page skeleton flashes.
-- [x] Hierarchical trip history — Entries is the parent route for Balances and
-      Reports; lateral tab changes replace one another, while transaction
-      details retain their originating tab and restored component/scroll state.
+- [x] Hierarchical trip history — transaction details retain their originating
+      trip pane and restore its component/scroll state when dismissed.
+- [x] Unified trip panes — Entries, Balances, and Reports now share one history
+      level. Non-edge horizontal swipes move between adjacent panes, all tab
+      changes replace the active pane, and native edge Back exits directly to
+      Dashboard instead of replaying previously viewed tabs.
 - [x] Native launch — Capacitor SplashScreen holds the launch artwork through
       auth/startup resolution, then a signed-in cold launch opens the trip with
       the newest `last_activity_at`; Back still returns to Dashboard.
