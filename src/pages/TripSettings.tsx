@@ -23,6 +23,7 @@ import clsx from "clsx";
 import { useManageTripMembers } from "@/hooks/useManageTripMembers";
 import { useAuth } from "@/context/AuthContext";
 import { shareLink } from "@/lib/share";
+import { CoverCropSheet } from "@/components/trip/CoverCropSheet";
 
 export function TripSettings() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -55,6 +56,7 @@ export function TripSettings() {
   const [endDate, setEndDate] = useState("");
   const [currency, setCurrency] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
+  const [cropSource, setCropSource] = useState<string | null>(null);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
   const [confirmingGuestId, setConfirmingGuestId] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
@@ -138,8 +140,21 @@ export function TripSettings() {
   async function handleCoverChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setCropSource(URL.createObjectURL(file));
+    event.target.value = "";
+  }
+
+  function closeCrop() {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource(null);
+  }
+
+  async function saveCrop(file: File) {
     const url = await upload(file);
-    if (url) setCoverPhotoUrl(url);
+    if (url) {
+      setCoverPhotoUrl(url);
+      closeCrop();
+    }
   }
 
   async function handleRenameGuest(guestId: string) {
@@ -587,6 +602,13 @@ export function TripSettings() {
           {formFlow.keyboardOpen ? "Next →" : saving ? "Saving…" : "Save changes"}
         </Button>
       </StickyActionBar>
+      {cropSource && (
+        <CoverCropSheet
+          source={cropSource}
+          onCancel={closeCrop}
+          onConfirm={saveCrop}
+        />
+      )}
     </PageShell>
   );
 }

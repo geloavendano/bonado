@@ -349,7 +349,10 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
 - [x] Google Places moved behind the authenticated Supabase `places` edge
       proxy; secret configured, deployed, and live autocomplete probe passes.
 - [x] Creating a trip replaces the creation route so Back returns to Dashboard.
-- [ ] Cover-photo pan/zoom crop editor.
+- [x] Cover-photo pan/zoom crop editor — Trip Settings opens the selected
+      image in a safe-area-aware full-screen editor with drag, pinch, zoom
+      slider, fixed cover aspect, and grid. It exports a consistent 1440×600
+      JPEG before upload so framing is stable across every cover surface.
 - [ ] Pull-to-refresh on trip/dashboard data.
 - [ ] Directional tab/page transitions and repeat-tab scroll-to-top.
 - [ ] Bottom-sheet presentation/dismiss gestures for create and detail routes.
