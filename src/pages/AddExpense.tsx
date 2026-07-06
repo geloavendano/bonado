@@ -27,6 +27,7 @@ import { formatMoney } from "@/lib/money";
 import { ALL_CURRENCIES } from "@/lib/currencies";
 import type { AdjustmentMode } from "@/types/schema";
 import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
+import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { ChevronDown } from "@/components/ui/ChevronDown";
 
@@ -51,6 +52,7 @@ const SPLIT_MODES: { value: GlobalSplitMode; label: string }[] = [
 ];
 
 export function AddExpense() {
+  const routeMotion = useRouteMotion("sheet");
   const { entryId } = useParams<{ entryId?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -410,7 +412,7 @@ export function AddExpense() {
   }
 
   return (
-    <PageShell className="lg:max-w-[880px]">
+    <PageShell className={clsx("lg:max-w-[880px]", routeMotion)}>
       <ScreenHeader
         title={entryId ? "Edit expense" : "Add expense"}
         onBack={() => navigate(-1)}

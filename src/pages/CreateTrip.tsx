@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
+import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { PageShell } from "@/components/layout/PageShell";
 import { StickyActionBar } from "@/components/layout/StickyActionBar";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -21,6 +22,7 @@ const MORE_CURRENCIES = ALL_CURRENCIES.filter(
 );
 
 export function CreateTrip() {
+  const routeMotion = useRouteMotion("sheet");
   const [name, setName] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [locationName, setLocationName] = useState("");
@@ -79,7 +81,7 @@ export function CreateTrip() {
   const alternates = photos.filter((photo) => photo.url !== coverPhotoUrl).slice(0, 3);
 
   return (
-    <PageShell className="lg:max-w-[880px]">
+    <PageShell className={clsx("lg:max-w-[880px]", routeMotion)}>
       <ScreenHeader title="New trip" />
 
       <div

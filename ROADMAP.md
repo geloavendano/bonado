@@ -353,6 +353,13 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
       image in a safe-area-aware full-screen editor with drag, pinch, zoom
       slider, fixed cover aspect, and grid. It exports a consistent 1440×600
       JPEG before upload so framing is stable across every cover surface.
-- [ ] Pull-to-refresh on trip/dashboard data.
-- [ ] Directional tab/page transitions and repeat-tab scroll-to-top.
-- [ ] Bottom-sheet presentation/dismiss gestures for create and detail routes.
+- [x] Pull-to-refresh — native-only top-edge gesture shows pull progress and
+      refreshes the current data view after crossing the threshold; ignores
+      form controls and open dialogs.
+- [x] Directional navigation — Dashboard→trip enters from the right; trip
+      tabs slide according to their order while the persistent nav stays
+      mounted; tapping the active tab smoothly returns to the top.
+- [x] Bottom-sheet motion — create-trip, create-expense, and transaction
+      detail routes enter from below. Expense and settlement details track a
+      top-edge downward drag and dismiss after the swipe threshold. Native
+      WebView swipe-back remains enabled for standard left-edge navigation.

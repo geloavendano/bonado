@@ -226,6 +226,31 @@ a:active {
   }
 }
 
+@keyframes page-forward {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tab-from-right {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tab-from-left {
+  from { opacity: 0; transform: translateX(-22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(44px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.motion-page-forward { animation: page-forward 240ms var(--ease-standard) both; }
+.motion-tab-left { animation: tab-from-right 220ms var(--ease-standard) both; }
+.motion-tab-right { animation: tab-from-left 220ms var(--ease-standard) both; }
+.motion-sheet-up { animation: sheet-up 260ms var(--ease-standard) both; }
+
 @keyframes reveal-enter {
   from {
     opacity: 0;

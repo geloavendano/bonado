@@ -21,6 +21,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown } from "@/components/ui/ChevronDown";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { useOverlayA11y } from "@/hooks/useOverlayA11y";
+import { useRouteMotion } from "@/hooks/useRouteMotion";
 import {
   buildSettlementSuggestions,
   type SuggestedSettlement,
@@ -33,6 +34,7 @@ function todayForInput() {
 }
 
 export function TripBalances() {
+  const routeMotion = useRouteMotion();
   const trip = useTripLayout();
   const { user } = useAuth();
   const { balances, loading, error, reload } = useBalances(trip.id);
@@ -159,7 +161,7 @@ export function TripBalances() {
     trip.members.find((member) => member.id === id)?.name ?? "Member";
 
   return (
-    <PageShell wide>
+    <PageShell wide className={routeMotion}>
       <TripTabHeader tripId={trip.id} title="Balances" />
 
       <div className="flex flex-col gap-3.5 pb-24 pt-2.5">

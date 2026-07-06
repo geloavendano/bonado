@@ -36,23 +36,44 @@ export function TripNav({ tripId }: { tripId: string }) {
           {TABS.map((tab) => {
             const href = `${base}${tab.path}`;
             const active = location.pathname === href;
-            return (
+            const classes = clsx(
+              "relative z-[1] flex min-w-0 items-center justify-center gap-1 rounded-pill px-1.5 py-2 text-[12px] leading-none",
+              active ? "text-teal-dark font-extrabold" : "text-secondary font-semibold",
+            );
+            const content = (
+              <>
+                <span className="text-sm leading-none">{tab.icon}</span>
+                {tab.label}
+              </>
+            );
+            return active ? (
+              <button
+                key={tab.key}
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className={classes}
+                aria-current="page"
+              >
+                {content}
+              </button>
+            ) : (
               <Link
                 key={tab.key}
                 to={href}
-                className={clsx(
-                  "relative z-[1] flex min-w-0 items-center justify-center gap-1 rounded-pill px-1.5 py-2 text-[12px] leading-none",
-                  active ? "text-teal-dark font-extrabold" : "text-secondary font-semibold",
-                )}
+                state={{
+                  transition: TABS.findIndex((item) => item.key === tab.key) > activeIndex
+                    ? "tab-left"
+                    : "tab-right",
+                }}
+                className={classes}
               >
-                <span className="text-sm leading-none">{tab.icon}</span>
-                {tab.label}
+                {content}
               </Link>
             );
           })}
         </nav>
         <Link
           to={`${base}/expenses/new`}
+          state={{ transition: "sheet" }}
           className="grid size-10 flex-none place-items-center rounded-full bg-teal text-white shadow-[var(--shadow-fab)] pointer-events-auto"
           aria-label="Add expense"
         >

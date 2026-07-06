@@ -18,6 +18,9 @@ import { Toast } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useRouteMotion } from "@/hooks/useRouteMotion";
+import { useSwipeDownDismiss } from "@/hooks/useSwipeDownDismiss";
+import clsx from "clsx";
 
 function labelForAdjustment(type: string) {
   if (type === "tax") return "Tax";
@@ -35,6 +38,8 @@ function formatTimestamp(value: string) {
 export function ExpenseDetail() {
   const { tripId, entryId } = useParams<{ tripId: string; entryId: string }>();
   const navigate = useNavigate();
+  const routeMotion = useRouteMotion("sheet");
+  const swipeDismiss = useSwipeDownDismiss(() => navigate(-1));
   const { user } = useAuth();
   const trip = useTripLayout();
   const { expense, loading, reload } = useExpense(entryId);
@@ -137,7 +142,10 @@ export function ExpenseDetail() {
   }
 
   return (
-    <PageShell className="lg:max-w-[880px]">
+    <PageShell
+      {...swipeDismiss}
+      className={clsx("lg:max-w-[880px]", routeMotion)}
+    >
       <ScreenHeader
         title="Expense details"
         onBack={() => navigate(-1)}

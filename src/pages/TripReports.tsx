@@ -14,8 +14,10 @@ import { ChevronDown } from "@/components/ui/ChevronDown";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { convertEntryAmount } from "@/lib/convertEntryAmount";
+import { useRouteMotion } from "@/hooks/useRouteMotion";
 
 export function TripReports() {
+  const routeMotion = useRouteMotion();
   const trip = useTripLayout();
   const { user } = useAuth();
   const { report, loading, error } = useTripReports(trip.id, user?.id);
@@ -43,7 +45,7 @@ export function TripReports() {
   }
 
   return (
-    <PageShell wide>
+    <PageShell wide className={routeMotion}>
       <TripTabHeader tripId={trip.id} title="Reports" />
 
       <div className="flex flex-col gap-3.5 pb-24 pt-2.5">
@@ -180,9 +182,10 @@ export function TripReports() {
                             rates,
                           );
                           return (
-                          <Link
-                            key={entry.id}
-                            to={`/trips/${trip.id}/expenses/${entry.id}`}
+                              <Link
+                                key={entry.id}
+                                to={`/trips/${trip.id}/expenses/${entry.id}`}
+                                state={{ transition: "sheet" }}
                             className={clsx(
                               "flex items-center gap-3 py-3",
                               transactionIndex < category.transactions.length - 1 &&

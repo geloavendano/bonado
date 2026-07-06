@@ -7,6 +7,7 @@ import { TripLayout } from "@/components/trip/TripLayout";
 import { NavigationRestoration } from "@/components/NavigationRestoration";
 import { OfflineSyncRunner } from "@/components/OfflineSyncRunner";
 import { NativeShell } from "@/components/NativeShell";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 const Login = lazy(() => import("@/pages/Login").then(({ Login }) => ({ default: Login })));
 const Dashboard = lazy(() => import("@/pages/Dashboard").then(({ Dashboard }) => ({ default: Dashboard })));
@@ -45,6 +46,7 @@ export default function App() {
       <AuthProvider>
         <ThemeProvider>
         <NativeShell />
+        <PullToRefresh />
         <OfflineSyncRunner />
         <Suspense
           fallback={

@@ -83,7 +83,7 @@ function CurrentTripCard({ trip, displayCurrency }: { trip: TripWithMembers; dis
   const amount = trip.yourBalance * (rates[currency] ?? 1);
   const dateRange = tripDateRange(trip);
   return (
-    <Link to={`/trips/${trip.id}`} className="block">
+    <Link to={`/trips/${trip.id}`} state={{ transition: "forward" }} className="block">
       <Card className="rounded-[22px] overflow-hidden shadow-[var(--shadow-hero)]">
         <CoverPhoto
           url={trip.cover_photo_url}
@@ -127,7 +127,7 @@ function TripRow({
   const otherMembers = trip.members.filter((member) => member.id !== currentUserId);
   const dateRange = tripDateRange(trip);
   return (
-    <Link to={`/trips/${trip.id}`} className="block">
+    <Link to={`/trips/${trip.id}`} state={{ transition: "forward" }} className="block">
       <Card className="min-w-0 overflow-hidden rounded-[18px] p-3 flex items-center gap-3">
         <CoverPhoto
           url={trip.cover_photo_url}
@@ -359,7 +359,11 @@ export function Dashboard() {
       </div>
 
       <StickyActionBar fade>
-        <Link to="/trips/new" className={buttonClasses("primary", true)}>
+        <Link
+          to="/trips/new"
+          state={{ transition: "sheet" }}
+          className={buttonClasses("primary", true)}
+        >
           + Create trip
         </Link>
       </StickyActionBar>

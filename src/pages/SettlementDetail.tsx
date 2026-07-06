@@ -13,6 +13,9 @@ import { markTransactionNotificationsRead } from "@/lib/notificationReadState";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useSettlementMutations } from "@/hooks/useSettlementMutations";
+import { useRouteMotion } from "@/hooks/useRouteMotion";
+import { useSwipeDownDismiss } from "@/hooks/useSwipeDownDismiss";
+import clsx from "clsx";
 
 function timestamp(value: string) {
   return new Date(value).toLocaleString(undefined, {
@@ -24,6 +27,8 @@ function timestamp(value: string) {
 export function SettlementDetail() {
   const { tripId, settlementId } = useParams<{ tripId: string; settlementId: string }>();
   const navigate = useNavigate();
+  const routeMotion = useRouteMotion("sheet");
+  const swipeDismiss = useSwipeDownDismiss(() => navigate(-1));
   const trip = useTripLayout();
   const { settlement, loading, error } = useSettlement(settlementId);
   const { deleteSettlement, saving, error: deleteError } = useSettlementMutations();
@@ -50,7 +55,10 @@ export function SettlementDetail() {
   }
 
   return (
-    <PageShell className="lg:max-w-[880px]">
+    <PageShell
+      {...swipeDismiss}
+      className={clsx("lg:max-w-[880px]", routeMotion)}
+    >
       <ScreenHeader
         title="Settlement details"
         onBack={() => navigate(-1)}

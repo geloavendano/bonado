@@ -21,8 +21,10 @@ import { convertEntryAmount } from "@/lib/convertEntryAmount";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useUnreadTransactions } from "@/hooks/useUnreadTransactions";
 import { shareLink } from "@/lib/share";
+import { useRouteMotion } from "@/hooks/useRouteMotion";
 
 export function TripHome() {
+  const routeMotion = useRouteMotion("forward");
   const trip = useTripLayout();
   const { user } = useAuth();
   const {
@@ -95,7 +97,7 @@ export function TripHome() {
   }
 
   return (
-    <PageShell padded={false} wide>
+    <PageShell padded={false} wide className={routeMotion}>
       <div className="relative">
         <CoverPhoto
           url={trip.cover_photo_url}
@@ -295,6 +297,7 @@ export function TripHome() {
                   <Link
                     key={`settlement-${entry.id}`}
                     to={`/trips/${trip.id}/settlements/${entry.id}`}
+                    state={{ transition: "sheet" }}
                     className={
                       "flex items-center gap-3 py-3.5" +
                       (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
@@ -384,6 +387,7 @@ export function TripHome() {
                 <Link
                   key={entry.id}
                   to={`/trips/${trip.id}/expenses/${entry.id}`}
+                  state={{ transition: "sheet" }}
                   className={
                     "flex items-center gap-3 py-3.5" +
                     (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
