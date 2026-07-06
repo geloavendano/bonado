@@ -257,6 +257,30 @@ a:active {
   view-transition-name: trip-pane;
 }
 
+.trip-bottom-nav {
+  view-transition-name: trip-bottom-nav;
+}
+
+.trip-top-nav {
+  view-transition-name: trip-top-nav;
+}
+
+.trip-top-nav-ghost {
+  position: fixed;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.trip-top-nav-ghost *,
+.trip-top-nav-ghost {
+  animation: none !important;
+  transition: none !important;
+}
+
+.trip-top-nav-entering {
+  visibility: hidden;
+}
+
 .trip-pane-ghost {
   position: fixed;
   z-index: 5;
@@ -285,6 +309,22 @@ a:active {
   animation-duration: 320ms;
   animation-timing-function: var(--ease-standard);
   overflow: clip;
+}
+
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-group(trip-bottom-nav),
+::view-transition-old(trip-bottom-nav),
+::view-transition-new(trip-bottom-nav),
+::view-transition-group(trip-top-nav),
+::view-transition-old(trip-top-nav),
+::view-transition-new(trip-top-nav) {
+  animation: none;
+}
+
+::view-transition-old(trip-top-nav) {
+  opacity: 0;
 }
 
 ::view-transition-image-pair(trip-pane) {

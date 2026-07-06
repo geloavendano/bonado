@@ -105,23 +105,30 @@ export function TripHome() {
           label={`trip cover — ${trip.location_name ?? trip.name}`}
           className="h-[150px] w-full"
         />
-        <Link
-          to="/"
-          replace
-          className="absolute left-4 top-[max(12px,env(safe-area-inset-top))] grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
-          aria-label="Back to dashboard"
+        <div
+          className={
+            "absolute inset-x-4 top-[max(12px,env(safe-area-inset-top))] flex items-center justify-between " +
+            (headerCompact ? "" : "trip-top-nav")
+          }
         >
-          ←
-        </Link>
-        <div className="absolute right-4 top-[max(12px,env(safe-area-inset-top))] flex items-center gap-2">
-          <NotificationBell />
           <Link
-            to={`/trips/${trip.id}/settings`}
-            className="grid size-[38px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
-            aria-label="Trip settings"
+            to="/"
+            replace
+            className="grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
+            aria-label="Back to dashboard"
           >
-            ⚙︎
+            ←
           </Link>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Link
+              to={`/trips/${trip.id}/settings`}
+              className="grid size-[38px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
+              aria-label="Trip settings"
+            >
+              ⚙︎
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -130,7 +137,7 @@ export function TripHome() {
         className={
           "sticky top-0 z-20 flex items-center bg-bg/95 pt-[env(safe-area-inset-top)] backdrop-blur-md transition-[min-height,padding,border-color,box-shadow] duration-200 " +
           (headerCompact
-            ? "min-h-14 border-b border-hairline px-4 shadow-[var(--shadow-card)]"
+            ? "trip-top-nav min-h-14 border-b border-hairline px-4 shadow-[var(--shadow-card)]"
             : "min-h-[72px] border-b border-transparent px-6")
         }
       >

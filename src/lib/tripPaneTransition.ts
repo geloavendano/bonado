@@ -11,6 +11,10 @@ function runSnapshotTransition(direction: Direction, update: () => void) {
 
   const rect = source.getBoundingClientRect();
   const ghost = source.cloneNode(true) as HTMLElement;
+  const sourceTopChrome = source.querySelector<HTMLElement>(".trip-top-nav");
+  const topChromeRect = sourceTopChrome?.getBoundingClientRect();
+  const topChromeGhost = sourceTopChrome?.cloneNode(true) as HTMLElement | undefined;
+  ghost.querySelector(".trip-top-nav")?.remove();
   ghost.classList.remove("trip-pane");
   ghost.classList.add("trip-pane-ghost", `trip-pane-ghost-${direction}`);
   ghost.setAttribute("aria-hidden", "true");
@@ -23,8 +27,29 @@ function runSnapshotTransition(direction: Direction, update: () => void) {
   });
 
   document.body.appendChild(ghost);
+  if (topChromeGhost && topChromeRect) {
+    topChromeGhost.classList.remove("trip-top-nav");
+    topChromeGhost.classList.add("trip-top-nav-ghost");
+    topChromeGhost.setAttribute("aria-hidden", "true");
+    topChromeGhost.inert = true;
+    Object.assign(topChromeGhost.style, {
+      left: `${topChromeRect.left}px`,
+      top: `${topChromeRect.top}px`,
+      width: `${topChromeRect.width}px`,
+      height: `${topChromeRect.height}px`,
+    });
+    document.body.appendChild(topChromeGhost);
+  }
   flushSync(update);
-  window.setTimeout(() => ghost.remove(), 380);
+  const incomingTopChrome = document.querySelector<HTMLElement>(
+    ".trip-pane .trip-top-nav",
+  );
+  incomingTopChrome?.classList.add("trip-top-nav-entering");
+  window.setTimeout(() => {
+    ghost.remove();
+    topChromeGhost?.remove();
+    incomingTopChrome?.classList.remove("trip-top-nav-entering");
+  }, 380);
 }
 
 export function runTripPaneTransition(

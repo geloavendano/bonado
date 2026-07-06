@@ -18,7 +18,7 @@ export function TripNav({ tripId }: { tripId: string }) {
   );
 
   return (
-    <div className="motion-dock fixed inset-x-0 bottom-0 z-10 pointer-events-none">
+    <div className="trip-bottom-nav motion-dock fixed inset-x-0 bottom-0 z-10 pointer-events-none">
       <div
         className="mx-auto flex w-full max-w-[430px] items-center gap-3 px-6"
         style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}

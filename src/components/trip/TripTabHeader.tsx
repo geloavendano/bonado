@@ -8,7 +8,7 @@ export function TripTabHeader({
   title: string;
 }) {
   return (
-    <div className="sticky top-0 z-20 -mx-6 flex min-h-[calc(56px+env(safe-area-inset-top))] items-center border-b border-hairline bg-bg/95 px-6 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+    <div className="trip-top-nav sticky top-0 z-20 -mx-6 flex min-h-[calc(56px+env(safe-area-inset-top))] items-center border-b border-hairline bg-bg/95 px-6 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <Link
         to="/"
         replace
