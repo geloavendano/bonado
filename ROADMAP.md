@@ -335,3 +335,21 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
 5. Optional before wider beta: Sign in with Apple provider (code is ready,
    flip `VITE_ENABLE_APPLE_SIGNIN`), Firebase + APNs key for push
    (scaffolding ready), Associated Domains for universal links.
+
+### TestFlight feedback pass (2026-07-06)
+
+- [x] Notification backdrop consumes outside taps without activating content
+      beneath it.
+- [x] Trip Settings “More” currency matches New Trip selected styling.
+- [x] Native invite sharing uses Capacitor Share with web clipboard fallback.
+- [x] Keyboard CTA loses the opaque content-covering band while floating.
+- [x] Edit Trip, Edit Expense, and Edit Settlement no longer autofocus on load.
+- [x] Dark-mode toast foreground follows the theme surface contrast token.
+- [x] Trip tab and grouped-history sticky offsets account for iOS safe area.
+- [x] Google Places moved behind the authenticated Supabase `places` edge
+      proxy; secret configured, deployed, and live autocomplete probe passes.
+- [x] Creating a trip replaces the creation route so Back returns to Dashboard.
+- [ ] Cover-photo pan/zoom crop editor.
+- [ ] Pull-to-refresh on trip/dashboard data.
+- [ ] Directional tab/page transitions and repeat-tab scroll-to-top.
+- [ ] Bottom-sheet presentation/dismiss gestures for create and detail routes.

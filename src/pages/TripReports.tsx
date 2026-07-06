@@ -124,7 +124,7 @@ export function TripReports() {
                       onClick={() => toggleCategory(category.name)}
                       className={clsx(
                         "grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-card py-3.5 text-left",
-                        expanded && "sticky top-14 z-10",
+                        expanded && "sticky top-[calc(56px+env(safe-area-inset-top))] z-10",
                       )}
                       aria-expanded={expanded}
                     >

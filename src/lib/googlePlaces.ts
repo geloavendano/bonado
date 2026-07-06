@@ -1,10 +1,11 @@
-// Places API (New) via plain REST calls — avoids loading the full Maps
-// JavaScript SDK for what's just an autocomplete input + one details fetch.
-// https://developers.google.com/maps/documentation/places/web-service/place-autocomplete
+// Places API (New) via the `places` edge-function proxy. The API key is
+// HTTP-referrer restricted and Google's allowlists can't include the
+// capacitor:// scheme the native app runs on, so calls go through Supabase —
+// which also keeps the key out of the client bundle entirely.
 
-const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY as string | undefined;
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
-export const isPlacesConfigured = Boolean(API_KEY);
+export const isPlacesConfigured = isSupabaseConfigured;
 
 export interface PlaceSuggestion {
   placeId: string;
@@ -45,26 +46,23 @@ export async function autocompletePlaces(
   input: string,
   sessionToken: string,
 ): Promise<PlaceSuggestion[]> {
-  if (!API_KEY || input.trim().length < 2) return [];
+  if (input.trim().length < 2) return [];
 
-  const response = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": API_KEY,
+  const { data, error } = await supabase.functions.invoke<AutocompleteResponse>(
+    "places",
+    {
+      body: {
+        action: "autocomplete",
+        input,
+        sessionToken,
+        includedPrimaryTypes: ["locality", "administrative_area_level_3", "country"],
+      },
     },
-    body: JSON.stringify({
-      input,
-      sessionToken,
-      includedPrimaryTypes: ["locality", "administrative_area_level_3", "country"],
-    }),
-  });
-
-  if (!response.ok) {
+  );
+  if (error || !data) {
     throw new Error("Location search is temporarily unavailable.");
   }
 
-  const data = (await response.json()) as AutocompleteResponse;
   return (data.suggestions ?? []).flatMap((suggestion) => {
     const prediction = suggestion.placePrediction;
     if (!prediction) return [];
@@ -82,22 +80,11 @@ export async function getPlaceDetails(
   placeId: string,
   sessionToken: string,
 ): Promise<PlaceDetails | null> {
-  if (!API_KEY) return null;
-
-  const response = await fetch(
-    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?sessionToken=${encodeURIComponent(sessionToken)}`,
-    {
-      headers: {
-        "X-Goog-Api-Key": API_KEY,
-        "X-Goog-FieldMask": "id,displayName,location,addressComponents",
-      },
-    },
+  const { data, error } = await supabase.functions.invoke<PlaceDetailsResponse>(
+    "places",
+    { body: { action: "details", placeId, sessionToken } },
   );
-
-  if (!response.ok) return null;
-
-  const data = (await response.json()) as PlaceDetailsResponse;
-  if (!data.location) return null;
+  if (error || !data?.location) return null;
 
   const countryComponent = data.addressComponents?.find((component) =>
     component.types.includes("country"),

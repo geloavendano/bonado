@@ -11,19 +11,29 @@ export function StickyActionBar({
   fade?: boolean;
   bottomOffset?: number;
 }) {
+  // Floating above the keyboard the bar must not paint a background — the
+  // opaque band covered the content directly above the button.
+  const floating = bottomOffset > 0;
   return (
     <div
       className={clsx(
         "motion-dock fixed inset-x-0 z-10 transition-[bottom] duration-200",
-        fade
-          ? "bg-gradient-to-b from-transparent via-bg/90 to-bg"
-          : "bg-bg",
+        floating
+          ? "bg-transparent"
+          : fade
+            ? "bg-gradient-to-b from-transparent via-bg/90 to-bg"
+            : "bg-bg",
       )}
       style={{ bottom: bottomOffset }}
     >
       <div
-        className={clsx("mx-auto max-w-[430px] px-6", fade ? "pt-8" : "pt-3")}
-        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
+        className={clsx(
+          "mx-auto max-w-[430px] px-6",
+          floating ? "pt-0" : fade ? "pt-8" : "pt-3",
+        )}
+        style={{
+          paddingBottom: floating ? 10 : "max(16px, env(safe-area-inset-bottom))",
+        }}
       >
         {children}
       </div>

@@ -22,6 +22,7 @@ import { getCurrencyForCountry } from "@/lib/countryCurrency";
 import clsx from "clsx";
 import { useManageTripMembers } from "@/hooks/useManageTripMembers";
 import { useAuth } from "@/context/AuthContext";
+import { shareLink } from "@/lib/share";
 
 export function TripSettings() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -91,6 +92,12 @@ export function TripSettings() {
 
   if (!trip) return <Navigate to="/" replace />;
   const previousCurrency = trip.default_currency;
+  const isMoreCurrency = !SUGGESTED_CURRENCIES.some(
+    (item) => item.code === currency,
+  );
+  const moreCurrencies = ALL_CURRENCIES.filter(
+    (item) => !SUGGESTED_CURRENCIES.some((suggested) => suggested.code === item.code),
+  );
 
   const dirty =
     name.trim() !== trip.name ||
@@ -194,19 +201,11 @@ export function TripSettings() {
       text: `You've been invited to "${trip!.name}" on bonado, a shared expense tracker for groups. Join to log expenses together, see who owes what, and settle up:`,
       url: inviteUrl,
     };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch {
-        // A cancelled or unavailable share sheet falls back to copying.
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
+    const result = await shareLink(shareData);
+    if (result === "copied") {
       setInviteCopied(true);
       setTimeout(() => setInviteCopied(false), 2000);
-    } catch {
+    } else if (result === "failed") {
       setShowInviteLink(true);
     }
   }
@@ -222,7 +221,7 @@ export function TripSettings() {
       >
         <div className="flex min-w-0 flex-col gap-3.5">
         <SectionLabel>Trip name</SectionLabel>
-        <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus enterKeyHint="next" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} enterKeyHint="next" />
 
         <SectionLabel>Where to?</SectionLabel>
         <LocationField
@@ -291,18 +290,26 @@ export function TripSettings() {
           ))}
           <div className="relative">
             <select
-              value={currency}
+              value={isMoreCurrency ? currency : ""}
               onChange={(event) => setCurrency(event.target.value)}
-              className="appearance-none rounded-pill border-2 border-transparent bg-card py-2 pl-4 pr-9 text-[13.5px] font-bold text-secondary shadow-[var(--shadow-card)] outline-none"
-            >
-              {!ALL_CURRENCIES.some((item) => item.code === currency) && currency && (
-                <option value={currency}>{currency}</option>
+              className={clsx(
+                "appearance-none rounded-pill border-2 py-2 pl-4 pr-9 text-[13.5px] font-bold outline-none transition-colors",
+                isMoreCurrency
+                  ? "border-teal bg-teal-tint text-teal-dark"
+                  : "border-transparent bg-card text-secondary shadow-[var(--shadow-card)]",
               )}
-              {ALL_CURRENCIES.map((item) => (
+            >
+              <option value="" disabled>More…</option>
+              {moreCurrencies.map((item) => (
                 <option key={item.code} value={item.code}>{item.code} · {item.name}</option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" />
+            <ChevronDown
+              className={clsx(
+                "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2",
+                isMoreCurrency ? "text-teal-dark" : "text-secondary",
+              )}
+            />
           </div>
         </div>
         {currency !== trip.default_currency && (

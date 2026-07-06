@@ -20,6 +20,7 @@ import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { convertEntryAmount } from "@/lib/convertEntryAmount";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useUnreadTransactions } from "@/hooks/useUnreadTransactions";
+import { shareLink } from "@/lib/share";
 
 export function TripHome() {
   const trip = useTripLayout();
@@ -86,17 +87,11 @@ export function TripHome() {
       text: `You've been invited to "${trip!.name}" on bonado, a shared expense tracker for groups. Join to log expenses together, see who owes what, and settle up:`,
       url: inviteUrl,
     };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch {
-        // user cancelled or share failed — fall through to clipboard
-      }
+    const result = await shareLink(shareData);
+    if (result === "copied") {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-    await navigator.clipboard.writeText(inviteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -279,7 +274,7 @@ export function TripHome() {
 
               return (
                 <section key={date}>
-                  <div className="sticky top-14 z-10 -mx-1 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
+                  <div className="sticky top-[calc(56px+env(safe-area-inset-top))] z-10 -mx-1 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
                     {dateLabel}
                   </div>
                   <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">

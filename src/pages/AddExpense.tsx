@@ -448,7 +448,7 @@ export function AddExpense() {
             inputMode="decimal"
             placeholder="0.00"
             aria-label="Expense amount"
-            autoFocus
+            autoFocus={!entryId}
             enterKeyHint="next"
             className="min-w-0 flex-1 bg-transparent text-right !text-[32px] font-extrabold tracking-[-1px] outline-none placeholder:text-faint-2"
           />

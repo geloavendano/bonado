@@ -85,7 +85,6 @@ export function EditSettlement() {
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             inputMode="decimal"
-            autoFocus
             enterKeyHint="done"
             className="min-w-0 flex-1 bg-transparent text-right !text-[24px] font-extrabold outline-none"
           />

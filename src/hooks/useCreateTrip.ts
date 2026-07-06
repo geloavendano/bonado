@@ -50,7 +50,7 @@ export function useCreateTrip() {
     }
 
     setSubmitting(false);
-    navigate(`/trips/${trip.id}`);
+    navigate(`/trips/${trip.id}`, { replace: true });
   }
 
   return { createTrip, submitting, error };

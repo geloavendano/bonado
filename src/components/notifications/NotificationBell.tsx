@@ -147,7 +147,12 @@ export function NotificationBell() {
         <>
           <div
             className="fixed inset-0 z-[100] bg-black/40 lg:bg-transparent"
-            onPointerDown={() => setOpen(false)}
+            onClick={(event) => {
+              // consume the tap: closing on pointerdown let the follow-up
+              // click land on whatever sat behind the backdrop
+              event.stopPropagation();
+              setOpen(false);
+            }}
           />
           <div
             ref={panelRef}
