@@ -12,6 +12,7 @@ export function TripTabHeader({
     <div className="sticky top-0 z-20 -mx-6 flex min-h-[calc(56px+env(safe-area-inset-top))] items-center border-b border-hairline bg-bg/95 px-6 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <Link
         to={`/trips/${tripId}`}
+        replace
         aria-label="Back to entries"
         className="grid size-9 flex-none place-items-center rounded-full bg-card text-[15px] text-secondary shadow-[var(--shadow-card)]"
       >

@@ -22,6 +22,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useUnreadTransactions } from "@/hooks/useUnreadTransactions";
 import { shareLink } from "@/lib/share";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
+import { inviteUrl as buildInviteUrl } from "@/lib/appUrl";
 
 export function TripHome() {
   const routeMotion = useRouteMotion("forward");
@@ -64,7 +65,7 @@ export function TripHome() {
       : trip.default_currency);
   const displayedBalance = yourBalance * (rates[balanceCurrency] ?? 1);
 
-  const inviteUrl = `${window.location.origin}/join/${trip.invite_link_token}`;
+  const inviteUrl = buildInviteUrl(trip.invite_link_token);
 
   useEffect(() => {
     let frame = 0;
@@ -106,6 +107,7 @@ export function TripHome() {
         />
         <Link
           to="/"
+          replace
           className="absolute left-4 top-[max(12px,env(safe-area-inset-top))] grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
           aria-label="Back to dashboard"
         >

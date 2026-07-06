@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Trip } from "@/types/schema";
 import { fetchBalances } from "@/lib/balanceData";
 import { useAuth } from "@/context/AuthContext";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 const PAGE_SIZE = 10;
 
@@ -16,27 +17,31 @@ interface TripRow extends Trip {
   memberships: { user: { id: string; name: string; avatar_url: string | null } | null }[];
 }
 
+interface TripsCacheValue {
+  trips: TripWithMembers[];
+  hasMore: boolean;
+}
+
+const tripsCache = new Map<string, TripsCacheValue>();
+
 export function useTrips() {
   const { user } = useAuth();
-  const [trips, setTrips] = useState<TripWithMembers[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = user?.id ?? "guest";
+  const cached = tripsCache.get(cacheKey);
+  const [trips, setTrips] = useState<TripWithMembers[]>(cached?.trips ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(cached?.hasMore ?? false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
+  const reload = useCallback(async (showLoading = false) => {
+      if (showLoading && !tripsCache.has(cacheKey)) setLoading(true);
       const { data, error } = await supabase
         .from("trips")
         .select("*, memberships(user:users(id, name, avatar_url))")
         .order("last_activity_at", { ascending: false })
         .range(0, PAGE_SIZE - 1)
         .returns<TripRow[]>();
-
-      if (cancelled) return;
 
       if (error) {
         setError(error.message);
@@ -45,28 +50,30 @@ export function useTrips() {
       }
 
       const rows = data ?? [];
-      setHasMore(rows.length === PAGE_SIZE);
+      const nextHasMore = rows.length === PAGE_SIZE;
       const balanceRows = await Promise.all(
         rows.map((trip) => fetchBalances(trip.id).catch(() => [])),
       );
-      if (cancelled) return;
-
-      setTrips(
-        rows.map(({ memberships, ...trip }, index) => ({
+      const nextTrips = rows.map(({ memberships, ...trip }, index) => ({
           ...trip,
           members: memberships.flatMap((m) => (m.user ? [m.user] : [])),
           yourBalance:
             balanceRows[index].find((balance) => balance.user_id === user?.id)?.balance ?? 0,
-        })),
-      );
+        }));
+      tripsCache.set(cacheKey, { trips: nextTrips, hasMore: nextHasMore });
+      setTrips(nextTrips);
+      setHasMore(nextHasMore);
       setLoading(false);
-    }
+  }, [cacheKey, user?.id]);
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+  useEffect(() => {
+    const nextCached = tripsCache.get(cacheKey);
+    setTrips(nextCached?.trips ?? []);
+    setHasMore(nextCached?.hasMore ?? false);
+    setLoading(!nextCached);
+    void reload(!nextCached);
+    return registerDataRefresh(() => reload(false));
+  }, [cacheKey, reload]);
 
   async function loadMore() {
     if (loadingMore || !hasMore) return;
@@ -87,18 +94,21 @@ export function useTrips() {
     const balanceRows = await Promise.all(
       rows.map((trip) => fetchBalances(trip.id).catch(() => [])),
     );
-    setTrips((current) => [
-      ...current,
+    const nextTrips = [
+      ...trips,
       ...rows.map(({ memberships, ...trip }, index) => ({
         ...trip,
         members: memberships.flatMap((m) => (m.user ? [m.user] : [])),
         yourBalance:
           balanceRows[index].find((balance) => balance.user_id === user?.id)?.balance ?? 0,
       })),
-    ]);
-    setHasMore(rows.length === PAGE_SIZE);
+    ];
+    const nextHasMore = rows.length === PAGE_SIZE;
+    tripsCache.set(cacheKey, { trips: nextTrips, hasMore: nextHasMore });
+    setTrips(nextTrips);
+    setHasMore(nextHasMore);
     setLoadingMore(false);
   }
 
-  return { trips, loading, loadingMore, hasMore, loadMore, error };
+  return { trips, loading, loadingMore, hasMore, loadMore, error, reload };
 }

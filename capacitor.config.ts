@@ -3,7 +3,15 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.bonado.app',
   appName: 'bonado',
-  webDir: 'dist'
+  webDir: 'dist',
+  plugins: {
+    SplashScreen: {
+      launchAutoHide: false,
+      backgroundColor: '#F8FAF9',
+      androidSplashResourceName: 'splash',
+      showSpinner: false,
+    },
+  },
 };
 
 export default config;

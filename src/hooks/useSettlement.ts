@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 export interface SettlementDetail {
   id: string;
@@ -19,14 +20,17 @@ export interface SettlementDetail {
   } | null;
 }
 
+const settlementCache = new Map<string, SettlementDetail>();
+
 export function useSettlement(settlementId: string | undefined) {
-  const [settlement, setSettlement] = useState<SettlementDetail | null>(null);
-  const [loading, setLoading] = useState(Boolean(settlementId));
+  const cached = settlementId ? settlementCache.get(settlementId) ?? null : null;
+  const [settlement, setSettlement] = useState<SettlementDetail | null>(cached);
+  const [loading, setLoading] = useState(Boolean(settlementId && !cached));
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!settlementId) return;
-    setLoading(true);
+    if (!settlementCache.has(settlementId)) setLoading(true);
     const { data, error: queryError } = await supabase
       .from("settlements")
       .select(`
@@ -38,14 +42,21 @@ export function useSettlement(settlementId: string | undefined) {
       .eq("id", settlementId)
       .returns<SettlementDetail[]>()
       .maybeSingle();
-    setSettlement(data ? { ...data, amount: Number(data.amount) } : null);
+    const nextSettlement = data ? { ...data, amount: Number(data.amount) } : null;
+    if (nextSettlement) settlementCache.set(settlementId, nextSettlement);
+    setSettlement(nextSettlement);
     setError(queryError?.message ?? null);
     setLoading(false);
   }, [settlementId]);
 
   useEffect(() => {
+    if (!settlementId) return;
+    const nextCached = settlementCache.get(settlementId) ?? null;
+    setSettlement(nextCached);
+    setLoading(!nextCached);
     void reload();
-  }, [reload]);
+    return registerDataRefresh(reload);
+  }, [reload, settlementId]);
 
   return { settlement, loading, error, reload };
 }

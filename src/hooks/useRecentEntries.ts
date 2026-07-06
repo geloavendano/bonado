@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 const PAGE_SIZE = 20;
 
@@ -171,8 +172,10 @@ export function useRecentEntries(tripId: string) {
     }
 
     void load();
+    const unregisterRefresh = registerDataRefresh(load);
     return () => {
       cancelled = true;
+      unregisterRefresh();
     };
   }, [tripId]);
 

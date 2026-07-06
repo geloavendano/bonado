@@ -363,3 +363,17 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
       detail routes enter from below. Expense and settlement details track a
       top-edge downward drag and dismiss after the swipe threshold. Native
       WebView swipe-back remains enabled for standard left-edge navigation.
+- [x] Native share URLs — invite links use the configured public web origin
+      instead of Capacitor's internal `capacitor://localhost` origin.
+- [x] In-place pull refresh — native pull-to-refresh revalidates the mounted
+      backend datasets and shows a compact skeleton progress indicator without
+      reloading the WebView, navigation, logo, or CTA chrome.
+- [x] Route data cache — trips, trip shell data, balances, reports, expenses,
+      settlements, and transaction history retain cached data while quietly
+      revalidating after remount, avoiding full-page skeleton flashes.
+- [x] Hierarchical trip history — Entries is the parent route for Balances and
+      Reports; lateral tab changes replace one another, while transaction
+      details retain their originating tab and restored component/scroll state.
+- [x] Native launch — Capacitor SplashScreen holds the launch artwork through
+      auth/startup resolution, then a signed-in cold launch opens the trip with
+      the newest `last_activity_at`; Back still returns to Dashboard.

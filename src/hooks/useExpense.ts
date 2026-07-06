@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 const expenseCache = new Map<string, ExpenseDetail>();
 
@@ -129,6 +130,8 @@ export function useExpense(entryId: string | undefined) {
     }
     void reload();
   }, [entryId, reload]);
+
+  useEffect(() => registerDataRefresh(reload), [reload]);
 
   return { expense, loading, error, reload };
 }

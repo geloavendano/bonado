@@ -4,6 +4,7 @@ import {
   getCachedBalances,
   type BalanceRow,
 } from "@/lib/balanceData";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 export function useBalances(tripId: string) {
   const cached = getCachedBalances(tripId);
@@ -25,6 +26,7 @@ export function useBalances(tripId: string) {
 
   useEffect(() => {
     void reload();
+    return registerDataRefresh(reload);
   }, [reload]);
 
   return { balances, loading, error, reload };

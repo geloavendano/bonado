@@ -59,6 +59,7 @@ export function TripNav({ tripId }: { tripId: string }) {
               <Link
                 key={tab.key}
                 to={href}
+                replace={activeIndex !== 0}
                 state={{
                   transition: TABS.findIndex((item) => item.key === tab.key) > activeIndex
                     ? "tab-left"

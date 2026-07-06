@@ -4,9 +4,12 @@ import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Browser } from "@capacitor/browser";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { registerForPush, pushTapLink } from "@/lib/pushRegistration";
+
+let nativeLaunchHandled = false;
 
 function versionBelow(current: string, minimum: string): boolean {
   const parse = (value: string) =>
@@ -26,8 +29,33 @@ function versionBelow(current: string, minimum: string): boolean {
  */
 export function NativeShell() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [updateRequired, setUpdateRequired] = useState(false);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || authLoading || nativeLaunchHandled) return;
+    nativeLaunchHandled = true;
+
+    void (async () => {
+      try {
+        if (user && window.location.pathname === "/") {
+          const { data } = await supabase
+            .from("trips")
+            .select("id")
+            .order("last_activity_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (data?.id) {
+            navigate(`/trips/${data.id}`, {
+              state: { transition: "forward" },
+            });
+          }
+        }
+      } finally {
+        await SplashScreen.hide().catch(() => undefined);
+      }
+    })();
+  }, [authLoading, navigate, user]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || !user) return;
@@ -47,7 +75,14 @@ export function NativeShell() {
 
     const listeners = [
       CapApp.addListener("backButton", ({ canGoBack }) => {
-        if (window.location.pathname === "/" || !canGoBack) {
+        const pathname = window.location.pathname;
+        const tabMatch = pathname.match(/^\/trips\/([^/]+)\/(?:balances|reports)$/);
+        const tripMatch = pathname.match(/^\/trips\/([^/]+)$/);
+        if (tabMatch) {
+          navigate(`/trips/${tabMatch[1]}`, { replace: true });
+        } else if (tripMatch) {
+          navigate("/", { replace: true });
+        } else if (pathname === "/" || !canGoBack) {
           void CapApp.exitApp();
         } else {
           window.history.back();

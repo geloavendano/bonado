@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import type { Trip } from "@/types/schema";
 import { fetchBalances } from "@/lib/balanceData";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 export interface TripMember {
   id: string;
@@ -26,17 +27,21 @@ interface TripRow extends Trip {
   }[];
 }
 
+const tripCache = new Map<string, TripWithMembers>();
+
 export function useTrip(tripId: string | undefined) {
   const { user } = useAuth();
-  const [trip, setTrip] = useState<TripWithMembers | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = tripId ? `${tripId}:${user?.id ?? "guest"}` : "";
+  const cached = cacheKey ? tripCache.get(cacheKey) ?? null : null;
+  const [trip, setTrip] = useState<TripWithMembers | null>(cached);
+  const [loading, setLoading] = useState(Boolean(tripId && !cached));
   const [error, setError] = useState<string | null>(null);
   const requestRef = useRef(0);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (showLoading = false) => {
     if (!tripId) return;
     const requestId = ++requestRef.current;
-    setLoading(true);
+    if (showLoading && !tripCache.has(cacheKey)) setLoading(true);
     const { data, error } = await supabase
       .from("trips")
       .select("*, memberships(role, user:users(id, name, avatar_url, is_registered))")
@@ -60,7 +65,7 @@ export function useTrip(tripId: string | undefined) {
     const balanceRows = await fetchBalances(tripId).catch(() => []);
     if (requestId !== requestRef.current) return;
     const { memberships, ...rest } = data;
-    setTrip({
+    const nextTrip = {
       ...rest,
       members: memberships.flatMap((m) =>
         m.user ? [{ ...m.user, role: m.role }] : [],
@@ -68,13 +73,19 @@ export function useTrip(tripId: string | undefined) {
       isOwner: memberships.some((m) => m.user?.id === user?.id && m.role === "owner"),
       yourBalance:
         balanceRows.find((balance) => balance.user_id === user?.id)?.balance ?? 0,
-    });
+    };
+    tripCache.set(cacheKey, nextTrip);
+    setTrip(nextTrip);
     setLoading(false);
-  }, [tripId, user?.id]);
+  }, [cacheKey, tripId, user?.id]);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    const nextCached = cacheKey ? tripCache.get(cacheKey) ?? null : null;
+    setTrip(nextCached);
+    setLoading(Boolean(tripId && !nextCached));
+    void reload(!nextCached);
+    return registerDataRefresh(() => reload(false));
+  }, [cacheKey, tripId, reload]);
 
   return { trip, loading, error, reload };
 }

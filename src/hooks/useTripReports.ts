@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 export interface ReportTransaction {
   id: string;
@@ -57,13 +58,17 @@ const EMPTY_REPORT: TripReport = {
   hasEstimatedRates: false,
 };
 
+const reportCache = new Map<string, TripReport>();
+
 export function useTripReports(tripId: string, userId: string | undefined) {
-  const [report, setReport] = useState<TripReport>(EMPTY_REPORT);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${tripId}:${userId ?? "guest"}`;
+  const cached = reportCache.get(cacheKey);
+  const [report, setReport] = useState<TripReport>(cached ?? EMPTY_REPORT);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
-    setLoading(true);
+    if (!reportCache.has(cacheKey)) setLoading(true);
     const { data, error: queryError } = await supabase
       .from("entries")
       .select(`
@@ -148,19 +153,25 @@ export function useTripReports(tripId: string, userId: string | undefined) {
       hasEstimatedRates ||= entry.rate_is_estimated;
     }
 
-    setReport({
+    const nextReport = {
       groupTotal,
       userTotal,
       hasEstimatedRates,
       categories: [...categories.values()].sort((a, b) => b.groupAmount - a.groupAmount),
-    });
+    };
+    reportCache.set(cacheKey, nextReport);
+    setReport(nextReport);
     setError(null);
     setLoading(false);
-  }, [tripId, userId]);
+  }, [cacheKey, tripId, userId]);
 
   useEffect(() => {
+    const nextCached = reportCache.get(cacheKey);
+    setReport(nextCached ?? EMPTY_REPORT);
+    setLoading(!nextCached);
     void reload();
-  }, [reload]);
+    return registerDataRefresh(reload);
+  }, [cacheKey, reload]);
 
   return { report, loading, error, reload };
 }

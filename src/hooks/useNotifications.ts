@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { registerDataRefresh } from "@/lib/dataRefresh";
 
 const PAGE_SIZE = 20;
 const NOTIFICATION_SELECT = `
@@ -71,12 +72,14 @@ export function useNotifications() {
 
   useEffect(() => {
     void reload();
+    const unregisterRefresh = registerDataRefresh(reload);
     const refetch = () => {
       if (document.visibilityState === "visible") void reload();
     };
     window.addEventListener("focus", refetch);
     document.addEventListener("visibilitychange", refetch);
     return () => {
+      unregisterRefresh();
       window.removeEventListener("focus", refetch);
       document.removeEventListener("visibilitychange", refetch);
     };

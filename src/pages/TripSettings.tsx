@@ -23,6 +23,7 @@ import clsx from "clsx";
 import { useManageTripMembers } from "@/hooks/useManageTripMembers";
 import { useAuth } from "@/context/AuthContext";
 import { shareLink } from "@/lib/share";
+import { inviteUrl as buildInviteUrl } from "@/lib/appUrl";
 import { CoverCropSheet } from "@/components/trip/CoverCropSheet";
 
 export function TripSettings() {
@@ -210,7 +211,7 @@ export function TripSettings() {
   }
 
   async function shareInvite() {
-    const inviteUrl = `${window.location.origin}/join/${trip!.invite_link_token}`;
+    const inviteUrl = buildInviteUrl(trip!.invite_link_token);
     const shareData = {
       title: `Join ${trip!.name} on bonado`,
       text: `You've been invited to "${trip!.name}" on bonado, a shared expense tracker for groups. Join to log expenses together, see who owes what, and settle up:`,
@@ -374,7 +375,7 @@ export function TripSettings() {
         {showInviteLink && (
           <div className="motion-reveal">
             <Input
-              value={`${window.location.origin}/join/${trip.invite_link_token}`}
+              value={buildInviteUrl(trip.invite_link_token)}
               readOnly
               onFocus={(event) => event.currentTarget.select()}
               aria-label="Trip invite link"
