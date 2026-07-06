@@ -67,6 +67,7 @@ export function TripSettings() {
   const [showInviteLink, setShowInviteLink] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingMemberId, setConfirmingMemberId] = useState<string | null>(null);
+  const [removalDestinationId, setRemovalDestinationId] = useState("deleted-member");
   const formRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formFlow = useMobileFormFlow(formRef);
@@ -178,8 +179,13 @@ export function TripSettings() {
   async function handleRemoveMember(memberId: string) {
     if (!tripId) return;
     const leaving = memberId === user?.id;
-    if (await removeMember(tripId, memberId)) {
+    const destinationId =
+      !leaving && removalDestinationId !== "deleted-member"
+        ? removalDestinationId
+        : null;
+    if (await removeMember(tripId, memberId, destinationId)) {
       setConfirmingMemberId(null);
+      setRemovalDestinationId("deleted-member");
       if (leaving) {
         navigate("/", {
           replace: true,
@@ -521,7 +527,10 @@ export function TripSettings() {
                 member.role !== "owner" &&
                 (trip.isOwner || member.id === user?.id) && (
                   <button
-                    onClick={() => setConfirmingMemberId(member.id)}
+                    onClick={() => {
+                      setRemovalDestinationId("deleted-member");
+                      setConfirmingMemberId(member.id);
+                    }}
                     disabled={busyMemberId === member.id}
                     className="rounded-pill px-2.5 py-1.5 text-[12px] font-bold text-owe disabled:opacity-50"
                   >
@@ -544,7 +553,9 @@ export function TripSettings() {
               description={
                 leaving
                   ? "Your expenses and balances will remain under an unclaimed temporary member so the trip records stay accurate."
-                  : `${member.name}'s expenses and balances will remain under an unclaimed temporary member so the trip records stay accurate.`
+                  : removalDestinationId === "deleted-member"
+                    ? `${member.name}'s expenses, assigned shares, and settlements will remain under an unclaimed deleted-member placeholder.`
+                    : `${member.name}'s complete trip history will be transferred to ${trip.members.find(({ id }) => id === removalDestinationId)?.name ?? "the selected member"}.`
               }
               confirmLabel={
                 busyMemberId === member.id
@@ -554,8 +565,41 @@ export function TripSettings() {
               destructive
               busy={busyMemberId === member.id || !navigator.onLine}
               onConfirm={() => void handleRemoveMember(member.id)}
-              onCancel={() => setConfirmingMemberId(null)}
-            />
+              onCancel={() => {
+                setConfirmingMemberId(null);
+                setRemovalDestinationId("deleted-member");
+              }}
+            >
+              {!leaving && trip.isOwner && (
+                <label className="mt-4 block text-[11px] font-bold uppercase tracking-[0.07em] text-secondary">
+                  Transfer existing records to
+                  <span className="relative mt-1.5 block">
+                    <select
+                      value={removalDestinationId}
+                      onChange={(event) => setRemovalDestinationId(event.target.value)}
+                      className="w-full appearance-none rounded-[14px] bg-tile py-3 pl-3 pr-10 text-[14px] font-bold normal-case tracking-normal text-ink outline-none"
+                    >
+                      <option value="deleted-member">
+                        Deleted member · {member.name}
+                      </option>
+                      {trip.members
+                        .filter(({ id }) => id !== member.id)
+                        .map((destination) => (
+                          <option key={destination.id} value={destination.id}>
+                            {destination.name}
+                            {destination.role === "owner" ? " · Owner" : ""}
+                            {!destination.is_registered ? " · Guest" : ""}
+                          </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-3.5" />
+                  </span>
+                  <span className="mt-2 block text-[11.5px] font-medium normal-case tracking-normal text-faint">
+                    Transfers paid amounts, assigned shares, settlements, and transaction attribution.
+                  </span>
+                </label>
+              )}
+            </ConfirmDialog>
           );
         })()}
 

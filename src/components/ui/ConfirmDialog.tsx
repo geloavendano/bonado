@@ -5,6 +5,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   destructive?: boolean;
   busy?: boolean;
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +22,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   destructive,
   busy,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -45,6 +47,7 @@ export function ConfirmDialog({
         {description && (
           <p className="mt-1.5 text-[13px] text-secondary">{description}</p>
         )}
+        {children}
         <div className="mt-5 flex flex-col gap-2">
           <button
             onClick={onConfirm}
@@ -68,5 +71,5 @@ export function ConfirmDialog({
     </div>
   );
 }
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import { useOverlayA11y } from "@/hooks/useOverlayA11y";

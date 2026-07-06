@@ -385,3 +385,8 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
 - [x] Native launch — Capacitor SplashScreen holds the launch artwork through
       auth/startup resolution, then a signed-in cold launch opens the trip with
       the newest `last_activity_at`; Back still returns to Dashboard.
+- [x] Member-history delegation — when an owner removes a registered member,
+      Trip Settings now offers either an unclaimed deleted-member placeholder
+      or any other current trip member as the destination. The RPC validates
+      the destination, atomically transfers payments, shares, settlements and
+      attribution, collapses duplicate allocations, and removes self-settlements.

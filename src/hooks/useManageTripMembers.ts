@@ -6,12 +6,17 @@ export function useManageTripMembers() {
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function removeMember(tripId: string, memberId: string) {
+  async function removeMember(
+    tripId: string,
+    memberId: string,
+    reassignToUserId: string | null = null,
+  ) {
     setBusyMemberId(memberId);
     setError(null);
     const { error: removeError } = await supabase.rpc("remove_trip_member", {
       p_trip_id: tripId,
       p_member_id: memberId,
+      p_reassign_to_user_id: reassignToUserId,
     });
     setBusyMemberId(null);
 
@@ -26,4 +31,3 @@ export function useManageTripMembers() {
 
   return { removeMember, busyMemberId, error };
 }
-
