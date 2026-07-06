@@ -161,10 +161,10 @@ export function TripBalances() {
     trip.members.find((member) => member.id === id)?.name ?? "Member";
 
   return (
-    <PageShell wide className={routeMotion}>
+    <PageShell padded={false} wide className={routeMotion}>
       <TripTabHeader tripId={trip.id} title="Balances" />
 
-      <div className="flex flex-col gap-3.5 pb-24 pt-2.5">
+      <div className="flex flex-col gap-3.5 px-6 pb-24 pt-2.5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-secondary">

@@ -390,3 +390,17 @@ Remaining once Apple enrollment lands (TestFlight order of operations):
       or any other current trip member as the destination. The RPC validates
       the destination, atomically transfers payments, shares, settlements and
       attribution, collapses duplicate allocations, and removes self-settlements.
+- [x] Unified trip top nav — Entries, Balances, and Reports now render the
+      exact same header component (back, title, notification bell, settings
+      gear), same size and position, on mobile and desktop. Entries' old
+      scroll-collapsing hero header (which dropped the bell in its compact
+      state — a real bug) is gone; the cover photo is now a plain element
+      below the always-static header. Verified pixel-identical across all
+      three tabs at both phone and desktop widths.
+- [x] Bottom tab bar overhaul — icon-above-label stacking, ~54px tap targets
+      (was ~40px, under Apple's 44pt HIG minimum) to fix accidental taps
+      landing on content behind the bar, larger 48px FAB, and a frosted
+      "glass" material (translucent fill + backdrop blur/saturate + subtle
+      inner rim highlight) approximating iOS's Liquid Glass look — full
+      native UIVisualEffectView blur isn't reachable from a WKWebView's DOM
+      without a custom native plugin, so this is the CSS approximation.

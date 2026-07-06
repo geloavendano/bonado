@@ -45,10 +45,10 @@ export function TripReports() {
   }
 
   return (
-    <PageShell wide className={routeMotion}>
+    <PageShell padded={false} wide className={routeMotion}>
       <TripTabHeader tripId={trip.id} title="Reports" />
 
-      <div className="flex flex-col gap-3.5 pb-24 pt-2.5">
+      <div className="flex flex-col gap-3.5 px-6 pb-24 pt-2.5">
         {loading ? (
           <>
             <Skeleton className="h-[116px] w-full rounded-[20px]" />

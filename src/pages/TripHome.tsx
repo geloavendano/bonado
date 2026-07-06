@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
@@ -6,6 +6,7 @@ import { CoverPhoto } from "@/components/ui/CoverPhoto";
 import { AvatarStack } from "@/components/ui/AvatarStack";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useTripLayout } from "@/components/trip/useTripLayout";
+import { TripTabHeader } from "@/components/trip/TripTabHeader";
 import { GuestBanner } from "@/components/trip/GuestBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useRecentEntries } from "@/hooks/useRecentEntries";
@@ -18,7 +19,6 @@ import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { convertEntryAmount } from "@/lib/convertEntryAmount";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useUnreadTransactions } from "@/hooks/useUnreadTransactions";
 import { shareLink } from "@/lib/share";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
@@ -44,8 +44,6 @@ export function TripHome() {
   const [copied, setCopied] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("");
   const toastMessage = useRouteToast();
-  const [headerCompact, setHeaderCompact] = useState(false);
-  const headerSentinelRef = useRef<HTMLDivElement>(null);
   const groupedEntries = entries.reduce<Map<string, typeof entries>>(
     (groups, entry) => {
       const group = groups.get(entry.date) ?? [];
@@ -67,23 +65,6 @@ export function TripHome() {
 
   const inviteUrl = buildInviteUrl(trip.invite_link_token);
 
-  useEffect(() => {
-    let frame = 0;
-    function updateHeader() {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const top = headerSentinelRef.current?.getBoundingClientRect().top ?? 1;
-        setHeaderCompact(top <= 0);
-      });
-    }
-    updateHeader();
-    window.addEventListener("scroll", updateHeader, { passive: true });
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", updateHeader);
-    };
-  }, []);
-
   async function shareInvite() {
     const shareData = {
       title: `Join ${trip!.name} on bonado`,
@@ -99,96 +80,17 @@ export function TripHome() {
 
   return (
     <PageShell padded={false} wide className={routeMotion}>
-      <div className="relative">
-        <CoverPhoto
-          url={trip.cover_photo_url}
-          label={`trip cover — ${trip.location_name ?? trip.name}`}
-          className="h-[150px] w-full"
-        />
-        <div
-          className={
-            "absolute inset-x-4 top-[max(12px,env(safe-area-inset-top))] flex items-center justify-between " +
-            (headerCompact ? "" : "trip-top-nav")
-          }
-        >
-          <Link
-            to="/"
-            replace
-            className="grid size-[34px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
-            aria-label="Back to dashboard"
-          >
-            ←
-          </Link>
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <Link
-              to={`/trips/${trip.id}/settings`}
-              className="grid size-[38px] place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
-              aria-label="Trip settings"
-            >
-              ⚙︎
-            </Link>
-          </div>
-        </div>
-      </div>
+      <TripTabHeader
+        tripId={trip.id}
+        title={trip.name}
+        subtitle={trip.location_name}
+      />
 
-      <div ref={headerSentinelRef} className="h-px" />
-      <div
-        className={
-          "sticky top-0 z-20 flex items-center bg-bg/95 pt-[env(safe-area-inset-top)] backdrop-blur-md transition-[min-height,padding,border-color,box-shadow] duration-200 " +
-          (headerCompact
-            ? "trip-top-nav min-h-14 border-b border-hairline px-4 shadow-[var(--shadow-card)]"
-            : "min-h-[72px] border-b border-transparent px-6")
-        }
-      >
-        <Link
-          to="/"
-          aria-label="Back to dashboard"
-          className={
-            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-[var(--shadow-card)] transition-[width,opacity] duration-200 " +
-            (headerCompact
-              ? "pointer-events-auto h-9 w-9 opacity-100"
-              : "pointer-events-none h-9 w-0 opacity-0")
-          }
-        >
-          ←
-        </Link>
-        <div
-          className={
-            "min-w-0 flex-1 transition-[padding,text-align] duration-200 " +
-            (headerCompact ? "px-3 text-center" : "px-0 text-left")
-          }
-        >
-          <div
-            className={
-              "truncate font-extrabold tracking-[-0.4px] transition-[font-size] duration-200 " +
-              (headerCompact ? "text-[16px]" : "text-[21px]")
-            }
-          >
-            {trip.name}
-          </div>
-          <div
-            className={
-              "overflow-hidden text-[12.5px] font-semibold text-secondary transition-[height,opacity,margin] duration-200 " +
-              (headerCompact ? "h-0 opacity-0" : "h-5 opacity-100")
-            }
-          >
-            {trip.location_name}
-          </div>
-        </div>
-        <Link
-          to={`/trips/${trip.id}/settings`}
-          aria-label="Trip settings"
-          className={
-            "grid flex-none place-items-center overflow-hidden rounded-full bg-card text-secondary shadow-[var(--shadow-card)] transition-[width,opacity] duration-200 " +
-            (headerCompact
-              ? "pointer-events-auto h-9 w-9 opacity-100"
-              : "pointer-events-none h-9 w-0 opacity-0")
-          }
-        >
-          ⚙︎
-        </Link>
-      </div>
+      <CoverPhoto
+        url={trip.cover_photo_url}
+        label={`trip cover — ${trip.location_name ?? trip.name}`}
+        className="h-[150px] w-full"
+      />
 
       <div className="flex flex-col gap-3.5 px-6 pt-4 pb-24">
         <GuestBanner />
