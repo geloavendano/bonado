@@ -167,3 +167,44 @@ export function DeleteAccountInfo() {
     </LegalPage>
   );
 }
+
+export function SupportInfo() {
+  return (
+    <LegalPage title="Support">
+      <p>
+        Bonado is currently maintained as an early-access app for coordinating
+        shared trip expenses with friends and groups.
+      </p>
+      <Section title="Getting help">
+        <p>
+          For account, invite, trip, expense, settlement, or data deletion
+          questions, contact Bonado support at{" "}
+          <a className="font-bold text-teal" href="mailto:support@bonado.app">
+            support@bonado.app
+          </a>
+          .
+        </p>
+      </Section>
+      <Section title="What to include">
+        <p>
+          Please include the email address you use to sign in, the trip name
+          if the issue is trip-specific, screenshots when useful, and a short
+          description of what happened versus what you expected.
+        </p>
+      </Section>
+      <Section title="Response expectations">
+        <p>
+          During early access, support is handled manually. We prioritize
+          sign-in problems, incorrect balance calculations, invite issues,
+          and account deletion requests.
+        </p>
+      </Section>
+      <Section title="Legal pages">
+        <p>
+          You can review the Bonado privacy policy, terms, and account
+          deletion information from the account menu in the app.
+        </p>
+      </Section>
+    </LegalPage>
+  );
+}
