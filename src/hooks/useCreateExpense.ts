@@ -51,6 +51,22 @@ export interface ItemizedExpenseInput extends Omit<SimpleExpenseInput, "particip
   adjustments: ExpenseAdjustment[];
 }
 
+function isTransientNetworkError(error: unknown) {
+  if (!error) return false;
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : String(error);
+  const code = typeof error === "object" && error && "code" in error
+    ? (error as { code?: unknown }).code
+    : null;
+  return (
+    !code ||
+    /load failed|failed to fetch|network|offline|timeout|cancelled|connection/i.test(message)
+  );
+}
+
 export function useCreateExpense() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -71,23 +87,38 @@ export function useCreateExpense() {
 
   async function submitCreate(
     tripId: string,
+    tripDefaultCurrency: string,
     payload: Record<string, unknown>,
   ) {
-    if (!navigator.onLine) {
-      await queueExpense(tripId, payload);
+    async function queueForLater() {
+      await queueExpense(tripId, payload, { tripDefaultCurrency });
       pendingEntryId.current = null;
       setSubmitting(false);
+      invalidateRecentEntries(tripId);
       navigate(`/trips/${tripId}`, {
         replace: true,
-        state: { toast: "Expense queued. It will sync when you’re online." },
+        state: { toast: "Expense saved locally. It will sync in the background." },
       });
       return true;
     }
-    const { error: createError } = await supabase.rpc(
-      "create_expense_idempotent",
-      payload,
-    );
+
+    if (!navigator.onLine) {
+      return queueForLater();
+    }
+    if (Number(payload.p_exchange_rate) <= 0 || payload.p_exchange_rate == null) {
+      return queueForLater();
+    }
+    let createError: { message: string; code?: string } | Error | null = null;
+    try {
+      const result = await supabase.rpc("create_expense_idempotent", payload);
+      createError = result.error;
+    } catch (requestError) {
+      createError = requestError instanceof Error
+        ? requestError
+        : new Error("Network request failed.");
+    }
     if (createError) {
+      if (isTransientNetworkError(createError)) return queueForLater();
       setSubmitting(false);
       setError(createError.message);
       return false;
@@ -103,13 +134,16 @@ export function useCreateExpense() {
   async function createExpense(input: SimpleExpenseInput) {
     setSubmitting(true);
     setError(null);
-    let exchangeRate: number;
+    let exchangeRate: number | null;
     try {
       exchangeRate = await resolveRate(input);
     } catch (rateError) {
-      setSubmitting(false);
-      setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
-      return false;
+      if (!isTransientNetworkError(rateError)) {
+        setSubmitting(false);
+        setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
+        return false;
+      }
+      exchangeRate = null;
     }
 
     const equalShares = allocateEqualShares(input.amount, input.participantIds)
@@ -143,19 +177,22 @@ export function useCreateExpense() {
       }],
       p_adjustments: [],
     };
-    return submitCreate(input.tripId, payload);
+    return submitCreate(input.tripId, input.tripDefaultCurrency, payload);
   }
 
   async function createItemizedExpense(input: ItemizedExpenseInput) {
     setSubmitting(true);
     setError(null);
-    let exchangeRate: number;
+    let exchangeRate: number | null;
     try {
       exchangeRate = await resolveRate(input);
     } catch (rateError) {
-      setSubmitting(false);
-      setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
-      return false;
+      if (!isTransientNetworkError(rateError)) {
+        setSubmitting(false);
+        setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
+        return false;
+      }
+      exchangeRate = null;
     }
 
     const payload = {
@@ -194,7 +231,7 @@ export function useCreateExpense() {
         })),
       })),
     };
-    return submitCreate(input.tripId, payload);
+    return submitCreate(input.tripId, input.tripDefaultCurrency, payload);
   }
 
   async function replaceExpense(

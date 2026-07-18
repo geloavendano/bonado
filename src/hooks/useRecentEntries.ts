@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { registerDataRefresh } from "@/lib/dataRefresh";
+import { loadExpenseQueue, type QueuedExpense } from "@/lib/offlineExpenseQueue";
 
 const PAGE_SIZE = 20;
 
@@ -28,6 +29,7 @@ export interface RecentEntry {
   currency: string;
   exchange_rate_to_trip_default: number;
   rate_is_estimated: boolean;
+  sync_status: "pending" | "synced";
   payee: string | null;
   category: { name: string; icon: string } | null;
   payments: {
@@ -81,6 +83,73 @@ interface RecentEntryRow extends Omit<RecentEntry, "type"> {
 
 interface RecentSettlementRow extends Omit<RecentSettlement, "type"> {}
 
+function queuedExpenseToHistoryItem(item: QueuedExpense): RecentEntry {
+  const payload = item.payload;
+  const payers = Array.isArray(payload.p_payers) ? payload.p_payers : [];
+  const items = Array.isArray(payload.p_items) ? payload.p_items : [];
+  const adjustments = Array.isArray(payload.p_adjustments)
+    ? payload.p_adjustments
+    : [];
+
+  return {
+    type: "expense",
+    id: typeof payload.p_entry_id === "string" ? payload.p_entry_id : item.id,
+    description: String(payload.p_description ?? "Pending expense"),
+    date: String(payload.p_date ?? item.createdAt.slice(0, 10)),
+    created_at: item.createdAt,
+    last_edited_at: null,
+    currency: String(payload.p_currency ?? (item.tripDefaultCurrency || "USD")),
+    exchange_rate_to_trip_default: Number(payload.p_exchange_rate) || 1,
+    rate_is_estimated: true,
+    sync_status: "pending",
+    payee:
+      typeof payload.p_payee === "string" && payload.p_payee.trim()
+        ? payload.p_payee
+        : null,
+    category: null,
+    payments: payers.flatMap((payer) => {
+      if (!payer || typeof payer !== "object") return [];
+      const row = payer as { user_id?: unknown; amount?: unknown };
+      if (typeof row.user_id !== "string") return [];
+      return [{
+        amount_paid: Number(row.amount) || 0,
+        user_id: row.user_id,
+        user: null,
+      }];
+    }),
+    line_items: items.map((itemPayload) => {
+      const row = itemPayload as { shares?: unknown };
+      const shares = Array.isArray(row.shares) ? row.shares : [];
+      return {
+        line_item_shares: shares.flatMap((sharePayload) => {
+          if (!sharePayload || typeof sharePayload !== "object") return [];
+          const share = sharePayload as { user_id?: unknown; owed_amount?: unknown };
+          if (typeof share.user_id !== "string") return [];
+          return [{
+            user_id: share.user_id,
+            owed_amount: Number(share.owed_amount) || 0,
+          }];
+        }),
+      };
+    }),
+    adjustments: adjustments.map((adjustmentPayload) => {
+      const row = adjustmentPayload as { shares?: unknown };
+      const shares = Array.isArray(row.shares) ? row.shares : [];
+      return {
+        adjustment_shares: shares.flatMap((sharePayload) => {
+          if (!sharePayload || typeof sharePayload !== "object") return [];
+          const share = sharePayload as { user_id?: unknown; owed_amount?: unknown };
+          if (typeof share.user_id !== "string") return [];
+          return [{
+            user_id: share.user_id,
+            owed_amount: Number(share.owed_amount) || 0,
+          }];
+        }),
+      };
+    }),
+  };
+}
+
 export function useRecentEntries(tripId: string) {
   const cached = recentEntriesCache.get(tripId);
   const [entries, setEntries] = useState<HistoryItem[]>(cached?.entries ?? []);
@@ -101,11 +170,14 @@ export function useRecentEntries(tripId: string) {
         setEntries(cachedEntries.entries);
         setLoading(false);
       }
+      const queuedExpenses = (await loadExpenseQueue())
+        .filter((item) => item.tripId === tripId)
+        .map(queuedExpenseToHistoryItem);
       const [expenseResult, settlementResult] = await Promise.all([
         supabase
           .from("entries")
           .select(
-            `id, description, date, created_at, last_edited_at, currency,
+            `id, description, date, created_at, last_edited_at, currency, sync_status,
              exchange_rate_to_trip_default, rate_is_estimated, payee,
              category:categories(name, icon),
              payments(amount_paid, user_id, user:users(id, name, avatar_url)),
@@ -135,17 +207,42 @@ export function useRecentEntries(tripId: string) {
 
       if (!cancelled) {
         if (queryError) {
+          if (queuedExpenses.length > 0) {
+            const cachedServerEntries =
+              cachedEntries?.entries.filter(
+                (entry) =>
+                  entry.type !== "expense" || entry.sync_status !== "pending",
+              ) ?? [];
+            const cachedServerIds = new Set(cachedServerEntries.map((entry) => entry.id));
+            const offlineEntries = [
+              ...queuedExpenses.filter((entry) => !cachedServerIds.has(entry.id)),
+              ...cachedServerEntries,
+            ].sort(
+              (a, b) =>
+                b.date.localeCompare(a.date) ||
+                b.created_at.localeCompare(a.created_at),
+            );
+            setEntries(offlineEntries);
+            setError(null);
+            setLoading(false);
+            return;
+          }
           setError(queryError.message);
           setLoading(false);
           return;
         }
-        const nextEntries: HistoryItem[] = [
+        const serverEntries: HistoryItem[] = [
           ...(expenseResult.data ?? []).map((entry) => ({ ...entry, type: "expense" as const })),
           ...(settlementResult.data ?? []).map((settlement) => ({
             ...settlement,
             amount: Number(settlement.amount),
             type: "settlement" as const,
           })),
+        ];
+        const serverEntryIds = new Set(serverEntries.map((entry) => entry.id));
+        const nextEntries: HistoryItem[] = [
+          ...queuedExpenses.filter((entry) => !serverEntryIds.has(entry.id)),
+          ...serverEntries,
         ].sort(
           (a, b) =>
             b.date.localeCompare(a.date) ||
@@ -173,9 +270,11 @@ export function useRecentEntries(tripId: string) {
 
     void load();
     const unregisterRefresh = registerDataRefresh(load);
+    window.addEventListener("bonado:offline-queue-change", load);
     return () => {
       cancelled = true;
       unregisterRefresh();
+      window.removeEventListener("bonado:offline-queue-change", load);
     };
   }, [tripId]);
 
@@ -186,7 +285,7 @@ export function useRecentEntries(tripId: string) {
       ? supabase
           .from("entries")
           .select(
-            `id, description, date, created_at, last_edited_at, currency,
+            `id, description, date, created_at, last_edited_at, currency, sync_status,
              exchange_rate_to_trip_default, rate_is_estimated, payee,
              category:categories(name, icon),
              payments(amount_paid, user_id, user:users(id, name, avatar_url)),

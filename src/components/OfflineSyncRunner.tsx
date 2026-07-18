@@ -4,6 +4,7 @@ import {
   loadExpenseQueue,
   queuedExpenseCount,
 } from "@/lib/offlineExpenseQueue";
+import { refreshVisibleData } from "@/lib/dataRefresh";
 
 export function OfflineSyncRunner() {
   const [message, setMessage] = useState<string | null>(null);
@@ -18,6 +19,7 @@ export function OfflineSyncRunner() {
       const result = await flushExpenseQueue();
       setPending(result.remaining);
       if (result.synced > 0) {
+        void refreshVisibleData();
         setMessage(
           result.synced === 1
             ? "Offline expense synced."

@@ -277,6 +277,7 @@ export function TripHome() {
               );
               const payerNames = payers.map((payer) => payer.name).join(", ");
               const unread = unreadEntryIds.has(entry.id);
+              const pending = entry.sync_status === "pending";
               const shareDisplay = convertEntryAmount(
                 yourShare,
                 entry.currency,
@@ -297,8 +298,11 @@ export function TripHome() {
               return (
                 <Link
                   key={entry.id}
-                  to={`/trips/${trip.id}/expenses/${entry.id}`}
+                  to={pending ? "#" : `/trips/${trip.id}/expenses/${entry.id}`}
                   state={{ transition: "sheet" }}
+                  onClick={(event) => {
+                    if (pending) event.preventDefault();
+                  }}
                   className={
                     "flex items-center gap-3 py-3.5" +
                     (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
@@ -310,6 +314,11 @@ export function TripHome() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14.5px] font-bold">{entry.description}</div>
                     <div className="flex items-center gap-1.5 text-[11.5px] text-secondary">
+                      {pending && (
+                        <span className="flex-none rounded-full bg-teal-tint px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.04em] text-teal-dark">
+                          Syncing
+                        </span>
+                      )}
                       <span className="truncate">
                         {entry.payee
                           ? `Paid to ${entry.payee}`
