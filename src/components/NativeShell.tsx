@@ -61,6 +61,13 @@ export function NativeShell() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || !user) return;
     void registerForPush(user.id);
+    const receivedListener = PushNotifications.addListener(
+      "pushNotificationReceived",
+      () => {
+        void refreshVisibleData();
+        window.dispatchEvent(new Event("bonado:notifications-changed"));
+      },
+    );
     const tapListener = PushNotifications.addListener(
       "pushNotificationActionPerformed",
       (event) => {
@@ -68,7 +75,10 @@ export function NativeShell() {
         if (link) navigate(link);
       },
     );
-    return () => void tapListener.then((l) => l.remove());
+    return () => {
+      void receivedListener.then((l) => l.remove());
+      void tapListener.then((l) => l.remove());
+    };
   }, [user, navigate]);
 
   useEffect(() => {

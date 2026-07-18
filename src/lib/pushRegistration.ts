@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 let listenersAttached = false;
 
 /**
- * Registers this native device for push and upserts its FCM token for the
+ * Registers this native device for push and upserts its platform token for the
  * signed-in bonado user. Safe to call repeatedly; no-op on the web or when
  * the user declines the permission prompt.
  */

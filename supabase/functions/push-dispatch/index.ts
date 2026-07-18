@@ -1,75 +1,87 @@
-// Sends an FCM push for a newly inserted bonado notification.
+// Sends a native push for a newly inserted bonado notification.
 //
 // Invoked by the notifications_push_dispatch trigger (0033) with
-// { notification_id }. Looks up the notification + recipient device tokens
-// with the service role, builds a short human message, and delivers via
-// FCM HTTP v1. Requires the FIREBASE_SERVICE_ACCOUNT secret (the JSON of a
-// Firebase service account with the FCM API enabled); without it the
-// function logs and exits 200 so the trigger stays harmless.
+// { notification_id }. For iOS we send directly to APNs using token-based
+// auth. Android delivery is intentionally skipped for now because bonado is
+// currently iOS-only; add FCM later when Android becomes a release target.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
-interface ServiceAccount {
-  project_id: string;
-  private_key: string;
-  client_email: string;
+interface ApnsConfig {
+  keyId: string;
+  teamId: string;
+  bundleId: string;
+  privateKey: string;
+  environment: "production" | "sandbox";
 }
 
-let cachedToken: { value: string; expires: number } | null = null;
+interface NotificationRecord {
+  id: string;
+  kind: string;
+  user_id: string;
+  trip_id: string;
+  entry_id: string | null;
+  settlement_id: string | null;
+  actor: { name: string } | null;
+  entry: { description: string } | null;
+  trip: { name: string } | null;
+}
 
-async function importPrivateKey(pem: string): Promise<CryptoKey> {
+let cachedApnsToken: { value: string; expiresAt: number } | null = null;
+
+function env(name: string): string | null {
+  const value = Deno.env.get(name);
+  return value && value.trim().length > 0 ? value : null;
+}
+
+function apnsConfig(): ApnsConfig | null {
+  const keyId = env("APNS_KEY_ID");
+  const teamId = env("APNS_TEAM_ID");
+  const bundleId = env("APNS_BUNDLE_ID");
+  const privateKey = env("APNS_PRIVATE_KEY");
+  const environment =
+    env("APNS_ENVIRONMENT") === "sandbox" ? "sandbox" : "production";
+  if (!keyId || !teamId || !bundleId || !privateKey) return null;
+  return { keyId, teamId, bundleId, privateKey, environment };
+}
+
+async function importApnsPrivateKey(pem: string): Promise<CryptoKey> {
   const body = pem
     .replace("-----BEGIN PRIVATE KEY-----", "")
     .replace("-----END PRIVATE KEY-----", "")
     .replaceAll("\\n", "")
-    .replaceAll("\n", "");
+    .replaceAll("\n", "")
+    .trim();
   const raw = Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
   return crypto.subtle.importKey(
     "pkcs8",
     raw,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    { name: "ECDSA", namedCurve: "P-256" },
     false,
     ["sign"],
   );
 }
 
-async function fcmAccessToken(account: ServiceAccount): Promise<string> {
-  if (cachedToken && cachedToken.expires > Date.now() + 60_000) {
-    return cachedToken.value;
+async function apnsProviderToken(config: ApnsConfig): Promise<string> {
+  if (cachedApnsToken && cachedApnsToken.expiresAt > Date.now() + 60_000) {
+    return cachedApnsToken.value;
   }
-  const key = await importPrivateKey(account.private_key);
-  const jwt = await create(
-    { alg: "RS256", typ: "JWT" },
-    {
-      iss: account.client_email,
-      scope: "https://www.googleapis.com/auth/firebase.messaging",
-      aud: "https://oauth2.googleapis.com/token",
-      iat: getNumericDate(0),
-      exp: getNumericDate(3600),
-    },
+  const key = await importApnsPrivateKey(config.privateKey);
+  const token = await create(
+    { alg: "ES256", kid: config.keyId },
+    { iss: config.teamId, iat: getNumericDate(0) },
     key,
   );
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-  const json = await response.json();
-  if (!json.access_token) throw new Error("FCM token exchange failed");
-  cachedToken = { value: json.access_token, expires: Date.now() + 55 * 60_000 };
-  return json.access_token;
+  // Apple permits provider auth tokens for up to one hour.
+  cachedApnsToken = { value: token, expiresAt: Date.now() + 50 * 60_000 };
+  return token;
 }
 
-function describe(notification: {
-  kind: string;
-  actor: { name: string } | null;
-  entry: { description: string } | null;
-  trip: { name: string } | null;
-}): { title: string; body: string } {
+function describe(notification: NotificationRecord): {
+  title: string;
+  body: string;
+} {
   const actor = notification.actor?.name ?? "Someone";
   const expense = notification.entry?.description ?? "an expense";
   const trip = notification.trip?.name ?? "your trip";
@@ -86,18 +98,72 @@ function describe(notification: {
   return { title: titles[notification.kind] ?? "New activity", body: trip };
 }
 
+function notificationLink(notification: NotificationRecord): string {
+  if (notification.entry_id) {
+    return `/trips/${notification.trip_id}/expenses/${notification.entry_id}`;
+  }
+  if (notification.settlement_id) {
+    return `/trips/${notification.trip_id}/settlements/${notification.settlement_id}`;
+  }
+  return `/trips/${notification.trip_id}`;
+}
+
+const staleApnsReasons = new Set([
+  "BadDeviceToken",
+  "DeviceTokenNotForTopic",
+  "Unregistered",
+]);
+
+async function sendApns(
+  config: ApnsConfig,
+  token: string,
+  notification: NotificationRecord,
+): Promise<"delivered" | "stale" | "failed"> {
+  const providerToken = await apnsProviderToken(config);
+  const { title, body } = describe(notification);
+  const host =
+    config.environment === "sandbox"
+      ? "https://api.sandbox.push.apple.com"
+      : "https://api.push.apple.com";
+  const response = await fetch(`${host}/3/device/${token}`, {
+    method: "POST",
+    headers: {
+      authorization: `bearer ${providerToken}`,
+      "apns-topic": config.bundleId,
+      "apns-push-type": "alert",
+      "apns-priority": "10",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      aps: {
+        alert: { title, body },
+        sound: "default",
+      },
+      link: notificationLink(notification),
+    }),
+  });
+
+  if (response.ok) return "delivered";
+
+  const errorBody = await response.json().catch(() => ({}));
+  console.warn("push-dispatch: APNs delivery failed", {
+    status: response.status,
+    reason: errorBody.reason,
+    notification_id: notification.id,
+  });
+  if (response.status === 410 || staleApnsReasons.has(errorBody.reason)) {
+    return "stale";
+  }
+  return "failed";
+}
+
 Deno.serve(async (request) => {
   const { notification_id } = await request.json().catch(() => ({}));
   if (!notification_id) {
-    return new Response(JSON.stringify({ error: "notification_id required" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "notification_id required" }), {
+      status: 400,
+    });
   }
-
-  const accountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
-  if (!accountJson) {
-    console.log("push-dispatch: FIREBASE_SERVICE_ACCOUNT not set; skipping");
-    return new Response(JSON.stringify({ skipped: true }), { status: 200 });
-  }
-  const account = JSON.parse(accountJson) as ServiceAccount;
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -114,50 +180,51 @@ Deno.serve(async (request) => {
       trip:trips(name)
     `)
     .eq("id", notification_id)
-    .maybeSingle();
+    .maybeSingle()
+    .returns<NotificationRecord>();
   if (!notification) {
-    return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    return new Response(JSON.stringify({ error: "not found" }), {
+      status: 404,
+    });
   }
 
   const { data: tokens } = await admin
     .from("device_tokens")
-    .select("token")
-    .eq("user_id", notification.user_id);
+    .select("token, platform")
+    .eq("user_id", notification.user_id)
+    .returns<{ token: string; platform: "ios" | "android" }[]>();
   if (!tokens?.length) {
     return new Response(JSON.stringify({ delivered: 0 }), { status: 200 });
   }
 
-  const { title, body } = describe(notification);
-  const link = notification.entry_id
-    ? `/trips/${notification.trip_id}/expenses/${notification.entry_id}`
-    : `/trips/${notification.trip_id}/settlements/${notification.settlement_id}`;
-
-  const accessToken = await fcmAccessToken(account);
+  const config = apnsConfig();
   let delivered = 0;
-  for (const { token } of tokens) {
-    const response = await fetch(
-      `https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: {
-            token,
-            notification: { title, body },
-            data: { link },
-          },
-        }),
-      },
-    );
-    if (response.ok) {
+  let skipped = 0;
+  let failed = 0;
+
+  for (const { token, platform } of tokens) {
+    if (platform !== "ios") {
+      skipped += 1;
+      continue;
+    }
+    if (!config) {
+      skipped += 1;
+      continue;
+    }
+    const result = await sendApns(config, token, notification);
+    if (result === "delivered") {
       delivered += 1;
-    } else if (response.status === 404 || response.status === 400) {
-      // stale registration — drop it
+    } else if (result === "stale") {
       await admin.from("device_tokens").delete().eq("token", token);
+    } else {
+      failed += 1;
     }
   }
-  return new Response(JSON.stringify({ delivered }), { status: 200 });
+
+  if (!config) {
+    console.log("push-dispatch: APNs secrets not set; skipping iOS delivery");
+  }
+  return new Response(JSON.stringify({ delivered, skipped, failed }), {
+    status: 200,
+  });
 });
