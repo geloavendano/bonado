@@ -8,6 +8,7 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { registerForPush, pushTapLink } from "@/lib/pushRegistration";
+import { refreshVisibleData } from "@/lib/dataRefresh";
 
 let nativeLaunchHandled = false;
 
@@ -93,6 +94,7 @@ export function NativeShell() {
         // refresh loop must be restarted explicitly on resume.
         if (isActive) {
           void supabase.auth.startAutoRefresh();
+          void refreshVisibleData();
         } else {
           void supabase.auth.stopAutoRefresh();
         }

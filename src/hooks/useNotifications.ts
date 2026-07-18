@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { registerDataRefresh } from "@/lib/dataRefresh";
+import { useAuth } from "@/context/AuthContext";
 
 const PAGE_SIZE = 20;
 const NOTIFICATION_SELECT = `
@@ -52,12 +53,19 @@ export interface NotificationItem {
 }
 
 export function useNotifications() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const reload = useCallback(async () => {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
     const { data, count } = await supabase
       .from("notifications")
       .select(NOTIFICATION_SELECT, { count: "exact" })
@@ -68,7 +76,7 @@ export function useNotifications() {
     setNotifications(data ?? []);
     setUnreadCount(count ?? data?.length ?? 0);
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     void reload();
@@ -84,6 +92,31 @@ export function useNotifications() {
       document.removeEventListener("visibilitychange", refetch);
     };
   }, [reload]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`bonado:notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "bonado",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          void reload();
+          window.dispatchEvent(new Event("bonado:notifications-changed"));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [reload, user]);
 
   const markRead = useCallback(async (id: string) => {
     setNotifications((current) => current.filter((n) => n.id !== id));
