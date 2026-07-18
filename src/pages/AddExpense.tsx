@@ -41,6 +41,10 @@ function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function sameStringArray(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 type GlobalSplitMode = "equal" | "percent" | "shares" | "exact" | "itemized";
 
 const SPLIT_MODES: { value: GlobalSplitMode; label: string }[] = [
@@ -199,6 +203,10 @@ export function AddExpense() {
   }, [amount, payerIds]);
 
   const numericAmount = Number(amount);
+  const currentMemberIds = useMemo(
+    () => new Set(trip.members.map((member) => member.id)),
+    [trip.members],
+  );
   const payerTotal = useMemo(
     () => payerIds.reduce((sum, id) => sum + (Number(payerAmounts[id]) || 0), 0),
     [payerIds, payerAmounts],
@@ -210,8 +218,14 @@ export function AddExpense() {
   const adjustmentsTotal = (Number(tax) || 0) + (Number(tip) || 0);
   const itemizedContentTotal = itemsSubtotal + adjustmentsTotal;
   const reconciliationRemaining = roundMoney(numericAmount - itemizedContentTotal);
+  const itemSharesValid = items.every((item) => {
+    const shareTotal = item.shares
+      .filter((share) => currentMemberIds.has(share.userId))
+      .reduce((sum, share) => sum + share.owedAmount, 0);
+    return item.shares.length > 0 && roundMoney(shareTotal) === roundMoney(item.amount);
+  });
   const itemizedValid =
-    items.length > 0 && Math.abs(reconciliationRemaining) < 0.001;
+    items.length > 0 && itemSharesValid && Math.abs(reconciliationRemaining) < 0.001;
   const splitValueTotal = trip.members.reduce(
     (sum, member) => sum + (Number(splitValues[member.id]) || 0),
     0,
@@ -239,6 +253,92 @@ export function AddExpense() {
     payerTotalMatches &&
     splitValid &&
     !submitting;
+
+  useEffect(() => {
+    const isCurrentMember = (id: string) => currentMemberIds.has(id);
+
+    setPayerIds((current) => {
+      const filtered = current.filter(isCurrentMember);
+      if (filtered.length > 0) return sameStringArray(current, filtered) ? current : filtered;
+      const fallback = user && currentMemberIds.has(user.id)
+        ? [user.id]
+        : trip.members[0]
+          ? [trip.members[0].id]
+          : [];
+      return sameStringArray(current, fallback) ? current : fallback;
+    });
+
+    setParticipantIds((current) => {
+      const filtered = current.filter(isCurrentMember);
+      const fallback = filtered.length > 0
+        ? filtered
+        : splitMode === "equal"
+          ? trip.members.map((member) => member.id)
+          : [];
+      return sameStringArray(current, fallback) ? current : fallback;
+    });
+
+    setSplitValues((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([memberId]) => currentMemberIds.has(memberId)),
+      );
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+
+    setPayerAmounts((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([memberId]) => currentMemberIds.has(memberId)),
+      );
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+
+    setPayerMethods((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([memberId]) => currentMemberIds.has(memberId)),
+      ) as Record<string, PaymentMethod>;
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+
+    setPayerLabels((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([memberId]) => currentMemberIds.has(memberId)),
+      );
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+
+    setItems((current) => {
+      let changed = false;
+      const nextItems = current.map((item) => {
+        const nextShares = item.shares.filter((share) => currentMemberIds.has(share.userId));
+        if (nextShares.length === item.shares.length) return item;
+
+        changed = true;
+        if (item.splitMode !== "equal" || nextShares.length === 0) {
+          return { ...item, shares: nextShares };
+        }
+
+        const base = Math.floor((item.amount * 100) / nextShares.length) / 100;
+        let allocated = 0;
+        return {
+          ...item,
+          shares: nextShares.map((share, index) => {
+            const owedAmount =
+              index === nextShares.length - 1
+                ? roundMoney(item.amount - allocated)
+                : base;
+            allocated += owedAmount;
+            return {
+              ...share,
+              shareType: "equal" as const,
+              shareValue: null,
+              owedAmount,
+            };
+          }),
+        };
+      });
+      return changed ? nextItems : current;
+    });
+  }, [currentMemberIds, splitMode, trip.members, user]);
 
   if (entryId && expenseLoading) {
     return (
@@ -322,11 +422,12 @@ export function AddExpense() {
   }
 
   function buildEqualShares() {
-    const base = Math.floor((numericAmount * 100) / participantIds.length) / 100;
+    const activeParticipantIds = participantIds.filter((id) => currentMemberIds.has(id));
+    const base = Math.floor((numericAmount * 100) / activeParticipantIds.length) / 100;
     let allocated = 0;
-    return participantIds.map((userId, index) => {
+    return activeParticipantIds.map((userId, index) => {
       const owedAmount =
-        index === participantIds.length - 1
+        index === activeParticipantIds.length - 1
           ? roundMoney(numericAmount - allocated)
           : base;
       allocated += owedAmount;
@@ -381,9 +482,9 @@ export function AddExpense() {
       splitMode === "itemized"
         ? items.map((item) => ({
             description: item.description,
-            amount: item.amount,
-            shares: item.shares,
-          }))
+          amount: item.amount,
+          shares: item.shares.filter((share) => currentMemberIds.has(share.userId)),
+        }))
         : [{
             description: description.trim(),
             amount: numericAmount,
