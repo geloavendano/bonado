@@ -6,7 +6,9 @@ import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
 import { invalidateBalances } from "@/lib/balanceData";
 import { fetchExchangeRate } from "@/hooks/useCurrencyRates";
 import { allocateEqualShares } from "@/lib/moneyMath";
-import { queueExpense } from "@/lib/offlineExpenseQueue";
+import { queueExpense, type QueuedReceipt } from "@/lib/offlineExpenseQueue";
+import { compressImage } from "@/lib/compressImage";
+import { useAuth } from "@/context/AuthContext";
 
 export interface PayerAllocation {
   userId: string;
@@ -23,9 +25,11 @@ export interface SimpleExpenseInput {
   description: string;
   payee: string;
   date: string;
+  createdAt: string;
   categoryId: string | null;
   payers: PayerAllocation[];
   participantIds: string[];
+  receiptFile?: File | null;
 }
 
 export interface ItemizedExpenseItem {
@@ -51,8 +55,18 @@ export interface ItemizedExpenseInput extends Omit<SimpleExpenseInput, "particip
   adjustments: ExpenseAdjustment[];
 }
 
+async function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read receipt photo."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function useCreateExpense() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // One id per form attempt, kept across failed retries so a create whose
@@ -69,9 +83,23 @@ export function useCreateExpense() {
     tripId: string,
     tripDefaultCurrency: string,
     payload: Record<string, unknown>,
+    receiptFile?: File | null,
   ) {
     async function saveLocally() {
-      await queueExpense(tripId, payload, { tripDefaultCurrency });
+      let receipt: QueuedReceipt | undefined;
+      if (receiptFile) {
+        const upload = await compressImage(receiptFile);
+        const extension = upload.name.split(".").pop()?.toLowerCase() ?? "jpg";
+        const entryId = String(payload.p_entry_id);
+        const authUserId = session?.user.id ?? "offline";
+        receipt = {
+          name: upload.name,
+          type: upload.type || "image/jpeg",
+          dataUrl: await fileToDataUrl(upload),
+          storagePath: `${authUserId}/${entryId}/${crypto.randomUUID()}.${extension}`,
+        };
+      }
+      await queueExpense(tripId, payload, { tripDefaultCurrency, receipt });
       pendingEntryId.current = null;
       setSubmitting(false);
       invalidateRecentEntries(tripId);
@@ -116,6 +144,7 @@ export function useCreateExpense() {
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
+      p_created_at: input.createdAt,
       p_category_id: input.categoryId,
       p_payers: input.payers.map((payer) => ({
         user_id: payer.userId,
@@ -130,7 +159,7 @@ export function useCreateExpense() {
       }],
       p_adjustments: [],
     };
-    return submitCreate(input.tripId, input.tripDefaultCurrency, payload);
+    return submitCreate(input.tripId, input.tripDefaultCurrency, payload, input.receiptFile);
   }
 
   async function createItemizedExpense(input: ItemizedExpenseInput) {
@@ -147,6 +176,7 @@ export function useCreateExpense() {
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
+      p_created_at: input.createdAt,
       p_category_id: input.categoryId,
       p_payers: input.payers.map((payer) => ({
         user_id: payer.userId,
@@ -174,7 +204,7 @@ export function useCreateExpense() {
         })),
       })),
     };
-    return submitCreate(input.tripId, input.tripDefaultCurrency, payload);
+    return submitCreate(input.tripId, input.tripDefaultCurrency, payload, input.receiptFile);
   }
 
   async function replaceExpense(
@@ -232,6 +262,16 @@ export function useCreateExpense() {
     if (replaceError) {
       setSubmitting(false);
       setError(replaceError.message);
+      return false;
+    }
+    const { error: timestampError } = await supabase.rpc("update_entry_display_timestamp", {
+      p_entry_id: entryId,
+      p_date: input.date,
+      p_created_at: input.createdAt,
+    });
+    if (timestampError) {
+      setSubmitting(false);
+      setError(timestampError.message);
       return false;
     }
     setSubmitting(false);

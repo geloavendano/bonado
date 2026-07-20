@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
@@ -29,6 +29,17 @@ import {
   removeQueuedExpense,
 } from "@/lib/offlineExpenseQueue";
 import { refreshVisibleData } from "@/lib/dataRefresh";
+import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
+import { supabase } from "@/lib/supabase";
+
+type HistoryFilter = "all" | "paid" | "created" | "involving";
+
+const HISTORY_FILTERS: { value: HistoryFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "paid", label: "Paid by me" },
+  { value: "created", label: "Created by me" },
+  { value: "involving", label: "Involving me" },
+];
 
 export function TripHome() {
   const routeMotion = useRouteMotion("forward");
@@ -50,9 +61,36 @@ export function TripHome() {
   const { categories } = useCategories();
   const [copied, setCopied] = useState(false);
   const [localToast, setLocalToast] = useState<string | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState("");
+  const [displayCurrency, setDisplayCurrency] = useTripDisplayCurrency({
+    tripId: trip.id,
+    defaultCurrency: "",
+    scope: "entries",
+    allowOriginal: true,
+  });
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
+  const [draggingHistoryId, setDraggingHistoryId] = useState<string | null>(null);
   const toastMessage = useRouteToast();
-  const groupedEntries = entries.reduce<Map<string, typeof entries>>(
+  const filteredEntries = useMemo(() => {
+    if (!user || historyFilter === "all") return entries;
+    return entries.filter((entry) => {
+      if (historyFilter === "created") return entry.created_by === user.id;
+      if (entry.type === "settlement") {
+        if (historyFilter === "paid") return entry.from_user_id === user.id;
+        return entry.from_user_id === user.id || entry.to_user_id === user.id;
+      }
+      const paidByUser = entry.payments.some((payment) => payment.user_id === user.id);
+      if (historyFilter === "paid") return paidByUser;
+      const sharedWithUser =
+        entry.line_items.some((item) =>
+          item.line_item_shares.some((share) => share.user_id === user.id),
+        ) ||
+        entry.adjustments.some((adjustment) =>
+          adjustment.adjustment_shares.some((share) => share.user_id === user.id),
+        );
+      return paidByUser || sharedWithUser;
+    });
+  }, [entries, historyFilter, user]);
+  const groupedEntries = filteredEntries.reduce<Map<string, typeof filteredEntries>>(
     (groups, entry) => {
       const group = groups.get(entry.date) ?? [];
       group.push(entry);
@@ -108,6 +146,47 @@ export function TripHome() {
     } else {
       showLocalToast("Still waiting to sync. Check your connection.");
     }
+  }
+
+  function historyKey(entry: (typeof entries)[number]) {
+    return `${entry.type}:${entry.id}`;
+  }
+
+  async function reorderTransaction(
+    draggedKey: string | null,
+    target: (typeof entries)[number],
+  ) {
+    if (!draggedKey) return;
+    const dragged = entries.find((entry) => historyKey(entry) === draggedKey);
+    if (!dragged || historyKey(dragged) === historyKey(target)) return;
+
+    const fromIndex = entries.findIndex((entry) => historyKey(entry) === historyKey(dragged));
+    const targetIndex = entries.findIndex((entry) => historyKey(entry) === historyKey(target));
+    const reference = new Date(target.created_at);
+    if (Number.isNaN(reference.getTime())) return;
+    reference.setMinutes(reference.getMinutes() + (fromIndex > targetIndex ? 1 : -1));
+    const rpcName =
+      dragged.type === "settlement"
+        ? "update_settlement_display_timestamp"
+        : "update_entry_display_timestamp";
+    const params =
+      dragged.type === "settlement"
+        ? {
+            p_settlement_id: dragged.id,
+            p_date: target.date,
+            p_created_at: reference.toISOString(),
+          }
+        : {
+            p_entry_id: dragged.id,
+            p_date: target.date,
+            p_created_at: reference.toISOString(),
+          };
+    const { error } = await supabase.rpc(rpcName, params);
+    if (error) {
+      showLocalToast(error.message);
+      return;
+    }
+    void refreshVisibleData();
   }
 
   return (
@@ -178,7 +257,7 @@ export function TripHome() {
               currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
               disabled={ratesLoading}
               pinned={[
-                { value: "", label: "Original" },
+                { value: "", label: "Orig currency" },
                 { value: trip.default_currency, label: `Trip default · ${trip.default_currency}` },
                 ...(user ? [{ value: user.preferred_currency, label: `Preferred · ${user.preferred_currency}` }] : []),
               ]}
@@ -186,6 +265,26 @@ export function TripHome() {
             />
           )}
         </div>
+
+        {entries.length > 0 && (
+          <div className="-mt-1 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {HISTORY_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() => setHistoryFilter(filter.value)}
+                className={clsx(
+                  "shrink-0 rounded-pill px-3 py-1.5 text-[11.5px] font-extrabold transition",
+                  historyFilter === filter.value
+                    ? "bg-teal-tint text-teal-dark"
+                    : "bg-card text-secondary shadow-[var(--shadow-card)]",
+                )}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {entriesLoading ? (
           <div className="flex flex-col gap-2.5">
@@ -197,6 +296,7 @@ export function TripHome() {
             Couldn’t load transactions. {entriesError}
           </div>
         ) : entries.length > 0 ? (
+          filteredEntries.length > 0 ? (
           <div className="flex flex-col gap-1">
             {[...groupedEntries.entries()].map(([date, dateEntries]) => {
               const dateValue = new Date(`${date}T00:00:00`);
@@ -237,11 +337,21 @@ export function TripHome() {
                 );
                 const unread = unreadSettlementIds.has(entry.id);
                 return (
-                  <Link
-                    key={`settlement-${entry.id}`}
-                    to={`/trips/${trip.id}/settlements/${entry.id}`}
-                    state={{ transition: "sheet" }}
-                    className={
+		                  <Link
+		                    key={`settlement-${entry.id}`}
+	                    to={`/trips/${trip.id}/settlements/${entry.id}`}
+	                    state={{ transition: "sheet" }}
+		                    onContextMenu={(event) => event.preventDefault()}
+		                    draggable
+		                    onDragStart={() => setDraggingHistoryId(historyKey(entry))}
+		                    onDragEnd={() => setDraggingHistoryId(null)}
+		                    onDragOver={(event) => event.preventDefault()}
+		                    onDrop={(event) => {
+		                      event.preventDefault();
+		                      void reorderTransaction(draggingHistoryId, entry);
+		                      setDraggingHistoryId(null);
+		                    }}
+		                    className={
                       "flex items-center gap-3 py-3.5" +
                       (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
                     }
@@ -411,12 +521,22 @@ export function TripHome() {
               }
 
               return (
-                <Link
-                  key={entry.id}
-                  to={`/trips/${trip.id}/expenses/${entry.id}`}
-                  state={{ transition: "sheet" }}
-                  className={rowClass}
-                >
+	                <Link
+	                  key={entry.id}
+	                  to={`/trips/${trip.id}/expenses/${entry.id}`}
+	                  state={{ transition: "sheet" }}
+	                  onContextMenu={(event) => event.preventDefault()}
+	                  draggable
+	                  onDragStart={() => setDraggingHistoryId(historyKey(entry))}
+	                  onDragEnd={() => setDraggingHistoryId(null)}
+	                  onDragOver={(event) => event.preventDefault()}
+	                  onDrop={(event) => {
+	                    event.preventDefault();
+	                    void reorderTransaction(draggingHistoryId, entry);
+	                    setDraggingHistoryId(null);
+	                  }}
+	                  className={rowClass}
+	                >
                   {rowContent}
                 </Link>
               );
@@ -435,6 +555,11 @@ export function TripHome() {
               </button>
             )}
           </div>
+          ) : (
+            <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-[var(--shadow-card)]">
+              No matching transactions for this filter.
+            </div>
+          )
         ) : (
           <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-[var(--shadow-card)]">
             No expenses yet. Tap + to add the first one.

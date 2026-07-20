@@ -12,6 +12,14 @@ export interface QueuedExpense {
   tripDefaultCurrency: string;
   createdAt: string;
   payload: Record<string, unknown>;
+  receipt?: QueuedReceipt;
+}
+
+export interface QueuedReceipt {
+  name: string;
+  type: string;
+  dataUrl: string;
+  storagePath: string;
 }
 
 // In the native shell the queue lives in Capacitor Preferences (app-scoped
@@ -54,7 +62,7 @@ export function queuedExpenseCount(): number {
 export async function queueExpense(
   tripId: string,
   payload: Record<string, unknown>,
-  options: { tripDefaultCurrency?: string } = {},
+  options: { tripDefaultCurrency?: string; receipt?: QueuedReceipt } = {},
 ) {
   const { data } = await supabase.auth.getSession();
   const authUserId = data.session?.user.id;
@@ -63,18 +71,67 @@ export async function queueExpense(
   const entryId = typeof payload.p_entry_id === "string"
     ? payload.p_entry_id
     : crypto.randomUUID();
+  const receipt = options.receipt
+    ? {
+        ...options.receipt,
+        storagePath: `${authUserId}/${options.receipt.storagePath.split("/").slice(1).join("/")}`,
+      }
+    : undefined;
   const nextItem: QueuedExpense = {
     id: entryId,
     authUserId,
     tripId,
     tripDefaultCurrency: options.tripDefaultCurrency ?? "",
-    createdAt: new Date().toISOString(),
+    createdAt:
+      typeof payload.p_created_at === "string"
+        ? payload.p_created_at
+        : new Date().toISOString(),
     payload: { ...payload, p_entry_id: entryId },
+    receipt,
   };
   await writeStore([
     ...queue.filter((item) => item.id !== entryId),
     nextItem,
   ]);
+}
+
+function dataUrlToFile(receipt: QueuedReceipt): File {
+  const [meta, data = ""] = receipt.dataUrl.split(",");
+  const mime = meta.match(/data:(.*?);base64/)?.[1] || receipt.type || "image/jpeg";
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new File([bytes], receipt.name, { type: mime });
+}
+
+async function uploadQueuedReceipt(item: QueuedExpense) {
+  if (!item.receipt) return true;
+  const file = dataUrlToFile(item.receipt);
+  const { error: uploadError } = await supabase.storage
+    .from("receipts")
+    .upload(item.receipt.storagePath, file, {
+      contentType: item.receipt.type || file.type,
+      upsert: true,
+    });
+  if (uploadError) return false;
+
+  const { data: existing, error: lookupError } = await supabase
+    .from("entry_attachments")
+    .select("id")
+    .eq("entry_id", item.id)
+    .eq("storage_path", item.receipt.storagePath)
+    .maybeSingle();
+  if (lookupError) return false;
+  if (existing) return true;
+
+  const { error: rowError } = await supabase.from("entry_attachments").insert({
+    entry_id: item.id,
+    storage_path: item.receipt.storagePath,
+    uploaded_by: item.authUserId,
+  });
+  return !rowError;
 }
 
 export async function removeQueuedExpense(entryId: string): Promise<void> {
@@ -144,12 +201,32 @@ export async function flushExpenseQueue() {
       const exchangeRate = await resolveQueuedExchangeRate(item);
       // Older queue items predate p_entry_id in the payload; the queue item id
       // is already a UUID, so reuse it as the idempotency key for those.
+      const { p_created_at: createdAt, ...createPayload } = item.payload;
       const { error } = await supabase.rpc("create_expense_idempotent", {
-        ...item.payload,
+        ...createPayload,
         p_entry_id: item.id,
         p_exchange_rate: exchangeRate,
       });
       if (error) {
+        remaining.push(item);
+        continue;
+      }
+      if (typeof createdAt === "string") {
+        const { error: timestampError } = await supabase.rpc(
+          "update_entry_display_timestamp",
+          {
+            p_entry_id: item.id,
+            p_date: String(item.payload.p_date ?? createdAt.slice(0, 10)),
+            p_created_at: createdAt,
+          },
+        );
+        if (timestampError) {
+          remaining.push(item);
+          continue;
+        }
+      }
+      const receiptUploaded = await uploadQueuedReceipt(item);
+      if (!receiptUploaded) {
         remaining.push(item);
         continue;
       }

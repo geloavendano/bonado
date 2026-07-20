@@ -25,6 +25,7 @@ export interface RecentEntry {
   description: string;
   date: string;
   created_at: string;
+  created_by: string | null;
   last_edited_at: string | null;
   currency: string;
   exchange_rate_to_trip_default: number;
@@ -51,6 +52,7 @@ export interface RecentSettlement {
   id: string;
   date: string;
   created_at: string;
+  created_by: string | null;
   amount: number;
   from_user_id: string;
   to_user_id: string;
@@ -65,6 +67,7 @@ interface RecentEntryRow extends Omit<RecentEntry, "type"> {
   description: string;
   date: string;
   created_at: string;
+  created_by: string | null;
   last_edited_at: string | null;
   currency: string;
   payee: string | null;
@@ -99,6 +102,7 @@ function queuedExpenseToHistoryItem(item: QueuedExpense): RecentEntry {
     description: String(payload.p_description ?? "Pending expense"),
     date: String(payload.p_date ?? item.createdAt.slice(0, 10)),
     created_at: item.createdAt,
+    created_by: item.authUserId,
     last_edited_at: null,
     currency: String(payload.p_currency ?? (item.tripDefaultCurrency || "USD")),
     exchange_rate_to_trip_default: Number(payload.p_exchange_rate) || 1,
@@ -181,7 +185,7 @@ export function useRecentEntries(tripId: string) {
         supabase
           .from("entries")
           .select(
-            `id, description, date, created_at, last_edited_at, currency, sync_status,
+            `id, description, date, created_at, created_by, last_edited_at, currency, sync_status,
              exchange_rate_to_trip_default, rate_is_estimated, payee,
              category_id, category:categories(name, icon),
              payments(amount_paid, user_id, user:users(id, name, avatar_url)),
@@ -197,7 +201,7 @@ export function useRecentEntries(tripId: string) {
         supabase
           .from("settlements")
           .select(
-            `id, date, created_at, amount, from_user_id, to_user_id,
+            `id, date, created_at, created_by, amount, from_user_id, to_user_id,
              from_user:users!settlements_from_user_id_fkey(id, name),
              to_user:users!settlements_to_user_id_fkey(id, name)`,
           )
@@ -289,7 +293,7 @@ export function useRecentEntries(tripId: string) {
       ? supabase
           .from("entries")
           .select(
-            `id, description, date, created_at, last_edited_at, currency, sync_status,
+            `id, description, date, created_at, created_by, last_edited_at, currency, sync_status,
              exchange_rate_to_trip_default, rate_is_estimated, payee,
              category_id, category:categories(name, icon),
              payments(amount_paid, user_id, user:users(id, name, avatar_url)),
@@ -307,7 +311,7 @@ export function useRecentEntries(tripId: string) {
       ? supabase
           .from("settlements")
           .select(
-            `id, date, created_at, amount, from_user_id, to_user_id,
+            `id, date, created_at, created_by, amount, from_user_id, to_user_id,
              from_user:users!settlements_from_user_id_fkey(id, name),
              to_user:users!settlements_to_user_id_fkey(id, name)`,
           )

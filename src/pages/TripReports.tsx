@@ -15,6 +15,7 @@ import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { convertEntryAmount } from "@/lib/convertEntryAmount";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
+import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
 
 export function TripReports() {
   const routeMotion = useRouteMotion();
@@ -22,8 +23,11 @@ export function TripReports() {
   const { user } = useAuth();
   const { report, loading, error } = useTripReports(trip.id, user?.id);
   const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
-  const [pickedCurrency, setPickedCurrency] = useState("");
-  const displayCurrency = pickedCurrency || trip.default_currency;
+  const [displayCurrency, setDisplayCurrency] = useTripDisplayCurrency({
+    tripId: trip.id,
+    defaultCurrency: trip.default_currency,
+    scope: "reports",
+  });
   const displayRate = rates[displayCurrency] ?? 1;
   const preferredCurrency = user?.preferred_currency;
   const preferredRate =
@@ -64,7 +68,7 @@ export function TripReports() {
               <SectionLabel className="mb-0">Spending in</SectionLabel>
               <CurrencySelect
                 value={displayCurrency}
-                onChange={setPickedCurrency}
+                onChange={setDisplayCurrency}
                 currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
                 disabled={ratesLoading}
                 pinned={[

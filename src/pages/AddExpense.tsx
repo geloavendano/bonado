@@ -37,6 +37,18 @@ function todayForInput() {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function timeForInput(date = new Date()) {
+  return date.toTimeString().slice(0, 5);
+}
+
+function combineDateAndTime(date: string, time: string) {
+  const fallbackTime = time || "12:00";
+  const localDate = new Date(`${date}T${fallbackTime}:00`);
+  return Number.isNaN(localDate.getTime())
+    ? new Date().toISOString()
+    : localDate.toISOString();
+}
+
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -79,6 +91,7 @@ export function AddExpense() {
   const [description, setDescription] = useState("");
   const [payee, setPayee] = useState("");
   const [date, setDate] = useState(todayForInput);
+  const [time, setTime] = useState(timeForInput);
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [payerIds, setPayerIds] = useState<string[]>([]);
   const [payerAmounts, setPayerAmounts] = useState<Record<string, string>>({});
@@ -94,6 +107,8 @@ export function AddExpense() {
   const [tip, setTip] = useState("");
   const [taxMode, setTaxMode] = useState<AdjustmentMode>("proportional");
   const [tipMode, setTipMode] = useState<AdjustmentMode>("proportional");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrency((current) => current || trip.default_currency);
@@ -118,6 +133,7 @@ export function AddExpense() {
     setDescription(expense.description);
     setPayee(expense.payee ?? "");
     setDate(expense.date);
+    setTime(timeForInput(new Date(expense.created_at)));
     setCategoryId(expense.category?.id ?? null);
     setPayerIds(expense.payments.map((payment) => payment.user_id));
     setPayerAmounts(
@@ -193,6 +209,16 @@ export function AddExpense() {
       setCategoryId(categories[0].id);
     }
   }, [categories, categoryId]);
+
+  useEffect(() => {
+    if (!receiptFile) {
+      setReceiptPreviewUrl(null);
+      return;
+    }
+    const nextUrl = URL.createObjectURL(receiptFile);
+    setReceiptPreviewUrl(nextUrl);
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [receiptFile]);
 
   useEffect(() => {
     if (payerIds.length !== 1) return;
@@ -524,7 +550,9 @@ export function AddExpense() {
       description: description.trim(),
       payee: payee.trim(),
       date,
+      createdAt: combineDateAndTime(date, time),
       categoryId,
+      receiptFile,
       payers: payerIds.map((id) => ({
         userId: id,
         amount: Number(payerAmounts[id]),
@@ -647,7 +675,7 @@ export function AddExpense() {
         />
 
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <div className="flex min-w-0 flex-col gap-2">
+          <div className="col-span-2 flex min-w-0 flex-col gap-2">
             <SectionLabel>Paid to</SectionLabel>
             <Input
               value={payee}
@@ -663,6 +691,15 @@ export function AddExpense() {
               type="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
+              className="w-full min-w-0"
+            />
+          </div>
+          <div className="flex min-w-0 flex-col gap-2">
+            <SectionLabel>Time</SectionLabel>
+            <Input
+              type="time"
+              value={time}
+              onChange={(event) => setTime(event.target.value)}
               className="w-full min-w-0"
             />
           </div>
@@ -688,6 +725,55 @@ export function AddExpense() {
             </button>
           ))}
         </div>
+
+        {!entryId && (
+          <>
+            <SectionLabel>Receipt photo</SectionLabel>
+            <label className="block rounded-[18px] border-2 border-dashed border-teal/25 bg-card p-3 shadow-[var(--shadow-card)]">
+              {receiptPreviewUrl ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={receiptPreviewUrl}
+                    alt="Receipt preview"
+                    className="h-16 w-16 rounded-[14px] object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-extrabold">
+                      {receiptFile?.name ?? "Receipt attached"}
+                    </div>
+                    <div className="text-[11.5px] text-secondary">
+                      Taps here to replace the photo.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setReceiptFile(null);
+                    }}
+                    className="text-[12px] font-extrabold text-owe"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="py-3 text-center text-[13px] font-extrabold text-teal-dark">
+                  ＋ Add receipt photo
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={(event) => {
+                  setReceiptFile(event.target.files?.[0] ?? null);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </>
+        )}
         </div>
 
         <div className="flex min-w-0 flex-col gap-3.5">

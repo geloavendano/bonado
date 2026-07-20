@@ -22,6 +22,7 @@ import { ChevronDown } from "@/components/ui/ChevronDown";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { useOverlayA11y } from "@/hooks/useOverlayA11y";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
+import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
 import {
   buildSettlementSuggestions,
   type SuggestedSettlement,
@@ -49,7 +50,11 @@ export function TripBalances() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
   const [paymentLabel, setPaymentLabel] = useState("");
   const [toast, setToast] = useState<string | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState(trip.default_currency);
+  const [displayCurrency, setDisplayCurrency] = useTripDisplayCurrency({
+    tripId: trip.id,
+    defaultCurrency: trip.default_currency,
+    scope: "balances",
+  });
   const settlementSheetRef = useOverlayA11y<HTMLDivElement>(
     sheetOpen,
     () => setSheetOpen(false),
