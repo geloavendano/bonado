@@ -316,10 +316,10 @@ Shipped for TestFlight readiness (no enrollment needed):
 - Info.plist: camera + photo-library usage descriptions (receipt photos),
   `ITSAppUsesNonExemptEncryption=false` (skips the export-compliance
   question every build).
-- Placeholder icon + splash (teal "b." wordmark) generated into
-  `ios/App/App/Assets.xcassets` via `@capacitor/assets` from
-  `assets/logo.png` — regenerate from a real logo the same way whenever
-  branding lands.
+- App icons now live under `assets/icons/` and are wired into the iOS asset
+  catalog, Android launcher resources, and PWA install metadata. Splash
+  assets remain in `ios/App/App/Assets.xcassets` / Android resources and can
+  be refreshed separately when needed.
 
 Remaining once Apple enrollment lands (TestFlight order of operations):
 1. Supabase Auth: add `bonado://auth-callback` to the redirect allow-list
