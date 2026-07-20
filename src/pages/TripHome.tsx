@@ -23,6 +23,12 @@ import { useUnreadTransactions } from "@/hooks/useUnreadTransactions";
 import { shareLink } from "@/lib/share";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { inviteUrl as buildInviteUrl } from "@/lib/appUrl";
+import { useCategories } from "@/hooks/useCategories";
+import {
+  flushExpenseQueue,
+  removeQueuedExpense,
+} from "@/lib/offlineExpenseQueue";
+import { refreshVisibleData } from "@/lib/dataRefresh";
 
 export function TripHome() {
   const routeMotion = useRouteMotion("forward");
@@ -41,7 +47,9 @@ export function TripHome() {
   const { entryIds: unreadEntryIds, settlementIds: unreadSettlementIds } =
     useUnreadTransactions(trip.id);
   const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
+  const { categories } = useCategories();
   const [copied, setCopied] = useState(false);
+  const [localToast, setLocalToast] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("");
   const toastMessage = useRouteToast();
   const groupedEntries = entries.reduce<Map<string, typeof entries>>(
@@ -75,6 +83,30 @@ export function TripHome() {
     if (result === "copied") {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  function showLocalToast(message: string) {
+    setLocalToast(message);
+    window.setTimeout(() => setLocalToast(null), 2400);
+  }
+
+  async function cancelPendingExpense(entryId: string) {
+    await removeQueuedExpense(entryId);
+    showLocalToast("Local expense removed.");
+  }
+
+  async function retryPendingExpenses() {
+    const result = await flushExpenseQueue();
+    if (result.synced > 0) {
+      void refreshVisibleData();
+      showLocalToast(
+        result.synced === 1
+          ? "Expense synced."
+          : `${result.synced} expenses synced.`,
+      );
+    } else {
+      showLocalToast("Still waiting to sync. Check your connection.");
     }
   }
 
@@ -272,12 +304,27 @@ export function TripHome() {
                     .filter((payment) => payment.user_id === user.id)
                     .reduce((sum, payment) => sum + Number(payment.amount_paid), 0)
                 : 0;
-              const payers = entry.payments.flatMap((payment) =>
-                payment.user ? [payment.user] : [],
-              );
+              const payers = entry.payments.flatMap((payment) => {
+                if (payment.user) return [payment.user];
+                const member = trip.members.find(
+                  (tripMember) => tripMember.id === payment.user_id,
+                );
+                return member ? [member] : [];
+              });
               const payerNames = payers.map((payer) => payer.name).join(", ");
               const unread = unreadEntryIds.has(entry.id);
               const pending = entry.sync_status === "pending";
+              const categoryName =
+                entry.category?.name ??
+                categories.find((category) => category.id === entry.category_id)?.name ??
+                "Other";
+              const subtitle = entry.payee
+                ? payerNames
+                  ? `Paid to ${entry.payee} by ${payerNames}`
+                  : `Paid to ${entry.payee}`
+                : payerNames
+                  ? `Paid by ${payerNames}`
+                  : "No payer";
               const shareDisplay = convertEntryAmount(
                 yourShare,
                 entry.currency,
@@ -295,21 +342,13 @@ export function TripHome() {
                 rates,
               );
 
-              return (
-                <Link
-                  key={entry.id}
-                  to={pending ? "#" : `/trips/${trip.id}/expenses/${entry.id}`}
-                  state={{ transition: "sheet" }}
-                  onClick={(event) => {
-                    if (pending) event.preventDefault();
-                  }}
-                  className={
-                    "flex items-center gap-3 py-3.5" +
-                    (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
-                  }
-                >
+              const rowClass =
+                "flex items-center gap-3 py-3.5" +
+                (index < dateEntries.length - 1 ? " border-b border-hairline" : "");
+              const rowContent = (
+                <>
                   <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">
-                    <CategoryIcon category={entry.category?.name ?? "Other"} />
+                    <CategoryIcon category={categoryName} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[14.5px] font-bold">{entry.description}</div>
@@ -319,20 +358,24 @@ export function TripHome() {
                           Syncing
                         </span>
                       )}
-                      <span className="truncate">
-                        {entry.payee
-                          ? `Paid to ${entry.payee}`
-                          : payerNames
-                            ? `Paid by ${payerNames}`
-                            : "No payer"}
-                      </span>
-                      {entry.payee && payers.length > 0 && (
-                        <>
-                          <span className="flex-none">by</span>
-                          <AvatarStack people={payers} size={16} max={3} />
-                        </>
-                      )}
+                      <span className="truncate">{subtitle}</span>
                     </div>
+                    {pending && (
+                      <div className="mt-1.5 flex items-center gap-3">
+                        <button
+                          onClick={() => void retryPendingExpenses()}
+                          className="text-[11px] font-extrabold text-teal-dark"
+                        >
+                          Retry
+                        </button>
+                        <button
+                          onClick={() => void cancelPendingExpense(entry.id)}
+                          className="text-[11px] font-extrabold text-owe"
+                        >
+                          Cancel local copy
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="text-[14px] font-extrabold">
@@ -356,6 +399,25 @@ export function TripHome() {
                       (unread ? "bg-teal" : "bg-transparent")
                     }
                   />
+                </>
+              );
+
+              if (pending) {
+                return (
+                  <div key={entry.id} className={rowClass}>
+                    {rowContent}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={entry.id}
+                  to={`/trips/${trip.id}/expenses/${entry.id}`}
+                  state={{ transition: "sheet" }}
+                  className={rowClass}
+                >
+                  {rowContent}
                 </Link>
               );
                     })}
@@ -379,7 +441,7 @@ export function TripHome() {
           </div>
         )}
       </div>
-      <Toast message={toastMessage} />
+      <Toast message={localToast ?? toastMessage} />
     </PageShell>
   );
 }

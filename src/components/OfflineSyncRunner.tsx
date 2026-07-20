@@ -12,26 +12,36 @@ export function OfflineSyncRunner() {
 
   useEffect(() => {
     let timer = 0;
+    let syncInFlight = false;
     async function sync() {
+      if (syncInFlight) return;
+      syncInFlight = true;
       const before = (await loadExpenseQueue()).length;
       setPending(before);
-      if (before === 0) return;
-      const result = await flushExpenseQueue();
-      setPending(result.remaining);
-      if (result.synced > 0) {
-        void refreshVisibleData();
-        setMessage(
-          result.synced === 1
-            ? "Offline expense synced."
-            : `${result.synced} offline expenses synced.`,
-        );
-        timer = window.setTimeout(() => setMessage(null), 3000);
+      try {
+        if (before === 0) return;
+        const result = await flushExpenseQueue();
+        setPending(result.remaining);
+        if (result.synced > 0) {
+          void refreshVisibleData();
+          setMessage(
+            result.synced === 1
+              ? "Offline expense synced."
+              : `${result.synced} offline expenses synced.`,
+          );
+          timer = window.setTimeout(() => setMessage(null), 3000);
+        }
+      } finally {
+        syncInFlight = false;
       }
     }
     void sync();
     const onOnline = () => void sync();
     window.addEventListener("online", onOnline);
-    const updateCount = () => setPending(queuedExpenseCount());
+    const updateCount = () => {
+      setPending(queuedExpenseCount());
+      void sync();
+    };
     window.addEventListener("bonado:offline-queue-change", updateCount);
     return () => {
       window.removeEventListener("online", onOnline);

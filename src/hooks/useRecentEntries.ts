@@ -31,6 +31,7 @@ export interface RecentEntry {
   rate_is_estimated: boolean;
   sync_status: "pending" | "synced";
   payee: string | null;
+  category_id: string | null;
   category: { name: string; icon: string } | null;
   payments: {
     amount_paid: number;
@@ -67,6 +68,7 @@ interface RecentEntryRow extends Omit<RecentEntry, "type"> {
   last_edited_at: string | null;
   currency: string;
   payee: string | null;
+  category_id: string | null;
   category: { name: string; icon: string } | null;
   payments: {
     amount_paid: number;
@@ -106,6 +108,8 @@ function queuedExpenseToHistoryItem(item: QueuedExpense): RecentEntry {
       typeof payload.p_payee === "string" && payload.p_payee.trim()
         ? payload.p_payee
         : null,
+    category_id:
+      typeof payload.p_category_id === "string" ? payload.p_category_id : null,
     category: null,
     payments: payers.flatMap((payer) => {
       if (!payer || typeof payer !== "object") return [];
@@ -179,7 +183,7 @@ export function useRecentEntries(tripId: string) {
           .select(
             `id, description, date, created_at, last_edited_at, currency, sync_status,
              exchange_rate_to_trip_default, rate_is_estimated, payee,
-             category:categories(name, icon),
+             category_id, category:categories(name, icon),
              payments(amount_paid, user_id, user:users(id, name, avatar_url)),
              line_items(line_item_shares(user_id, owed_amount)),
              adjustments(adjustment_shares(user_id, owed_amount))`,
@@ -287,7 +291,7 @@ export function useRecentEntries(tripId: string) {
           .select(
             `id, description, date, created_at, last_edited_at, currency, sync_status,
              exchange_rate_to_trip_default, rate_is_estimated, payee,
-             category:categories(name, icon),
+             category_id, category:categories(name, icon),
              payments(amount_paid, user_id, user:users(id, name, avatar_url)),
              line_items(line_item_shares(user_id, owed_amount)),
              adjustments(adjustment_shares(user_id, owed_amount))`,

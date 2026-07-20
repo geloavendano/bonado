@@ -25,6 +25,11 @@ const PATHS: Record<string, React.ReactNode> = {
       <circle cx="17" cy="18" r="1.5" />
     </>
   ),
+  Shopping: (
+    <>
+      <path d="M6 8h12l-1 12H7L6 8ZM9 8a3 3 0 0 1 6 0" />
+    </>
+  ),
   Activities: (
     <>
       <path d="M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V7ZM12 7v2M12 12v2M12 17v2" />

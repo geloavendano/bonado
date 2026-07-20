@@ -51,22 +51,6 @@ export interface ItemizedExpenseInput extends Omit<SimpleExpenseInput, "particip
   adjustments: ExpenseAdjustment[];
 }
 
-function isTransientNetworkError(error: unknown) {
-  if (!error) return false;
-  const message = error instanceof Error
-    ? error.message
-    : typeof error === "object" && "message" in error
-      ? String((error as { message?: unknown }).message ?? "")
-      : String(error);
-  const code = typeof error === "object" && error && "code" in error
-    ? (error as { code?: unknown }).code
-    : null;
-  return (
-    !code ||
-    /load failed|failed to fetch|network|offline|timeout|cancelled|connection/i.test(message)
-  );
-}
-
 export function useCreateExpense() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -75,10 +59,6 @@ export function useCreateExpense() {
   // response was lost after the server committed dedups instead of
   // duplicating; cleared only once the expense is saved or queued.
   const pendingEntryId = useRef<string | null>(null);
-
-  async function resolveRate(input: Pick<SimpleExpenseInput, "currency" | "tripDefaultCurrency">) {
-    return fetchExchangeRate(input.currency, input.tripDefaultCurrency);
-  }
 
   function claimEntryId() {
     pendingEntryId.current ??= crypto.randomUUID();
@@ -90,7 +70,7 @@ export function useCreateExpense() {
     tripDefaultCurrency: string,
     payload: Record<string, unknown>,
   ) {
-    async function queueForLater() {
+    async function saveLocally() {
       await queueExpense(tripId, payload, { tripDefaultCurrency });
       pendingEntryId.current = null;
       setSubmitting(false);
@@ -101,50 +81,22 @@ export function useCreateExpense() {
       });
       return true;
     }
-
-    if (!navigator.onLine) {
-      return queueForLater();
-    }
-    if (Number(payload.p_exchange_rate) <= 0 || payload.p_exchange_rate == null) {
-      return queueForLater();
-    }
-    let createError: { message: string; code?: string } | Error | null = null;
     try {
-      const result = await supabase.rpc("create_expense_idempotent", payload);
-      createError = result.error;
-    } catch (requestError) {
-      createError = requestError instanceof Error
-        ? requestError
-        : new Error("Network request failed.");
-    }
-    if (createError) {
-      if (isTransientNetworkError(createError)) return queueForLater();
+      return await saveLocally();
+    } catch (queueError) {
       setSubmitting(false);
-      setError(createError.message);
+      setError(
+        queueError instanceof Error
+          ? queueError.message
+          : "Unable to save expense locally.",
+      );
       return false;
     }
-    pendingEntryId.current = null;
-    setSubmitting(false);
-    invalidateRecentEntries(tripId);
-    invalidateBalances(tripId);
-    navigate(`/trips/${tripId}`, { replace: true });
-    return true;
   }
 
   async function createExpense(input: SimpleExpenseInput) {
     setSubmitting(true);
     setError(null);
-    let exchangeRate: number | null;
-    try {
-      exchangeRate = await resolveRate(input);
-    } catch (rateError) {
-      if (!isTransientNetworkError(rateError)) {
-        setSubmitting(false);
-        setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
-        return false;
-      }
-      exchangeRate = null;
-    }
 
     const equalShares = allocateEqualShares(input.amount, input.participantIds)
       .map((share) => ({
@@ -159,7 +111,8 @@ export function useCreateExpense() {
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
-      p_exchange_rate: exchangeRate,
+      p_exchange_rate:
+        input.currency === input.tripDefaultCurrency ? 1 : null,
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
@@ -183,24 +136,14 @@ export function useCreateExpense() {
   async function createItemizedExpense(input: ItemizedExpenseInput) {
     setSubmitting(true);
     setError(null);
-    let exchangeRate: number | null;
-    try {
-      exchangeRate = await resolveRate(input);
-    } catch (rateError) {
-      if (!isTransientNetworkError(rateError)) {
-        setSubmitting(false);
-        setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");
-        return false;
-      }
-      exchangeRate = null;
-    }
 
     const payload = {
       p_entry_id: claimEntryId(),
       p_trip_id: input.tripId,
       p_amount: input.amount,
       p_currency: input.currency,
-      p_exchange_rate: exchangeRate,
+      p_exchange_rate:
+        input.currency === input.tripDefaultCurrency ? 1 : null,
       p_description: input.description,
       p_payee: input.payee,
       p_date: input.date,
@@ -242,7 +185,7 @@ export function useCreateExpense() {
     setError(null);
     let exchangeRate: number;
     try {
-      exchangeRate = await resolveRate(input);
+      exchangeRate = await fetchExchangeRate(input.currency, input.tripDefaultCurrency);
     } catch (rateError) {
       setSubmitting(false);
       setError(rateError instanceof Error ? rateError.message : "Unable to load exchange rate");

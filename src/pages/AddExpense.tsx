@@ -244,6 +244,21 @@ export function AddExpense() {
       : splitMode === "itemized"
         ? itemizedValid
         : customSplitValid;
+  const allMemberIds = useMemo(
+    () => trip.members.map((member) => member.id),
+    [trip.members],
+  );
+  const splitSelectionCount =
+    splitMode === "equal"
+      ? participantIds.filter((id) => currentMemberIds.has(id)).length
+      : splitMode === "itemized"
+        ? 0
+        : trip.members.filter((member) => (Number(splitValues[member.id]) || 0) > 0)
+            .length;
+  const allSplitMembersSelected =
+    splitMode !== "itemized" &&
+    trip.members.length > 0 &&
+    splitSelectionCount === trip.members.length;
   const canSubmit =
     numericAmount > 0 &&
     currency.length === 3 &&
@@ -371,6 +386,66 @@ export function AddExpense() {
         ? current.filter((id) => id !== memberId)
         : [...current, memberId],
     );
+  }
+
+  function selectAllSplitMembers() {
+    if (allMemberIds.length === 0) return;
+
+    if (splitMode === "equal") {
+      setParticipantIds(allMemberIds);
+      return;
+    }
+
+    if (splitMode === "shares") {
+      setSplitValues(Object.fromEntries(allMemberIds.map((id) => [id, "1"])));
+      return;
+    }
+
+    if (splitMode === "percent") {
+      const base = Math.floor((10000 / allMemberIds.length)) / 100;
+      let allocated = 0;
+      setSplitValues(
+        Object.fromEntries(
+          allMemberIds.map((id, index) => {
+            const value =
+              index === allMemberIds.length - 1
+                ? roundMoney(100 - allocated)
+                : base;
+            allocated += value;
+            return [id, String(value)];
+          }),
+        ),
+      );
+      return;
+    }
+
+    if (splitMode === "exact") {
+      const base =
+        allMemberIds.length > 0
+          ? Math.floor((numericAmount * 100) / allMemberIds.length) / 100
+          : 0;
+      let allocated = 0;
+      setSplitValues(
+        Object.fromEntries(
+          allMemberIds.map((id, index) => {
+            const value =
+              index === allMemberIds.length - 1
+                ? roundMoney(numericAmount - allocated)
+                : base;
+            allocated += value;
+            return [id, value > 0 ? String(value) : ""];
+          }),
+        ),
+      );
+    }
+  }
+
+  function clearSplitMembers() {
+    if (splitMode === "equal") {
+      setParticipantIds([]);
+      return;
+    }
+    setSplitValues({});
   }
 
   function allocateAdjustment(adjustmentAmount: number) {
@@ -713,6 +788,22 @@ export function AddExpense() {
             </button>
           ))}
         </div>
+
+        {splitMode !== "itemized" && (
+          <div className="flex items-center justify-between rounded-[14px] bg-card px-3 py-2 shadow-[var(--shadow-card)]">
+            <span className="text-[11.5px] font-semibold text-secondary">
+              {splitSelectionCount} of {trip.members.length} selected
+            </span>
+            <button
+              onClick={
+                allSplitMembersSelected ? clearSplitMembers : selectAllSplitMembers
+              }
+              className="text-[12px] font-extrabold text-teal-dark"
+            >
+              {allSplitMembersSelected ? "Unselect all" : "Select all"}
+            </button>
+          </div>
+        )}
 
         {splitMode === "equal" ? (
           <>

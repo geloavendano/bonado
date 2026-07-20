@@ -77,6 +77,11 @@ export async function queueExpense(
   ]);
 }
 
+export async function removeQueuedExpense(entryId: string): Promise<void> {
+  const queue = await loadExpenseQueue();
+  await writeStore(queue.filter((item) => item.id !== entryId));
+}
+
 async function resolveQueuedExchangeRate(item: QueuedExpense) {
   const payload = item.payload;
   const currentRate = Number(payload.p_exchange_rate);
