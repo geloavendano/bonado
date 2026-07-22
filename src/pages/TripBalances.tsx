@@ -23,6 +23,8 @@ import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { useOverlayA11y } from "@/hooks/useOverlayA11y";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
+import { usePaymentAccounts } from "@/hooks/usePaymentAccounts";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import {
   buildSettlementSuggestions,
   type SuggestedSettlement,
@@ -50,6 +52,7 @@ export function TripBalances() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
   const [paymentLabel, setPaymentLabel] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  const [copiedAccountId, setCopiedAccountId] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useTripDisplayCurrency({
     tripId: trip.id,
     defaultCurrency: trip.default_currency,
@@ -59,6 +62,11 @@ export function TripBalances() {
     sheetOpen,
     () => setSheetOpen(false),
   );
+  const {
+    accounts: recipientAccounts,
+    loading: recipientAccountsLoading,
+    error: recipientAccountsError,
+  } = usePaymentAccounts(sheetOpen && toUserId ? toUserId : undefined);
   const {
     rates,
     currencies,
@@ -116,6 +124,12 @@ export function TripBalances() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if (!copiedAccountId) return;
+    const timer = window.setTimeout(() => setCopiedAccountId(null), 1800);
+    return () => window.clearTimeout(timer);
+  }, [copiedAccountId]);
+
   function openSuggestion(suggestion?: SuggestedSettlement) {
     if (suggestion) {
       setFromUserId(suggestion.fromUserId);
@@ -164,6 +178,16 @@ export function TripBalances() {
 
   const personName = (id: string) =>
     trip.members.find((member) => member.id === id)?.name ?? "Member";
+
+  async function copyAccountNumber(accountId: string, accountNumber: string) {
+    try {
+      await copyTextToClipboard(accountNumber);
+      setCopiedAccountId(accountId);
+      setToast("Account number copied.");
+    } catch {
+      setToast("Could not copy account number.");
+    }
+  }
 
   return (
     <PageShell padded={false} wide className={routeMotion}>
@@ -390,6 +414,67 @@ export function TripBalances() {
                   </select>
                   <ChevronDown className="pointer-events-none absolute bottom-3 right-3 text-secondary" />
                 </label>
+              </div>
+
+              <div className="rounded-[18px] bg-card px-4 py-3 shadow-[var(--shadow-card)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-secondary">
+                      Settlement options
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-faint">
+                      Send to {personName(toUserId)}
+                    </div>
+                  </div>
+                  <div className="text-[10.5px] font-bold text-secondary">
+                    {recipientAccounts.length} option{recipientAccounts.length === 1 ? "" : "s"}
+                  </div>
+                </div>
+
+                {recipientAccountsLoading ? (
+                  <div className="mt-3 text-[12px] text-secondary">Loading options…</div>
+                ) : recipientAccounts.length > 0 ? (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {recipientAccounts.map((account) => {
+                      const accountNumber = account.account_number?.trim();
+                      return (
+                        <div
+                          key={account.id}
+                          className="rounded-[14px] bg-tile px-3 py-2.5"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-[12.5px] font-extrabold">
+                                {account.method} · {account.label}
+                              </div>
+                              <div className="mt-0.5 truncate text-[11.5px] text-secondary">
+                                {accountNumber || "No account number provided"}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={!accountNumber}
+                              onClick={() => {
+                                if (accountNumber) void copyAccountNumber(account.id, accountNumber);
+                              }}
+                              className="rounded-full bg-card px-3 py-2 text-[11.5px] font-extrabold text-teal shadow-[var(--shadow-card)] disabled:text-faint disabled:opacity-60"
+                              aria-label={`Copy ${account.label} account number`}
+                            >
+                              {copiedAccountId === account.id ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-3 rounded-[14px] bg-track px-3 py-2.5 text-[11.5px] leading-snug text-secondary">
+                    {personName(toUserId)} hasn’t shared settlement receiving details yet.
+                  </div>
+                )}
+                {recipientAccountsError && (
+                  <p className="mt-2 text-[11px] text-owe">{recipientAccountsError}</p>
+                )}
               </div>
 
               <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-[var(--shadow-card)]">

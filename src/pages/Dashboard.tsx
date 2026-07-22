@@ -21,12 +21,16 @@ import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { Toast } from "@/components/ui/Toast";
+import { usePaymentAccounts } from "@/hooks/usePaymentAccounts";
+import type { PaymentAccount, PaymentMethod, User } from "@/types/schema";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "System" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
 ];
+
+const PAYMENT_METHODS: PaymentMethod[] = ["Bank", "Card", "Cash", "Other"];
 
 function tripDateRange(trip: TripWithMembers): string | null {
   if (!trip.start_date || !trip.end_date) return null;
@@ -74,6 +78,156 @@ function BalanceStatus({ trip, displayCurrency }: { trip: TripWithMembers; displ
     <span className="text-[13px] font-bold text-owe">
       You owe {formatMoney(-amount, currency)}
     </span>
+  );
+}
+
+function SettlementAccountSettings({ user }: { user: User }) {
+  const { accounts, loading, error, upsertAccount, deleteAccount } = usePaymentAccounts(user.id);
+  const [editingId, setEditingId] = useState<string | undefined>();
+  const [method, setMethod] = useState<PaymentMethod>("Bank");
+  const [label, setLabel] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [currency, setCurrency] = useState(user.preferred_currency);
+  const editing = accounts.find((account) => account.id === editingId);
+
+  function startEdit(account: PaymentAccount) {
+    setEditingId(account.id);
+    setMethod(account.method);
+    setLabel(account.label);
+    setAccountNumber(account.account_number ?? "");
+    setCurrency(account.currency);
+  }
+
+  function resetForm() {
+    setEditingId(undefined);
+    setMethod("Bank");
+    setLabel("");
+    setAccountNumber("");
+    setCurrency(user.preferred_currency);
+  }
+
+  async function saveAccount() {
+    const ok = await upsertAccount(
+      {
+        method,
+        label,
+        accountNumber,
+        currency,
+      },
+      editingId,
+    );
+    if (ok) resetForm();
+  }
+
+  return (
+    <div className="motion-reveal mb-2 border-t border-hairline px-1 pt-3">
+      <div className="mb-2">
+        <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-secondary">
+          Settlement receiving accounts
+        </div>
+        <p className="mt-0.5 text-[10.5px] leading-snug text-faint">
+          Shared with tripmates so they can copy your details when they owe you.
+        </p>
+      </div>
+
+      {loading && <div className="text-[11px] text-secondary">Loading accounts…</div>}
+      {!loading && accounts.length > 0 && (
+        <div className="mb-2 flex flex-col gap-1.5">
+          {accounts.map((account) => (
+            <div
+              key={account.id}
+              className="rounded-xl bg-tile px-3 py-2 text-[11.5px]"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate font-bold text-ink">
+                    {account.method} · {account.label}
+                  </div>
+                  <div className="truncate text-secondary">
+                    {account.account_number || "No account number set"}
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2 font-bold">
+                  <button onClick={() => startEdit(account)} className="text-teal">
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => void deleteAccount(account.id)}
+                    className="text-owe"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-1.5">
+        <div className="grid grid-cols-[0.85fr_1.15fr] gap-1.5">
+          <label className="relative min-w-0">
+            <select
+              value={method}
+              onChange={(event) => setMethod(event.target.value as PaymentMethod)}
+              className="w-full appearance-none rounded-xl bg-tile py-2.5 pl-3 pr-8 text-[12px] font-bold text-ink outline-none"
+              aria-label="Settlement account method"
+            >
+              {PAYMENT_METHODS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+          </label>
+          <input
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            placeholder={method === "Bank" ? "BDO, BPI…" : "Label"}
+            className="min-w-0 rounded-xl bg-tile px-3 py-2.5 text-[12px] font-bold outline-none placeholder:text-faint"
+          />
+        </div>
+        <div className="grid grid-cols-[1fr_86px] gap-1.5">
+          <input
+            value={accountNumber}
+            onChange={(event) => setAccountNumber(event.target.value)}
+            placeholder="Account number / handle"
+            className="min-w-0 rounded-xl bg-tile px-3 py-2.5 text-[12px] font-bold outline-none placeholder:text-faint"
+          />
+          <select
+            value={currency}
+            onChange={(event) => setCurrency(event.target.value)}
+            className="min-w-0 rounded-xl bg-tile px-2 py-2.5 text-[12px] font-bold outline-none"
+            aria-label="Settlement account currency"
+          >
+            {ALL_CURRENCIES.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.code}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void saveAccount()}
+            disabled={!label.trim() && !accountNumber.trim()}
+            className="rounded-xl bg-teal px-3 py-2 text-[11.5px] font-bold text-white disabled:opacity-50"
+          >
+            {editing ? "Save account" : "Add account"}
+          </button>
+          {editing && (
+            <button
+              onClick={resetForm}
+              className="px-2 py-2 text-[11.5px] font-bold text-secondary"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+      {error && <p className="mt-2 text-[11px] text-owe">{error}</p>}
+    </div>
   );
 }
 
@@ -204,7 +358,7 @@ export function Dashboard() {
               <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={38} />
             </button>
             {accountOpen && (
-              <div className="motion-reveal absolute right-0 top-12 w-[250px] rounded-[18px] bg-card p-3 shadow-[var(--shadow-floating)]">
+              <div className="motion-reveal absolute right-0 top-12 w-[min(340px,calc(100vw-28px))] rounded-[18px] bg-card p-3 shadow-[var(--shadow-floating)]">
                 <div className="flex items-center gap-3 border-b border-hairline px-1 pb-3">
                   <Avatar name={user.name} seed={user.id} avatarUrl={user.avatar_url} size={36} />
                   <div className="min-w-0">
@@ -270,6 +424,7 @@ export function Dashboard() {
                     </Link>
                   </div>
                 )}
+                {settingsOpen && <SettlementAccountSettings user={user} />}
                 <button
                   onClick={() => void signOut()}
                   className="w-full border-t border-hairline px-1 pt-3 text-left text-[12.5px] font-bold text-owe"

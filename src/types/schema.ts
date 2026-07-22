@@ -99,6 +99,19 @@ export interface Payment {
   payment_account_id: string | null;
 }
 
+export type PaymentMethod = "Cash" | "Card" | "Bank" | "Other";
+
+export interface PaymentAccount {
+  id: string;
+  user_id: string;
+  type: "cash" | "bank" | "other";
+  method: PaymentMethod;
+  label: string;
+  currency: Currency;
+  is_shared: boolean;
+  account_number: string | null;
+}
+
 export interface LineItem {
   id: string;
   entry_id: string;
