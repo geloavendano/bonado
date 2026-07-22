@@ -742,7 +742,7 @@ export function AddExpense() {
                       {receiptFile?.name ?? "Receipt attached"}
                     </div>
                     <div className="text-[11.5px] text-secondary">
-                      Taps here to replace the photo.
+                      Tap here to replace the photo.
                     </div>
                   </div>
                   <button
@@ -764,7 +764,6 @@ export function AddExpense() {
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="sr-only"
                 onChange={(event) => {
                   setReceiptFile(event.target.files?.[0] ?? null);
