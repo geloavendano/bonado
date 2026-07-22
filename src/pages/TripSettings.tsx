@@ -525,7 +525,7 @@ export function TripSettings() {
               )}
               {member.is_registered &&
                 member.role !== "owner" &&
-                (trip.isOwner || member.id === user?.id) && (
+                trip.isOwner && (
                   <button
                     onClick={() => {
                       setRemovalDestinationId("deleted-member");
