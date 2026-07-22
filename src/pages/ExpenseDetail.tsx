@@ -20,6 +20,7 @@ import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { useSwipeDownDismiss } from "@/hooks/useSwipeDownDismiss";
+import type { ExpenseEditLogChange, ExpenseEditLogEntry } from "@/hooks/useExpense";
 import clsx from "clsx";
 
 function labelForAdjustment(type: string) {
@@ -33,6 +34,92 @@ function formatTimestamp(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function formatAuditValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "blank";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  return "updated value";
+}
+
+function auditCurrency(change: ExpenseEditLogChange, fallbackCurrency: string) {
+  if (typeof change.currency === "string" && change.currency) return change.currency;
+  return fallbackCurrency;
+}
+
+function formatAuditMoney(value: unknown, currency: string) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return formatAuditValue(value);
+  return formatMoney(amount, currency);
+}
+
+function formatTimestampChangeValue(value: unknown) {
+  if (!value || typeof value !== "object") return formatAuditValue(value);
+  const timestamp = (value as { created_at?: unknown }).created_at;
+  if (typeof timestamp === "string") return formatTimestamp(timestamp);
+  const date = (value as { date?: unknown }).date;
+  if (typeof date === "string") {
+    return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+      dateStyle: "medium",
+    });
+  }
+  return "updated timestamp";
+}
+
+function formatAuditPeople(value: unknown, currency: string) {
+  if (!Array.isArray(value) || value.length === 0) return "none";
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return "Member";
+      const row = item as { name?: unknown; amount?: unknown; owed_amount?: unknown };
+      const name = typeof row.name === "string" && row.name ? row.name : "Member";
+      const rawAmount = row.amount ?? row.owed_amount;
+      const amount = Number(rawAmount);
+      return Number.isFinite(amount) ? `${name} ${formatMoney(amount, currency)}` : name;
+    })
+    .join(", ");
+}
+
+function editChangeSummary(change: ExpenseEditLogChange, fallbackCurrency: string) {
+  const currency = auditCurrency(change, fallbackCurrency);
+  if (change.field === "timestamp") {
+    return `Edited timestamp from ${formatTimestampChangeValue(change.from)} to ${formatTimestampChangeValue(change.to)}`;
+  }
+  if (change.field === "amount") {
+    return `Edited amount from ${formatAuditMoney(change.from, currency)} to ${formatAuditMoney(change.to, currency)}`;
+  }
+  if (change.field === "description") {
+    return `Edited name from ${formatAuditValue(change.from)} to ${formatAuditValue(change.to)}`;
+  }
+  if (change.field === "payee") {
+    return `Edited payee from ${formatAuditValue(change.from)} to ${formatAuditValue(change.to)}`;
+  }
+  if (change.field === "currency") {
+    return `Edited currency from ${formatAuditValue(change.from)} to ${formatAuditValue(change.to)}`;
+  }
+  if (change.field === "category") {
+    return `Edited category from ${formatAuditValue(change.from)} to ${formatAuditValue(change.to)}`;
+  }
+  if (change.field === "payers") return "Edited paid by";
+  if (change.field === "distribution") return "Edited expense distribution";
+  if (change.field === "line_items") return "Edited line items";
+  if (change.field === "adjustments") return "Edited tax/tip adjustments";
+  return `Edited ${change.field.replaceAll("_", " ")}`;
+}
+
+function editChangeDetail(change: ExpenseEditLogChange, fallbackCurrency: string) {
+  if (!["payers", "distribution"].includes(change.field)) return null;
+  const currency = auditCurrency(change, fallbackCurrency);
+  return {
+    from: formatAuditPeople(change.from, currency),
+    to: formatAuditPeople(change.to, currency),
+  };
+}
+
+function editorName(entry: ExpenseEditLogEntry) {
+  return entry.by_name || "Member";
 }
 
 export function ExpenseDetail() {
@@ -134,6 +221,9 @@ export function ExpenseDetail() {
   );
   const yourBreakdown = breakdown.find((person) => person.id === user?.id);
   const yourShare = yourBreakdown?.owed ?? 0;
+  const editHistory = [...(expense.edit_log ?? [])]
+    .filter((entry) => Array.isArray(entry.changes) && entry.changes.length > 0)
+    .reverse();
   async function handleDelete() {
     if (!entryId || !tripId) return;
     if (await deleteExpense(entryId, tripId)) {
@@ -338,11 +428,56 @@ export function ExpenseDetail() {
             )}
 
             <div className="rounded-[16px] bg-track px-4 py-3 text-[11px] text-secondary">
-              <div>Created {formatTimestamp(expense.created_at)}</div>
+              <div>
+                Created {formatTimestamp(expense.created_at)} by{" "}
+                {expense.created_by_user?.name ?? "Member"}
+              </div>
               {expense.last_edited_at && (
-                <div className="mt-1">Updated {formatTimestamp(expense.last_edited_at)}</div>
+                <div className="mt-1">
+                  Updated {formatTimestamp(expense.last_edited_at)} by{" "}
+                  {expense.last_edited_by_user?.name ?? "Member"}
+                </div>
               )}
             </div>
+
+            {editHistory.length > 0 && (
+              <>
+                <SectionLabel>Edit history</SectionLabel>
+                <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
+                  {editHistory.map((entry, entryIndex) => (
+                    <div
+                      key={`${entry.at}-${entryIndex}`}
+                      className={
+                        "py-3" +
+                        (entryIndex < editHistory.length - 1 ? " border-b border-hairline" : "")
+                      }
+                    >
+                      <div className="text-[11px] font-semibold text-secondary">
+                        {editorName(entry)} · {formatTimestamp(entry.at)}
+                      </div>
+                      <div className="mt-2 flex flex-col gap-2">
+                        {entry.changes.map((change, changeIndex) => {
+                          const detail = editChangeDetail(change, expense.currency);
+                          return (
+                            <div key={`${change.field}-${changeIndex}`} className="text-[12px]">
+                              <div className="font-semibold text-primary">
+                                {editChangeSummary(change, expense.currency)}
+                              </div>
+                              {detail && (
+                                <div className="mt-0.5 text-[11px] leading-snug text-secondary">
+                                  <div>From {detail.from}</div>
+                                  <div>To {detail.to}</div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             <SectionLabel>Receipt</SectionLabel>
             <input

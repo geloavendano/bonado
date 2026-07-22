@@ -14,6 +14,20 @@ interface Person {
   avatar_url: string | null;
 }
 
+export interface ExpenseEditLogChange {
+  field: string;
+  from: unknown;
+  to: unknown;
+  currency?: string;
+}
+
+export interface ExpenseEditLogEntry {
+  at: string;
+  by: string | null;
+  by_name: string | null;
+  changes: ExpenseEditLogChange[];
+}
+
 export interface ExpenseDetail {
   id: string;
   trip_id: string;
@@ -23,7 +37,12 @@ export interface ExpenseDetail {
   payee: string | null;
   status: string;
   created_at: string;
+  created_by: string;
+  created_by_user: Person | null;
+  last_edited_by: string | null;
   last_edited_at: string | null;
+  last_edited_by_user: Person | null;
+  edit_log: ExpenseEditLogEntry[];
   category: { id: string; name: string; icon: string } | null;
   payments: {
     amount_paid: number;
@@ -78,7 +97,10 @@ export function useExpense(entryId: string | undefined) {
     const { data, error: queryError } = await supabase
       .from("entries")
       .select(`
-        id, trip_id, description, date, currency, payee, status, created_at, last_edited_at,
+        id, trip_id, description, date, currency, payee, status,
+        created_at, created_by, last_edited_at, last_edited_by, edit_log,
+        created_by_user:users!entries_created_by_fkey(id, name, avatar_url),
+        last_edited_by_user:users!entries_last_edited_by_fkey(id, name, avatar_url),
         category:categories(id, name, icon),
         payments(
           amount_paid, user_id,

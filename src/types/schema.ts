@@ -78,6 +78,7 @@ export interface Entry {
   last_edited_by: string | null;
   last_edited_at: string | null;
   sync_status: SyncStatus;
+  edit_log: unknown[];
 }
 
 export interface EntryAttachment {
