@@ -11,6 +11,7 @@ const methodType = (method: PaymentMethod): PaymentAccount["type"] => {
 export interface PaymentAccountInput {
   method: PaymentMethod;
   label: string;
+  accountName: string;
   accountNumber: string;
   currency: string;
 }
@@ -29,7 +30,7 @@ export function usePaymentAccounts(userId: string | undefined, sharedOnly = true
     setLoading(true);
     let query = supabase
       .from("payment_accounts")
-      .select("id, user_id, type, method, label, currency, is_shared, account_number")
+      .select("id, user_id, type, method, label, currency, is_shared, account_name, account_number")
       .eq("user_id", userId)
       .order("method", { ascending: true })
       .order("label", { ascending: true });
@@ -54,6 +55,7 @@ export function usePaymentAccounts(userId: string | undefined, sharedOnly = true
       type: methodType(account.method),
       method: account.method,
       label: account.label.trim() || account.method,
+      account_name: account.accountName.trim() || null,
       account_number: account.accountNumber.trim() || null,
       currency: account.currency,
       is_shared: true,

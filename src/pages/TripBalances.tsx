@@ -36,6 +36,24 @@ function todayForInput() {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function ClipboardIcon({ className = "size-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="8" y="8" width="11" height="13" rx="2" />
+      <path d="M16 8V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h1" />
+    </svg>
+  );
+}
+
 export function TripBalances() {
   const routeMotion = useRouteMotion();
   const trip = useTripLayout();
@@ -52,7 +70,7 @@ export function TripBalances() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
   const [paymentLabel, setPaymentLabel] = useState("");
   const [toast, setToast] = useState<string | null>(null);
-  const [copiedAccountId, setCopiedAccountId] = useState<string | null>(null);
+  const [copiedFieldKey, setCopiedFieldKey] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useTripDisplayCurrency({
     tripId: trip.id,
     defaultCurrency: trip.default_currency,
@@ -125,10 +143,10 @@ export function TripBalances() {
   }, [toast]);
 
   useEffect(() => {
-    if (!copiedAccountId) return;
-    const timer = window.setTimeout(() => setCopiedAccountId(null), 1800);
+    if (!copiedFieldKey) return;
+    const timer = window.setTimeout(() => setCopiedFieldKey(null), 1800);
     return () => window.clearTimeout(timer);
-  }, [copiedAccountId]);
+  }, [copiedFieldKey]);
 
   function openSuggestion(suggestion?: SuggestedSettlement) {
     if (suggestion) {
@@ -179,13 +197,13 @@ export function TripBalances() {
   const personName = (id: string) =>
     trip.members.find((member) => member.id === id)?.name ?? "Member";
 
-  async function copyAccountNumber(accountId: string, accountNumber: string) {
+  async function copySettlementDetail(fieldKey: string, value: string, message: string) {
     try {
-      await copyTextToClipboard(accountNumber);
-      setCopiedAccountId(accountId);
-      setToast("Account number copied.");
+      await copyTextToClipboard(value);
+      setCopiedFieldKey(fieldKey);
+      setToast(message);
     } catch {
-      setToast("Could not copy account number.");
+      setToast("Could not copy.");
     }
   }
 
@@ -436,32 +454,73 @@ export function TripBalances() {
                 ) : recipientAccounts.length > 0 ? (
                   <div className="mt-3 flex flex-col gap-2">
                     {recipientAccounts.map((account) => {
+                      const accountName = account.account_name?.trim();
                       const accountNumber = account.account_number?.trim();
+                      const nameFieldKey = `${account.id}:name`;
+                      const numberFieldKey = `${account.id}:number`;
                       return (
                         <div
                           key={account.id}
                           className="rounded-[14px] bg-tile px-3 py-2.5"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-[12.5px] font-extrabold">
-                                {account.method} · {account.label}
+                          <div className="truncate text-[12.5px] font-extrabold">
+                            {account.method} · {account.label}
+                          </div>
+                          <div className="mt-2 flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-faint">
+                                  Account name
+                                </div>
+                                <div className="truncate text-[11.5px] text-secondary">
+                                  {accountName || "No account name provided"}
+                                </div>
                               </div>
-                              <div className="mt-0.5 truncate text-[11.5px] text-secondary">
-                                {accountNumber || "No account number provided"}
-                              </div>
+                              <button
+                                type="button"
+                                disabled={!accountName}
+                                onClick={() => {
+                                  if (accountName) {
+                                    void copySettlementDetail(
+                                      nameFieldKey,
+                                      accountName,
+                                      "Account name copied.",
+                                    );
+                                  }
+                                }}
+                                className="grid size-9 place-items-center rounded-full bg-card text-teal shadow-[var(--shadow-card)] disabled:text-faint disabled:opacity-60"
+                                aria-label={`Copy ${account.label} account name`}
+                              >
+                                {copiedFieldKey === nameFieldKey ? "✓" : <ClipboardIcon />}
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              disabled={!accountNumber}
-                              onClick={() => {
-                                if (accountNumber) void copyAccountNumber(account.id, accountNumber);
-                              }}
-                              className="rounded-full bg-card px-3 py-2 text-[11.5px] font-extrabold text-teal shadow-[var(--shadow-card)] disabled:text-faint disabled:opacity-60"
-                              aria-label={`Copy ${account.label} account number`}
-                            >
-                              {copiedAccountId === account.id ? "Copied" : "Copy"}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-faint">
+                                  Account number
+                                </div>
+                                <div className="truncate text-[11.5px] text-secondary">
+                                  {accountNumber || "No account number provided"}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={!accountNumber}
+                                onClick={() => {
+                                  if (accountNumber) {
+                                    void copySettlementDetail(
+                                      numberFieldKey,
+                                      accountNumber,
+                                      "Account number copied.",
+                                    );
+                                  }
+                                }}
+                                className="grid size-9 place-items-center rounded-full bg-card text-teal shadow-[var(--shadow-card)] disabled:text-faint disabled:opacity-60"
+                                aria-label={`Copy ${account.label} account number`}
+                              >
+                                {copiedFieldKey === numberFieldKey ? "✓" : <ClipboardIcon />}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );

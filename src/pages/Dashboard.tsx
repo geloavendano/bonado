@@ -86,6 +86,7 @@ function SettlementAccountSettings({ user }: { user: User }) {
   const [editingId, setEditingId] = useState<string | undefined>();
   const [method, setMethod] = useState<PaymentMethod>("Bank");
   const [label, setLabel] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [currency, setCurrency] = useState(user.preferred_currency);
   const editing = accounts.find((account) => account.id === editingId);
@@ -94,6 +95,7 @@ function SettlementAccountSettings({ user }: { user: User }) {
     setEditingId(account.id);
     setMethod(account.method);
     setLabel(account.label);
+    setAccountName(account.account_name ?? "");
     setAccountNumber(account.account_number ?? "");
     setCurrency(account.currency);
   }
@@ -102,6 +104,7 @@ function SettlementAccountSettings({ user }: { user: User }) {
     setEditingId(undefined);
     setMethod("Bank");
     setLabel("");
+    setAccountName("");
     setAccountNumber("");
     setCurrency(user.preferred_currency);
   }
@@ -111,6 +114,7 @@ function SettlementAccountSettings({ user }: { user: User }) {
       {
         method,
         label,
+        accountName,
         accountNumber,
         currency,
       },
@@ -144,7 +148,10 @@ function SettlementAccountSettings({ user }: { user: User }) {
                     {account.method} · {account.label}
                   </div>
                   <div className="truncate text-secondary">
-                    {account.account_number || "No account number set"}
+                    {account.account_name || "No account name set"}
+                  </div>
+                  <div className="truncate text-secondary">
+                    {account.account_number || "No account number/handle set"}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2 font-bold">
@@ -188,6 +195,12 @@ function SettlementAccountSettings({ user }: { user: User }) {
             className="min-w-0 rounded-xl bg-tile px-3 py-2.5 text-[12px] font-bold outline-none placeholder:text-faint"
           />
         </div>
+        <input
+          value={accountName}
+          onChange={(event) => setAccountName(event.target.value)}
+          placeholder="Account name"
+          className="min-w-0 rounded-xl bg-tile px-3 py-2.5 text-[12px] font-bold outline-none placeholder:text-faint"
+        />
         <div className="grid grid-cols-[1fr_86px] gap-1.5">
           <input
             value={accountNumber}
@@ -211,7 +224,7 @@ function SettlementAccountSettings({ user }: { user: User }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => void saveAccount()}
-            disabled={!label.trim() && !accountNumber.trim()}
+            disabled={!label.trim() && !accountName.trim() && !accountNumber.trim()}
             className="rounded-xl bg-teal px-3 py-2 text-[11.5px] font-bold text-white disabled:opacity-50"
           >
             {editing ? "Save account" : "Add account"}

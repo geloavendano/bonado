@@ -48,14 +48,18 @@ export interface Category {
 }
 
 export type PaymentAccountType = "cash" | "bank" | "other";
+export type PaymentMethod = "Cash" | "Card" | "Bank" | "Other";
 
 export interface PaymentAccount {
   id: string;
   user_id: string;
   type: PaymentAccountType;
+  method: PaymentMethod;
   label: string;
   currency: Currency;
   is_shared: boolean;
+  account_name: string | null;
+  account_number: string | null;
 }
 
 export type EntryStatus = "active" | "deleted";
@@ -97,19 +101,6 @@ export interface Payment {
   user_id: string;
   amount_paid: number;
   payment_account_id: string | null;
-}
-
-export type PaymentMethod = "Cash" | "Card" | "Bank" | "Other";
-
-export interface PaymentAccount {
-  id: string;
-  user_id: string;
-  type: "cash" | "bank" | "other";
-  method: PaymentMethod;
-  label: string;
-  currency: Currency;
-  is_shared: boolean;
-  account_number: string | null;
 }
 
 export interface LineItem {
