@@ -27,6 +27,17 @@ export interface PaymentBreakdownRow {
   label: string;
   method: string;
   amount: number;
+  transactions: ReportPaymentTransaction[];
+}
+
+export interface ReportPaymentTransaction {
+  id: string;
+  description: string;
+  payee: string | null;
+  date: string;
+  currency: string;
+  exchange_rate_to_trip_default: number;
+  amount: number;
 }
 
 interface ReportEntry {
@@ -158,8 +169,19 @@ export function useTripReports(tripId: string, userId: string | undefined) {
             label,
             method,
             amount: 0,
+            transactions: [],
           };
-          row.amount += Number(payment.amount_paid) * rate;
+          const amountPaid = Number(payment.amount_paid);
+          row.amount += amountPaid * rate;
+          row.transactions.push({
+            id: entry.id,
+            description: entry.description,
+            payee: entry.payee,
+            date: entry.date,
+            currency: entry.currency,
+            exchange_rate_to_trip_default: rate,
+            amount: amountPaid,
+          });
           paymentBreakdown.set(key, row);
         }
       }

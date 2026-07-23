@@ -80,17 +80,25 @@ export function TripReports() {
     preferredCurrency !== displayCurrency &&
     preferredRate !== undefined;
   const expandedKey = `bonado:reports:${trip.id}:expanded`;
+  const expandedPaymentKey = `bonado:reports:${trip.id}:expanded-payment`;
   const [expandedCategory, setExpandedCategory] = useState<string | null>(
     () => sessionStorage.getItem(expandedKey),
   );
+  const [expandedPayment, setExpandedPayment] = useState<string | null>(
+    () => sessionStorage.getItem(expandedPaymentKey),
+  );
   const visibleReportEntryIds = useMemo(
-    () =>
-      report.categories
+    () => [
+      ...report.categories
         .filter((category) => category.name === expandedCategory)
         .flatMap((category) => category.transactions)
-        .slice(0, 24)
         .map((transaction) => transaction.id),
-    [expandedCategory, report.categories],
+      ...report.paymentBreakdown
+        .filter((payment) => payment.key === expandedPayment)
+        .flatMap((payment) => payment.transactions)
+        .map((transaction) => transaction.id),
+    ].slice(0, 24),
+    [expandedCategory, expandedPayment, report.categories, report.paymentBreakdown],
   );
 
   useEffect(() => {
@@ -102,6 +110,13 @@ export function TripReports() {
     setExpandedCategory(next);
     if (next) sessionStorage.setItem(expandedKey, next);
     else sessionStorage.removeItem(expandedKey);
+  }
+
+  function togglePayment(key: string) {
+    const next = expandedPayment === key ? null : key;
+    setExpandedPayment(next);
+    if (next) sessionStorage.setItem(expandedPaymentKey, next);
+    else sessionStorage.removeItem(expandedPaymentKey);
   }
 
   return (
@@ -121,7 +136,7 @@ export function TripReports() {
         ) : (
           <>
             <div className="flex items-center justify-between gap-3">
-              <SectionLabel className="mb-0">Spending in</SectionLabel>
+              <SectionLabel className="mb-0">Spending summary</SectionLabel>
               <CurrencySelect
                 value={displayCurrency}
                 onChange={setDisplayCurrency}
@@ -169,44 +184,6 @@ export function TripReports() {
                 Includes estimated foreign-currency amounts.
               </div>
             )}
-
-            <SectionLabel>Payment breakdown</SectionLabel>
-            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
-              {report.paymentBreakdown.length > 0 ? (
-                report.paymentBreakdown.map((payment, index) => {
-                  const percent =
-                    report.userPaidTotal > 0 ? (payment.amount / report.userPaidTotal) * 100 : 0;
-                  return (
-                    <div
-                      key={payment.key}
-                      className={clsx(
-                        "flex items-center gap-3 py-3",
-                        index < report.paymentBreakdown.length - 1 && "border-b border-hairline",
-                      )}
-                    >
-                      <span className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-primary">
-                        <PaymentMethodIcon method={payment.method} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13.5px] font-extrabold">
-                          {payment.label}
-                        </div>
-                        <div className="text-[10.5px] font-semibold text-secondary">
-                          {Math.round(percent)}% of your payments
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right text-[13px] font-extrabold text-teal-dark">
-                        {formatMoney(payment.amount * displayRate, displayCurrency)}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="py-4 text-center text-[12.5px] text-secondary">
-                  Payments you make will appear here by method.
-                </div>
-              )}
-            </div>
 
             <SectionLabel>Spending breakdown</SectionLabel>
             <div className="rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
@@ -339,6 +316,141 @@ export function TripReports() {
                   </div>
                 );
               })}
+            </div>
+
+            <SectionLabel>Payment summary</SectionLabel>
+            <div className="grid grid-cols-2 divide-x divide-hairline rounded-[20px] bg-card px-2 py-5 shadow-[var(--shadow-card)]">
+              <div className="px-3 text-center">
+                <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-secondary">
+                  You paid
+                </div>
+                <div className="mt-1 text-[21px] font-extrabold tracking-[-0.5px] text-teal-dark">
+                  {formatMoney(report.userPaidTotal * displayRate, displayCurrency)}
+                </div>
+                {showPreferredConversion && (
+                  <div className="mt-0.5 text-[11px] text-faint">
+                    ≈ {formatMoney(report.userPaidTotal * preferredRate, preferredCurrency!)}
+                  </div>
+                )}
+              </div>
+              <div className="px-3 text-center">
+                <div className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-secondary">
+                  Group paid
+                </div>
+                <div className="mt-1 text-[21px] font-extrabold tracking-[-0.5px]">
+                  {formatMoney(report.groupTotal * displayRate, displayCurrency)}
+                </div>
+                {showPreferredConversion && (
+                  <div className="mt-0.5 text-[11px] text-faint">
+                    ≈ {formatMoney(report.groupTotal * preferredRate, preferredCurrency!)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <SectionLabel>Payment breakdown</SectionLabel>
+            <div className="rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
+              {report.paymentBreakdown.length > 0 ? (
+                report.paymentBreakdown.map((payment, index) => {
+                  const expanded = expandedPayment === payment.key;
+                  const percent =
+                    report.userPaidTotal > 0 ? (payment.amount / report.userPaidTotal) * 100 : 0;
+                  return (
+                    <div
+                      key={payment.key}
+                      className={clsx(
+                        index < report.paymentBreakdown.length - 1 &&
+                          !expanded &&
+                          "border-b border-hairline",
+                      )}
+                    >
+                      <button
+                        onClick={() => togglePayment(payment.key)}
+                        className={clsx(
+                          "grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-card py-3.5 text-left",
+                          expanded && "sticky top-[calc(56px+env(safe-area-inset-top))] z-10",
+                        )}
+                        aria-expanded={expanded}
+                      >
+                        <span className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-primary">
+                          <PaymentMethodIcon method={payment.method} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[13.5px] font-extrabold">
+                          {payment.label}
+                        </span>
+                        <ChevronDown
+                          className={clsx(
+                            "text-secondary transition-transform",
+                            expanded && "rotate-180",
+                          )}
+                        />
+                        <span className="col-start-2 col-end-4 grid min-w-0">
+                          <span className="truncate text-[12.5px] font-extrabold text-teal-dark">
+                            {formatMoney(payment.amount * displayRate, displayCurrency)}
+                          </span>
+                          <span className="text-[9.5px] font-semibold text-secondary">
+                            {Math.round(percent)}% of your payments
+                          </span>
+                        </span>
+                      </button>
+
+                      {expanded && (
+                        <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] bg-tile/60 px-3">
+                          {payment.transactions.map((entry, transactionIndex) => {
+                            const paymentDisplay = convertEntryAmount(
+                              entry.amount,
+                              entry.currency,
+                              entry.exchange_rate_to_trip_default,
+                              displayCurrency,
+                              trip.default_currency,
+                              rates,
+                            );
+                            return (
+                              <Link
+                                key={`${payment.key}:${entry.id}:${transactionIndex}`}
+                                to={`/trips/${trip.id}/expenses/${entry.id}`}
+                                state={{ transition: "sheet" }}
+                                className={clsx(
+                                  "flex items-center gap-3 py-3",
+                                  transactionIndex < payment.transactions.length - 1 &&
+                                    "border-b border-hairline",
+                                )}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-[13px] font-bold">
+                                    {entry.description}
+                                  </div>
+                                  <div className="truncate text-[10.5px] text-secondary">
+                                    {entry.payee ? `Paid to ${entry.payee}` : "No payee"}
+                                  </div>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  <div className="text-[12.5px] font-extrabold text-teal-dark">
+                                    {paymentDisplay.converted && (
+                                      <span className="mr-0.5 text-faint" title={`Converted from ${entry.currency}`}>
+                                        ≈
+                                      </span>
+                                    )}
+                                    {formatMoney(paymentDisplay.amount, paymentDisplay.currency)}
+                                  </div>
+                                  <div className="text-[9.5px] font-semibold text-secondary">
+                                    You paid
+                                  </div>
+                                </div>
+                                <span className="text-[12px] text-faint">›</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-4 text-center text-[12.5px] text-secondary">
+                  Payments you make will appear here by method.
+                </div>
+              )}
             </div>
           </>
         )}
