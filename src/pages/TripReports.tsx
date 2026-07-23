@@ -17,6 +17,48 @@ import { convertEntryAmount } from "@/lib/convertEntryAmount";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
 
+function PaymentMethodIcon({ method }: { method: string }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (method === "Card") {
+    return (
+      <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden="true" {...common}>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 9h18M7 15h4" />
+      </svg>
+    );
+  }
+  if (method === "Bank") {
+    return (
+      <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden="true" {...common}>
+        <path d="M3 9h18L12 4 3 9ZM5 10v7M9 10v7M15 10v7M19 10v7M3 20h18" />
+      </svg>
+    );
+  }
+  if (method === "Cash") {
+    return (
+      <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden="true" {...common}>
+        <rect x="3" y="6" width="18" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2.5" />
+        <path d="M7 9H6v1M17 15h1v-1" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden="true" {...common}>
+      <circle cx="6" cy="12" r="1" fill="currentColor" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+      <circle cx="18" cy="12" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function TripReports() {
   const routeMotion = useRouteMotion();
   const trip = useTripLayout();
@@ -114,6 +156,44 @@ export function TripReports() {
               </div>
             )}
 
+            <SectionLabel>Payment breakdown</SectionLabel>
+            <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
+              {report.paymentBreakdown.length > 0 ? (
+                report.paymentBreakdown.map((payment, index) => {
+                  const percent =
+                    report.userPaidTotal > 0 ? (payment.amount / report.userPaidTotal) * 100 : 0;
+                  return (
+                    <div
+                      key={payment.key}
+                      className={clsx(
+                        "flex items-center gap-3 py-3",
+                        index < report.paymentBreakdown.length - 1 && "border-b border-hairline",
+                      )}
+                    >
+                      <span className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-primary">
+                        <PaymentMethodIcon method={payment.method} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13.5px] font-extrabold">
+                          {payment.label}
+                        </div>
+                        <div className="text-[10.5px] font-semibold text-secondary">
+                          {Math.round(percent)}% of your payments
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right text-[13px] font-extrabold text-teal-dark">
+                        {formatMoney(payment.amount * displayRate, displayCurrency)}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-4 text-center text-[12.5px] text-secondary">
+                  Payments you make will appear here by method.
+                </div>
+              )}
+            </div>
+
             <SectionLabel>Spending breakdown</SectionLabel>
             <div className="rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
               {report.categories.map((category, index) => {
@@ -124,7 +204,11 @@ export function TripReports() {
                 return (
                   <div
                     key={category.name}
-                    className={clsx(index < report.categories.length - 1 && "border-b border-hairline")}
+                    className={clsx(
+                      index < report.categories.length - 1 &&
+                        !expanded &&
+                        "border-b border-hairline",
+                    )}
                   >
                     <button
                       onClick={() => toggleCategory(category.name)}
@@ -167,7 +251,7 @@ export function TripReports() {
                     </button>
 
                     {expanded && (
-                      <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] bg-bg px-3">
+                      <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] bg-tile/60 px-3">
                         {category.transactions.map((entry, transactionIndex) => {
                           const userDisplay = convertEntryAmount(
                             entry.userAmount,

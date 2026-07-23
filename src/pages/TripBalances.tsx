@@ -164,6 +164,29 @@ export function TripBalances() {
         ? 1 / rates[settlementCurrency]
         : 0;
   const convertedSettlementAmount = Number(amount) * settlementRate;
+  const settlementRateFor = (currency: string) =>
+    currency === trip.default_currency ? 1 : rates[currency] ? 1 / rates[currency] : 0;
+
+  function handleSettlementCurrencyChange(nextCurrency: string) {
+    if (nextCurrency === settlementCurrency) return;
+    const numericAmount = Number(amount);
+    const oldRate = settlementRateFor(settlementCurrency);
+    const nextRate = settlementRateFor(nextCurrency);
+
+    setSettlementCurrency(nextCurrency);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0 || oldRate <= 0 || nextRate <= 0) {
+      return;
+    }
+
+    const nextAmount = (numericAmount * oldRate) / nextRate;
+    setAmount(
+      nextAmount.toLocaleString("en-US", {
+        useGrouping: false,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+    );
+  }
 
   async function handleSettlement() {
     const numericAmount = Number(amount);
@@ -540,7 +563,7 @@ export function TripBalances() {
                 <div className="relative mr-1 flex-none">
                   <select
                     value={settlementCurrency}
-                    onChange={(event) => setSettlementCurrency(event.target.value)}
+                    onChange={(event) => handleSettlementCurrencyChange(event.target.value)}
                     aria-label="Settlement currency"
                     className="appearance-none bg-transparent py-2 pr-4 text-[12px] font-bold text-secondary outline-none"
                   >

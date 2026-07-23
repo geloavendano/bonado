@@ -22,6 +22,13 @@ export interface CategoryReportRow {
   transactions: ReportTransaction[];
 }
 
+export interface PaymentBreakdownRow {
+  key: string;
+  label: string;
+  method: string;
+  amount: number;
+}
+
 interface ReportEntry {
   id: string;
   description: string;
@@ -35,6 +42,11 @@ interface ReportEntry {
     amount_paid: number;
     user_id: string;
     user: { name: string } | null;
+    payment_account: {
+      id: string;
+      method: string;
+      label: string;
+    } | null;
   }[];
   line_items: {
     line_item_shares: { user_id: string; owed_amount: number }[];
@@ -48,6 +60,8 @@ export interface TripReport {
   categories: CategoryReportRow[];
   groupTotal: number;
   userTotal: number;
+  userPaidTotal: number;
+  paymentBreakdown: PaymentBreakdownRow[];
   hasEstimatedRates: boolean;
 }
 
@@ -55,6 +69,8 @@ const EMPTY_REPORT: TripReport = {
   categories: [],
   groupTotal: 0,
   userTotal: 0,
+  userPaidTotal: 0,
+  paymentBreakdown: [],
   hasEstimatedRates: false,
 };
 
@@ -74,7 +90,11 @@ export function useTripReports(tripId: string, userId: string | undefined) {
       .select(`
         id, description, payee, date, currency, exchange_rate_to_trip_default, rate_is_estimated,
         category:categories(name),
-        payments(amount_paid, user_id, user:users(name)),
+        payments(
+          amount_paid, user_id,
+          user:users(name),
+          payment_account:payment_accounts(id, method, label)
+        ),
         line_items(line_item_shares(user_id, owed_amount)),
         adjustments(adjustment_shares(user_id, owed_amount))
       `)
@@ -92,7 +112,9 @@ export function useTripReports(tripId: string, userId: string | undefined) {
     const categories = new Map<string, CategoryReportRow>();
     let groupTotal = 0;
     let userTotal = 0;
+    let userPaidTotal = 0;
     let hasEstimatedRates = false;
+    const paymentBreakdown = new Map<string, PaymentBreakdownRow>();
 
     for (const entry of data ?? []) {
       const rate = Number(entry.exchange_rate_to_trip_default) || 1;
@@ -123,6 +145,24 @@ export function useTripReports(tripId: string, userId: string | undefined) {
             .filter((payment) => payment.user_id === userId)
             .reduce((sum, payment) => sum + Number(payment.amount_paid), 0)
         : 0;
+      if (userId) {
+        for (const payment of entry.payments.filter((item) => item.user_id === userId)) {
+          const account = payment.payment_account;
+          const method = account?.method ?? "No method";
+          const customLabel = account?.label?.trim();
+          const label =
+            customLabel && customLabel !== method ? `${method} · ${customLabel}` : method;
+          const key = `${method}:${customLabel ?? ""}`;
+          const row = paymentBreakdown.get(key) ?? {
+            key,
+            label,
+            method,
+            amount: 0,
+          };
+          row.amount += Number(payment.amount_paid) * rate;
+          paymentBreakdown.set(key, row);
+        }
+      }
       const name = entry.category?.name ?? "Other";
       const row = categories.get(name) ?? {
         name,
@@ -150,12 +190,15 @@ export function useTripReports(tripId: string, userId: string | undefined) {
       categories.set(name, row);
       groupTotal += groupAmount * rate;
       userTotal += userAmount * rate;
+      userPaidTotal += userPaid * rate;
       hasEstimatedRates ||= entry.rate_is_estimated;
     }
 
     const nextReport = {
       groupTotal,
       userTotal,
+      userPaidTotal,
+      paymentBreakdown: [...paymentBreakdown.values()].sort((a, b) => b.amount - a.amount),
       hasEstimatedRates,
       categories: [...categories.values()].sort((a, b) => b.groupAmount - a.groupAmount),
     };
