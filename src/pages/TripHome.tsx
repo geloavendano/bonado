@@ -1,4 +1,11 @@
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { Link } from "react-router-dom";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
@@ -31,8 +38,11 @@ import {
 import { refreshVisibleData } from "@/lib/dataRefresh";
 import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
 import { supabase } from "@/lib/supabase";
+import { prefetchExpenses } from "@/hooks/useExpense";
+import { prefetchSettlements } from "@/hooks/useSettlement";
 
 type HistoryFilter = "all" | "paid" | "created" | "involving";
+type DropPlacement = "before" | "after";
 
 const HISTORY_FILTERS: { value: HistoryFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -69,6 +79,15 @@ export function TripHome() {
   });
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const [draggingHistoryId, setDraggingHistoryId] = useState<string | null>(null);
+  const [dropPlacement, setDropPlacement] = useState<{
+    key: string;
+    position: DropPlacement;
+  } | null>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const dragPointerId = useRef<number | null>(null);
+  const dragStart = useRef<{ key: string; x: number; y: number } | null>(null);
+  const dragActive = useRef(false);
+  const suppressNextClick = useRef(false);
   const toastMessage = useRouteToast();
   const filteredEntries = useMemo(() => {
     if (!user || historyFilter === "all") return entries;
@@ -110,6 +129,20 @@ export function TripHome() {
   const displayedBalance = yourBalance * (rates[balanceCurrency] ?? 1);
 
   const inviteUrl = buildInviteUrl(trip.invite_link_token);
+
+  useEffect(() => {
+    const visibleEntries = filteredEntries.slice(0, 24);
+    void prefetchExpenses(
+      visibleEntries
+        .filter((entry) => entry.type === "expense" && entry.sync_status !== "pending")
+        .map((entry) => entry.id),
+    );
+    void prefetchSettlements(
+      visibleEntries
+        .filter((entry) => entry.type === "settlement")
+        .map((entry) => entry.id),
+    );
+  }, [filteredEntries]);
 
   async function shareInvite() {
     const shareData = {
@@ -155,16 +188,15 @@ export function TripHome() {
   async function reorderTransaction(
     draggedKey: string | null,
     target: (typeof entries)[number],
+    placement: DropPlacement,
   ) {
     if (!draggedKey) return;
     const dragged = entries.find((entry) => historyKey(entry) === draggedKey);
     if (!dragged || historyKey(dragged) === historyKey(target)) return;
 
-    const fromIndex = entries.findIndex((entry) => historyKey(entry) === historyKey(dragged));
-    const targetIndex = entries.findIndex((entry) => historyKey(entry) === historyKey(target));
     const reference = new Date(target.created_at);
     if (Number.isNaN(reference.getTime())) return;
-    reference.setMinutes(reference.getMinutes() + (fromIndex > targetIndex ? 1 : -1));
+    reference.setMinutes(reference.getMinutes() + (placement === "before" ? 1 : -1));
     const rpcName =
       dragged.type === "settlement"
         ? "update_settlement_display_timestamp"
@@ -187,6 +219,127 @@ export function TripHome() {
       return;
     }
     void refreshVisibleData();
+  }
+
+  function clearLongPressTimer() {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function resetDragState() {
+    clearLongPressTimer();
+    dragPointerId.current = null;
+    dragStart.current = null;
+    dragActive.current = false;
+    setDraggingHistoryId(null);
+    setDropPlacement(null);
+  }
+
+  function updateDropPlacement(clientX: number, clientY: number) {
+    const activeKey = draggingHistoryId ?? dragStart.current?.key;
+    if (!activeKey) return;
+    const target = document
+      .elementFromPoint(clientX, clientY)
+      ?.closest<HTMLElement>("[data-history-drop-key]");
+    const key = target?.dataset.historyDropKey;
+    if (!target || !key || key === activeKey) {
+      setDropPlacement(null);
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    const position: DropPlacement = clientY < rect.top + rect.height / 2 ? "before" : "after";
+    setDropPlacement((current) =>
+      current?.key === key && current.position === position ? current : { key, position },
+    );
+  }
+
+  function startHistoryPress(event: ReactPointerEvent<HTMLElement>, key: string) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    clearLongPressTimer();
+    dragPointerId.current = event.pointerId;
+    dragStart.current = { key, x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    longPressTimer.current = window.setTimeout(() => {
+      dragActive.current = true;
+      suppressNextClick.current = true;
+      setDraggingHistoryId(key);
+      setDropPlacement(null);
+      navigator.vibrate?.(10);
+    }, 260);
+  }
+
+  function moveHistoryPress(event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerId !== dragPointerId.current) return;
+    const start = dragStart.current;
+    if (!start) return;
+
+    const moved =
+      Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8;
+    if (!dragActive.current && moved) {
+      clearLongPressTimer();
+      return;
+    }
+    if (!dragActive.current) return;
+
+    event.preventDefault();
+    updateDropPlacement(event.clientX, event.clientY);
+  }
+
+  function finishHistoryPress(event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerId !== dragPointerId.current) return;
+    clearLongPressTimer();
+    if (dragActive.current) {
+      event.preventDefault();
+      const activeKey = draggingHistoryId ?? dragStart.current?.key ?? null;
+      const target = entries.find((entry) => historyKey(entry) === dropPlacement?.key);
+      if (target && dropPlacement) {
+        void reorderTransaction(activeKey, target, dropPlacement.position);
+      }
+      window.setTimeout(() => {
+        suppressNextClick.current = false;
+      }, 0);
+    }
+    resetDragState();
+  }
+
+  function cancelHistoryPress() {
+    resetDragState();
+    window.setTimeout(() => {
+      suppressNextClick.current = false;
+    }, 0);
+  }
+
+  function suppressDragClick(event: ReactMouseEvent<HTMLElement>) {
+    if (!suppressNextClick.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressNextClick.current = false;
+  }
+
+  function reorderProps(key: string) {
+    return {
+      "data-history-drop-key": key,
+      onContextMenu: (event: ReactMouseEvent<HTMLElement>) => event.preventDefault(),
+      onPointerDown: (event: ReactPointerEvent<HTMLElement>) => startHistoryPress(event, key),
+      onPointerMove: moveHistoryPress,
+      onPointerUp: finishHistoryPress,
+      onPointerCancel: cancelHistoryPress,
+      onLostPointerCapture: cancelHistoryPress,
+      onClick: suppressDragClick,
+      draggable: false,
+    };
+  }
+
+  function DropIndicator({ entryKey, position }: { entryKey: string; position: DropPlacement }) {
+    if (dropPlacement?.key !== entryKey || dropPlacement.position !== position) return null;
+    return (
+      <div className="pointer-events-none -mx-1 flex h-3 items-center px-1">
+        <div className="h-1 w-full rounded-full bg-teal shadow-[0_0_0_4px_rgba(15,143,127,0.14)]" />
+      </div>
+    );
   }
 
   return (
@@ -336,59 +489,55 @@ export function TripHome() {
                   rates,
                 );
                 const unread = unreadSettlementIds.has(entry.id);
+                const entryKey = historyKey(entry);
                 return (
-		                  <Link
-		                    key={`settlement-${entry.id}`}
-	                    to={`/trips/${trip.id}/settlements/${entry.id}`}
-	                    state={{ transition: "sheet" }}
-		                    onContextMenu={(event) => event.preventDefault()}
-		                    draggable
-		                    onDragStart={() => setDraggingHistoryId(historyKey(entry))}
-		                    onDragEnd={() => setDraggingHistoryId(null)}
-		                    onDragOver={(event) => event.preventDefault()}
-		                    onDrop={(event) => {
-		                      event.preventDefault();
-		                      void reorderTransaction(draggingHistoryId, entry);
-		                      setDraggingHistoryId(null);
-		                    }}
-		                    className={
-                      "flex items-center gap-3 py-3.5" +
-                      (index < dateEntries.length - 1 ? " border-b border-hairline" : "")
-                    }
-                  >
-                    <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-teal-tint text-teal-dark">
-                      <svg viewBox="0 0 24 24" className="size-[19px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 8h14M15 4l4 4-4 4M19 16H5M9 12l-4 4 4 4" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14.5px] font-bold">Settlement</div>
-                      <div className="truncate text-[11.5px] text-secondary">
-                        {entry.from_user?.name ?? "Member"} paid {entry.to_user?.name ?? "Member"}
-                      </div>
-                    </div>
-                    <div
+                  <div key={`settlement-${entry.id}`}>
+                    <DropIndicator entryKey={entryKey} position="before" />
+                    <Link
+                      to={`/trips/${trip.id}/settlements/${entry.id}`}
+                      state={{ transition: "sheet" }}
+                      {...reorderProps(entryKey)}
                       className={clsx(
-                        "shrink-0 text-right text-[14px] font-extrabold",
-                        isReceiver ? "text-owed" : isSender ? "text-owe" : "text-ink",
+                        "flex select-none items-center gap-3 py-3.5 [-webkit-touch-callout:none] [-webkit-user-select:none]",
+                        index < dateEntries.length - 1 && "border-b border-hairline",
+                        draggingHistoryId === entryKey && "scale-[0.99] bg-teal-tint/20 opacity-40",
                       )}
                     >
-                      {settlementDisplay.converted && (
-                        <span className="mr-0.5 text-faint" title={`Converted from ${trip.default_currency}`}>
-                          ≈
-                        </span>
-                      )}
-                      {isReceiver ? "+" : isSender ? "−" : ""}
-                      {formatMoney(settlementDisplay.amount, settlementDisplay.currency)}
-                    </div>
-                    <span
-                      aria-label={unread ? "Unread transaction" : undefined}
-                      className={
-                        "size-2 flex-none rounded-full " +
-                        (unread ? "bg-teal" : "bg-transparent")
-                      }
-                    />
-                  </Link>
+                      <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-teal-tint text-teal-dark">
+                        <svg viewBox="0 0 24 24" className="size-[19px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M5 8h14M15 4l4 4-4 4M19 16H5M9 12l-4 4 4 4" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[14.5px] font-bold">Settlement</div>
+                        <div className="truncate text-[11.5px] text-secondary">
+                          {entry.from_user?.name ?? "Member"} paid {entry.to_user?.name ?? "Member"}
+                        </div>
+                      </div>
+                      <div
+                        className={clsx(
+                          "shrink-0 text-right text-[14px] font-extrabold",
+                          isReceiver ? "text-owed" : isSender ? "text-owe" : "text-ink",
+                        )}
+                      >
+                        {settlementDisplay.converted && (
+                          <span className="mr-0.5 text-faint" title={`Converted from ${trip.default_currency}`}>
+                            ≈
+                          </span>
+                        )}
+                        {isReceiver ? "+" : isSender ? "−" : ""}
+                        {formatMoney(settlementDisplay.amount, settlementDisplay.currency)}
+                      </div>
+                      <span
+                        aria-label={unread ? "Unread transaction" : undefined}
+                        className={
+                          "size-2 flex-none rounded-full " +
+                          (unread ? "bg-teal" : "bg-transparent")
+                        }
+                      />
+                    </Link>
+                    <DropIndicator entryKey={entryKey} position="after" />
+                  </div>
                 );
               }
               const yourShare = user
@@ -455,6 +604,7 @@ export function TripHome() {
               const rowClass =
                 "flex items-center gap-3 py-3.5" +
                 (index < dateEntries.length - 1 ? " border-b border-hairline" : "");
+              const entryKey = historyKey(entry);
               const rowContent = (
                 <>
                   <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-tile text-[17px]">
@@ -521,24 +671,22 @@ export function TripHome() {
               }
 
               return (
-	                <Link
-	                  key={entry.id}
-	                  to={`/trips/${trip.id}/expenses/${entry.id}`}
-	                  state={{ transition: "sheet" }}
-	                  onContextMenu={(event) => event.preventDefault()}
-	                  draggable
-	                  onDragStart={() => setDraggingHistoryId(historyKey(entry))}
-	                  onDragEnd={() => setDraggingHistoryId(null)}
-	                  onDragOver={(event) => event.preventDefault()}
-	                  onDrop={(event) => {
-	                    event.preventDefault();
-	                    void reorderTransaction(draggingHistoryId, entry);
-	                    setDraggingHistoryId(null);
-	                  }}
-	                  className={rowClass}
-	                >
-                  {rowContent}
-                </Link>
+                <div key={entry.id}>
+                  <DropIndicator entryKey={entryKey} position="before" />
+                  <Link
+                    to={`/trips/${trip.id}/expenses/${entry.id}`}
+                    state={{ transition: "sheet" }}
+                    {...reorderProps(entryKey)}
+                    className={clsx(
+                      rowClass,
+                      "select-none [-webkit-touch-callout:none] [-webkit-user-select:none]",
+                      draggingHistoryId === entryKey && "scale-[0.99] bg-teal-tint/20 opacity-40",
+                    )}
+                  >
+                    {rowContent}
+                  </Link>
+                  <DropIndicator entryKey={entryKey} position="after" />
+                </div>
               );
                     })}
                   </div>

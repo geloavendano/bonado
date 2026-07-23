@@ -3,6 +3,35 @@ import { supabase } from "@/lib/supabase";
 import { registerDataRefresh } from "@/lib/dataRefresh";
 
 const expenseCache = new Map<string, ExpenseDetail>();
+const expensePrefetching = new Set<string>();
+
+const EXPENSE_DETAIL_SELECT = `
+  id, trip_id, description, date, currency, payee, status,
+  created_at, created_by, last_edited_at, last_edited_by, edit_log,
+  created_by_user:users!entries_created_by_fkey(id, name, avatar_url),
+  last_edited_by_user:users!entries_last_edited_by_fkey(id, name, avatar_url),
+  category:categories(id, name, icon),
+  payments(
+    amount_paid, user_id,
+    user:users(id, name, avatar_url),
+    payment_account:payment_accounts(id, label, type, method)
+  ),
+  line_items(
+    id, description, amount,
+    line_item_shares(
+      user_id, share_type, share_value, owed_amount,
+      user:users(id, name, avatar_url)
+    )
+  ),
+  adjustments(
+    id, type, mode, amount,
+    adjustment_shares(
+      user_id, owed_amount,
+      user:users(id, name, avatar_url)
+    )
+  ),
+  entry_attachments(id, storage_path, uploaded_at)
+`;
 
 export function invalidateExpense(entryId: string) {
   expenseCache.delete(entryId);
@@ -85,6 +114,23 @@ export interface ExpenseDetail {
   }[];
 }
 
+export async function prefetchExpenses(entryIds: string[], limit = 16) {
+  const missing = [...new Set(entryIds)]
+    .filter((entryId) => !expenseCache.has(entryId) && !expensePrefetching.has(entryId))
+    .slice(0, limit);
+  if (missing.length === 0) return;
+
+  missing.forEach((entryId) => expensePrefetching.add(entryId));
+  const { data } = await supabase
+    .from("entries")
+    .select(EXPENSE_DETAIL_SELECT)
+    .in("id", missing)
+    .eq("status", "active")
+    .returns<ExpenseDetail[]>();
+  data?.forEach((expense) => expenseCache.set(expense.id, expense));
+  missing.forEach((entryId) => expensePrefetching.delete(entryId));
+}
+
 export function useExpense(entryId: string | undefined) {
   const cached = entryId ? expenseCache.get(entryId) ?? null : null;
   const [expense, setExpense] = useState<ExpenseDetail | null>(cached);
@@ -96,33 +142,7 @@ export function useExpense(entryId: string | undefined) {
     setLoading(true);
     const { data, error: queryError } = await supabase
       .from("entries")
-      .select(`
-        id, trip_id, description, date, currency, payee, status,
-        created_at, created_by, last_edited_at, last_edited_by, edit_log,
-        created_by_user:users!entries_created_by_fkey(id, name, avatar_url),
-        last_edited_by_user:users!entries_last_edited_by_fkey(id, name, avatar_url),
-        category:categories(id, name, icon),
-        payments(
-          amount_paid, user_id,
-          user:users(id, name, avatar_url),
-          payment_account:payment_accounts(id, label, type, method)
-        ),
-        line_items(
-          id, description, amount,
-          line_item_shares(
-            user_id, share_type, share_value, owed_amount,
-            user:users(id, name, avatar_url)
-          )
-        ),
-        adjustments(
-          id, type, mode, amount,
-          adjustment_shares(
-            user_id, owed_amount,
-            user:users(id, name, avatar_url)
-          )
-        ),
-        entry_attachments(id, storage_path, uploaded_at)
-      `)
+      .select(EXPENSE_DETAIL_SELECT)
       .eq("id", entryId)
       .eq("status", "active")
       .returns<ExpenseDetail[]>()

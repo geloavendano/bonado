@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
@@ -16,6 +16,7 @@ import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { convertEntryAmount } from "@/lib/convertEntryAmount";
 import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
+import { prefetchExpenses } from "@/hooks/useExpense";
 
 function PaymentMethodIcon({ method }: { method: string }) {
   const common = {
@@ -82,6 +83,19 @@ export function TripReports() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(
     () => sessionStorage.getItem(expandedKey),
   );
+  const visibleReportEntryIds = useMemo(
+    () =>
+      report.categories
+        .filter((category) => category.name === expandedCategory)
+        .flatMap((category) => category.transactions)
+        .slice(0, 24)
+        .map((transaction) => transaction.id),
+    [expandedCategory, report.categories],
+  );
+
+  useEffect(() => {
+    void prefetchExpenses(visibleReportEntryIds);
+  }, [visibleReportEntryIds]);
 
   function toggleCategory(name: string) {
     const next = expandedCategory === name ? null : name;
