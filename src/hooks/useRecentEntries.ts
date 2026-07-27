@@ -5,6 +5,46 @@ import { loadExpenseQueue, type QueuedExpense } from "@/lib/offlineExpenseQueue"
 
 const PAGE_SIZE = 20;
 
+/**
+ * Shared by the paginated feed and by transaction search (useTransactionSearch)
+ * so both hydrate identical row shapes. Keep them exported and reused rather
+ * than copied — a drifted select silently breaks whichever consumer is missing
+ * a field.
+ */
+export const ENTRY_SELECT = `id, description, date, created_at, created_by, last_edited_at, currency, sync_status,
+             exchange_rate_to_trip_default, rate_is_estimated, payee,
+             category_id, category:categories(name, icon),
+             payments(amount_paid, user_id, user:users(id, name, avatar_url)),
+             line_items(line_item_shares(user_id, owed_amount)),
+             adjustments(adjustment_shares(user_id, owed_amount))`;
+
+export const SETTLEMENT_SELECT = `id, date, created_at, created_by, amount, from_user_id, to_user_id,
+             from_user:users!settlements_from_user_id_fkey(id, name),
+             to_user:users!settlements_to_user_id_fkey(id, name)`;
+
+/** Tags a raw entries row as a history item. */
+export function toRecentEntry(row: RecentEntryRow): RecentEntry {
+  return { ...row, type: "expense" as const };
+}
+
+/** Tags a raw settlements row as a history item, coercing the numeric amount. */
+export function toRecentSettlement(row: RecentSettlementRow): RecentSettlement {
+  return { ...row, amount: Number(row.amount), type: "settlement" as const };
+}
+
+/**
+ * Newest first, matching the server ordering the feed pages through. Typed to
+ * the two fields it actually reads so it also sorts lighter id-only rows.
+ */
+export function compareHistoryItems(
+  a: { date: string; created_at: string },
+  b: { date: string; created_at: string },
+) {
+  return (
+    b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at)
+  );
+}
+
 interface RecentEntriesCacheValue {
   entries: HistoryItem[];
   expenseCount: number;
@@ -62,7 +102,7 @@ export interface RecentSettlement {
 
 export type HistoryItem = RecentEntry | RecentSettlement;
 
-interface RecentEntryRow extends Omit<RecentEntry, "type"> {
+export interface RecentEntryRow extends Omit<RecentEntry, "type"> {
   id: string;
   description: string;
   date: string;
@@ -86,9 +126,9 @@ interface RecentEntryRow extends Omit<RecentEntry, "type"> {
   }[];
 }
 
-interface RecentSettlementRow extends Omit<RecentSettlement, "type"> {}
+export interface RecentSettlementRow extends Omit<RecentSettlement, "type"> {}
 
-function queuedExpenseToHistoryItem(item: QueuedExpense): RecentEntry {
+export function queuedExpenseToHistoryItem(item: QueuedExpense): RecentEntry {
   const payload = item.payload;
   const payers = Array.isArray(payload.p_payers) ? payload.p_payers : [];
   const items = Array.isArray(payload.p_items) ? payload.p_items : [];
@@ -184,14 +224,7 @@ export function useRecentEntries(tripId: string) {
       const [expenseResult, settlementResult] = await Promise.all([
         supabase
           .from("entries")
-          .select(
-            `id, description, date, created_at, created_by, last_edited_at, currency, sync_status,
-             exchange_rate_to_trip_default, rate_is_estimated, payee,
-             category_id, category:categories(name, icon),
-             payments(amount_paid, user_id, user:users(id, name, avatar_url)),
-             line_items(line_item_shares(user_id, owed_amount)),
-             adjustments(adjustment_shares(user_id, owed_amount))`,
-          )
+          .select(ENTRY_SELECT)
           .eq("trip_id", tripId)
           .eq("status", "active")
           .order("date", { ascending: false })
@@ -200,11 +233,7 @@ export function useRecentEntries(tripId: string) {
           .returns<RecentEntryRow[]>(),
         supabase
           .from("settlements")
-          .select(
-            `id, date, created_at, created_by, amount, from_user_id, to_user_id,
-             from_user:users!settlements_from_user_id_fkey(id, name),
-             to_user:users!settlements_to_user_id_fkey(id, name)`,
-          )
+          .select(SETTLEMENT_SELECT)
           .eq("trip_id", tripId)
           .order("date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -225,11 +254,7 @@ export function useRecentEntries(tripId: string) {
             const offlineEntries = [
               ...queuedExpenses.filter((entry) => !cachedServerIds.has(entry.id)),
               ...cachedServerEntries,
-            ].sort(
-              (a, b) =>
-                b.date.localeCompare(a.date) ||
-                b.created_at.localeCompare(a.created_at),
-            );
+            ].sort(compareHistoryItems);
             setEntries(offlineEntries);
             setError(null);
             setLoading(false);
@@ -240,22 +265,14 @@ export function useRecentEntries(tripId: string) {
           return;
         }
         const serverEntries: HistoryItem[] = [
-          ...(expenseResult.data ?? []).map((entry) => ({ ...entry, type: "expense" as const })),
-          ...(settlementResult.data ?? []).map((settlement) => ({
-            ...settlement,
-            amount: Number(settlement.amount),
-            type: "settlement" as const,
-          })),
+          ...(expenseResult.data ?? []).map(toRecentEntry),
+          ...(settlementResult.data ?? []).map(toRecentSettlement),
         ];
         const serverEntryIds = new Set(serverEntries.map((entry) => entry.id));
         const nextEntries: HistoryItem[] = [
           ...queuedExpenses.filter((entry) => !serverEntryIds.has(entry.id)),
           ...serverEntries,
-        ].sort(
-          (a, b) =>
-            b.date.localeCompare(a.date) ||
-            b.created_at.localeCompare(a.created_at),
-        );
+        ].sort(compareHistoryItems);
         const nextExpenseCount = expenseResult.data?.length ?? 0;
         const nextSettlementCount = settlementResult.data?.length ?? 0;
         const nextCache = {
@@ -292,14 +309,7 @@ export function useRecentEntries(tripId: string) {
     const expenseQuery = hasMoreExpenses
       ? supabase
           .from("entries")
-          .select(
-            `id, description, date, created_at, created_by, last_edited_at, currency, sync_status,
-             exchange_rate_to_trip_default, rate_is_estimated, payee,
-             category_id, category:categories(name, icon),
-             payments(amount_paid, user_id, user:users(id, name, avatar_url)),
-             line_items(line_item_shares(user_id, owed_amount)),
-             adjustments(adjustment_shares(user_id, owed_amount))`,
-          )
+          .select(ENTRY_SELECT)
           .eq("trip_id", tripId)
           .eq("status", "active")
           .order("date", { ascending: false })
@@ -310,11 +320,7 @@ export function useRecentEntries(tripId: string) {
     const settlementQuery = hasMoreSettlements
       ? supabase
           .from("settlements")
-          .select(
-            `id, date, created_at, created_by, amount, from_user_id, to_user_id,
-             from_user:users!settlements_from_user_id_fkey(id, name),
-             to_user:users!settlements_to_user_id_fkey(id, name)`,
-          )
+          .select(SETTLEMENT_SELECT)
           .eq("trip_id", tripId)
           .order("date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -335,17 +341,9 @@ export function useRecentEntries(tripId: string) {
     const newSettlements = settlementResult.data ?? [];
     const nextEntries = [
       ...entries,
-      ...newExpenses.map((entry) => ({ ...entry, type: "expense" as const })),
-      ...newSettlements.map((settlement) => ({
-        ...settlement,
-        amount: Number(settlement.amount),
-        type: "settlement" as const,
-      })),
-    ].sort(
-      (a, b) =>
-        b.date.localeCompare(a.date) ||
-        b.created_at.localeCompare(a.created_at),
-    );
+      ...newExpenses.map(toRecentEntry),
+      ...newSettlements.map(toRecentSettlement),
+    ].sort(compareHistoryItems);
     const nextExpenseCount = expenseCount + newExpenses.length;
     const nextSettlementCount = settlementCount + newSettlements.length;
     const nextHasMoreExpenses = hasMoreExpenses && newExpenses.length === PAGE_SIZE;
