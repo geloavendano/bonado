@@ -694,6 +694,27 @@ a:active {
   }
 }
 
+/*
+ * Search bar wiping open over the transaction filter chips. A clip-path wipe
+ * rather than a width transition: width is deliberately excluded from the
+ * global element transitions above, and animating it would reflow the input's
+ * text. The prefers-reduced-motion block above neutralises this via !important.
+ */
+@keyframes search-expand {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.5;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+.search-expand {
+  animation: search-expand var(--motion-base) var(--ease-emphasized) both;
+}
+
 .cover-placeholder {
   background: repeating-linear-gradient(45deg, #efefee 0 10px, #e7e7e5 10px 20px);
 }

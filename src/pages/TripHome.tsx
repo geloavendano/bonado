@@ -43,6 +43,9 @@ import { supabase } from "@/lib/supabase";
 import { prefetchExpenses } from "@/hooks/useExpense";
 import { prefetchSettlements } from "@/hooks/useSettlement";
 import { NativeTopControls } from "@/components/native/NativeTopControls";
+import { SearchIcon } from "@/components/ui/SearchIcon";
+import { useTransactionSearch } from "@/hooks/useTransactionSearch";
+import { sumDayShares } from "@/lib/moneyMath";
 
 type HistoryFilter = "all" | "paid" | "created" | "involving";
 type DropPlacement = "before" | "after";
@@ -83,6 +86,13 @@ export function TripHome() {
     allowOriginal: true,
   });
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const search = useTransactionSearch(trip.id, searchQuery, {
+    categories,
+    members: trip.members,
+  });
   const [draggingHistoryId, setDraggingHistoryId] = useState<string | null>(null);
   const [dropPlacement, setDropPlacement] = useState<{
     key: string;
@@ -99,9 +109,13 @@ export function TripHome() {
   const historyRowRefs = useRef(new Map<string, HTMLElement>());
   const suppressNextClick = useRef(false);
   const toastMessage = useRouteToast();
+  // Search replaces the paginated feed; the filter chips then narrow whichever
+  // feed is showing, so the two compose instead of fighting.
+  const feedEntries = search.active ? search.entries : entries;
+  const reorderEnabled = !search.active && historyFilter === "all";
   const filteredEntries = useMemo(() => {
-    if (!user || historyFilter === "all") return entries;
-    return entries.filter((entry) => {
+    if (!user || historyFilter === "all") return feedEntries;
+    return feedEntries.filter((entry) => {
       if (historyFilter === "created") return entry.created_by === user.id;
       if (entry.type === "settlement") {
         if (historyFilter === "paid") return entry.from_user_id === user.id;
@@ -118,7 +132,7 @@ export function TripHome() {
         );
       return paidByUser || sharedWithUser;
     });
-  }, [entries, historyFilter, user]);
+  }, [feedEntries, historyFilter, user]);
   const groupedEntries = filteredEntries.reduce<Map<string, typeof filteredEntries>>(
     (groups, entry) => {
       const group = groups.get(entry.date) ?? [];
@@ -145,6 +159,16 @@ export function TripHome() {
       : formatMoney(Math.abs(displayedBalance), balanceCurrency);
 
   const inviteUrl = buildInviteUrl(trip.invite_link_token);
+
+  useEffect(() => {
+    if (!searchOpen) {
+      setSearchQuery("");
+      return;
+    }
+    // preventScroll: the page must not jump under the sticky header when the
+    // on-screen keyboard opens.
+    searchInputRef.current?.focus({ preventScroll: true });
+  }, [searchOpen]);
 
   useEffect(() => {
     const visibleEntries = filteredEntries.slice(0, 24);
@@ -232,7 +256,7 @@ export function TripHome() {
     target: (typeof entries)[number],
     placement: DropPlacement,
   ) {
-    if (!draggedKey) return;
+    if (!draggedKey || !reorderEnabled) return;
     const dragged = entries.find((entry) => historyKey(entry) === draggedKey);
     if (!dragged || historyKey(dragged) === historyKey(target)) return;
 
@@ -396,6 +420,10 @@ export function TripHome() {
   }
 
   function reorderProps(key: string) {
+    // Reordering positions an item ±1 minute from its *visible* neighbour, which
+    // is meaningless when rows are hidden — the real neighbour may be filtered
+    // out. Disable while searching or filtering rather than write a bogus order.
+    if (!reorderEnabled) return {};
     return {
       "data-history-drop-key": key,
       ref: (node: HTMLElement | null) => {
@@ -595,8 +623,18 @@ export function TripHome() {
           <SectionLabel>Transaction history</SectionLabel>
         </div>
 
-        {entries.length > 0 && (
-          <div className="-mx-6 -mt-1 flex gap-1.5 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {(entries.length > 0 || searchOpen) && (
+          <div className="relative -mt-1">
+          <div className="-mx-6 flex gap-1.5 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              aria-label="Search transactions"
+              aria-expanded={searchOpen}
+              onClick={() => setSearchOpen(true)}
+              className="grid size-8 shrink-0 place-items-center rounded-pill bg-card text-secondary shadow-[var(--shadow-card)] transition"
+            >
+              <SearchIcon className="size-[15px]" />
+            </button>
             {HISTORY_FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -640,9 +678,86 @@ export function TripHome() {
               </button>
             ))}
           </div>
+
+          {searchOpen && (
+            <div
+              // Spans the chip row's full bleed (-left-6/-right-6 mirroring its
+              // -mx-6), otherwise a horizontally-scrolled chip shows in the
+              // gutter beside the overlay on narrow screens.
+              className="search-expand absolute inset-y-0 -left-6 -right-6 z-10 flex items-center bg-bg px-6 pb-1"
+            >
+              <div className="relative flex h-8 w-full items-center">
+                <SearchIcon className="pointer-events-none absolute left-3 size-[15px] text-secondary" />
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Escape") return;
+                    event.preventDefault();
+                    if (searchQuery) {
+                      setSearchQuery("");
+                      return;
+                    }
+                    setSearchOpen(false);
+                  }}
+                  onBlur={(event) => {
+                    if (searchQuery) return;
+                    if (event.currentTarget.parentElement?.contains(event.relatedTarget)) return;
+                    setSearchOpen(false);
+                  }}
+                  type="text"
+                  inputMode="search"
+                  autoComplete="off"
+                  placeholder="Search transactions"
+                  aria-label="Search transactions"
+                  className="h-8 w-full rounded-pill bg-card pl-9 pr-9 !text-[13px] font-semibold text-ink shadow-[var(--shadow-card)] outline-none placeholder:font-medium placeholder:text-faint"
+                />
+                <button
+                  type="button"
+                  aria-label={searchQuery ? "Clear search" : "Close search"}
+                  onClick={() => {
+                    if (searchQuery) {
+                      setSearchQuery("");
+                      searchInputRef.current?.focus({ preventScroll: true });
+                      return;
+                    }
+                    setSearchOpen(false);
+                  }}
+                  className="absolute right-2.5 grid size-5 place-items-center rounded-full text-[13px] leading-none text-secondary"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+          </div>
         )}
 
-        {entriesLoading ? (
+        {searchOpen && search.active && !search.loading && (
+          <div className="-mt-1 flex items-center gap-2 text-[11.5px] text-secondary">
+            <span>
+              {search.resultCount === 0
+                ? "No matches"
+                : `${filteredEntries.length} of ${search.resultCount} result${
+                    search.resultCount === 1 ? "" : "s"
+                  }`}
+            </span>
+            {historyFilter !== "all" && (
+              <button
+                type="button"
+                onClick={() => setHistoryFilter("all")}
+                className="flex items-center gap-1 rounded-pill bg-teal-tint px-2 py-0.5 text-[11px] font-extrabold text-teal-dark"
+              >
+                {HISTORY_FILTERS.find((filter) => filter.value === historyFilter)?.label}
+                <span aria-hidden="true">×</span>
+                <span className="sr-only">Clear filter</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {entriesLoading || (search.active && search.loading && search.entries.length === 0) ? (
           <div className="flex flex-col gap-2.5">
             <Skeleton className="h-[68px] w-full rounded-[18px]" />
             <Skeleton className="h-[68px] w-full rounded-[18px]" />
@@ -673,10 +788,33 @@ export function TripHome() {
                       day: "numeric",
                     });
 
+              // Totals the rows actually rendered for this date, so it can never
+              // disagree with the column beneath it when a filter or search is on.
+              const dayTotal = sumDayShares(
+                dateEntries,
+                user?.id,
+                displayCurrency,
+                trip.default_currency,
+                rates,
+              );
+
               return (
                 <section key={date}>
-                  <div className="sticky top-[calc(72px+env(safe-area-inset-top))] z-10 -mx-1 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
-                    {dateLabel}
+                  <div className="sticky top-[calc(72px+env(safe-area-inset-top))] z-10 -mx-1 flex items-center justify-between gap-3 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
+                    <span>{dateLabel}</span>
+                    {dayTotal && (
+                      <span
+                        className="shrink-0 tabular-nums normal-case tracking-normal"
+                        title={
+                          dayTotal.approximate
+                            ? "Approximate — converted from other currencies"
+                            : undefined
+                        }
+                      >
+                        {dayTotal.approximate && "≈ "}
+                        {formatMoney(dayTotal.amount, dayTotal.currency)}
+                      </span>
+                    )}
                   </div>
                   <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
                     {dateEntries.map((entry, index) => {
@@ -904,19 +1042,25 @@ export function TripHome() {
                 </section>
               );
             })}
-            {hasMoreEntries && (
+            {(search.active ? search.hasMore : hasMoreEntries) && (
               <button
-                onClick={() => void loadMoreEntries()}
-                disabled={entriesLoadingMore}
+                onClick={() =>
+                  void (search.active ? search.loadMore() : loadMoreEntries())
+                }
+                disabled={search.active ? search.loadingMore : entriesLoadingMore}
                 className="mt-3 rounded-[16px] bg-card px-4 py-3 text-[13px] font-bold text-teal shadow-[var(--shadow-card)] disabled:opacity-50"
               >
-                {entriesLoadingMore ? "Loading…" : "Load more transactions"}
+                {(search.active ? search.loadingMore : entriesLoadingMore)
+                  ? "Loading…"
+                  : "Load more transactions"}
               </button>
             )}
           </div>
           ) : (
             <div className="bg-card rounded-[18px] p-6 text-center text-secondary text-[13.5px] shadow-[var(--shadow-card)]">
-              No matching transactions for this filter.
+              {search.active
+                ? `No transactions match “${searchQuery.trim()}”.`
+                : "No matching transactions for this filter."}
             </div>
           )
         ) : (
