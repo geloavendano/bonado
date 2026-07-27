@@ -108,6 +108,7 @@ export function TripHome() {
     position: DropPlacement;
   } | null>(null);
   const historyRowRefs = useRef(new Map<string, HTMLElement>());
+  const localToastTimer = useRef<number | null>(null);
   const blockedHintTimer = useRef<number | null>(null);
   const blockedHintStart = useRef<{ x: number; y: number } | null>(null);
   const suppressNextClick = useRef(false);
@@ -234,8 +235,12 @@ export function TripHome() {
   }
 
   function showLocalToast(message: string, tone: ToastTone = "success") {
+    // Cancel the outgoing toast's auto-clear, or it fires mid-life on the new
+    // one — visible now that entering a drag and completing it toast in quick
+    // succession.
+    if (localToastTimer.current !== null) window.clearTimeout(localToastTimer.current);
     setLocalToast({ message, tone });
-    window.setTimeout(() => setLocalToast(null), 2400);
+    localToastTimer.current = window.setTimeout(() => setLocalToast(null), 2400);
   }
 
   async function cancelPendingExpense(entryId: string) {
@@ -299,6 +304,7 @@ export function TripHome() {
       showLocalToast(error.message);
       return;
     }
+    showLocalToast("Timestamp updated.");
     void refreshVisibleData();
   }
 
@@ -382,6 +388,7 @@ export function TripHome() {
       setDraggingHistoryId(key);
       setDropPlacementState(null);
       navigator.vibrate?.(10);
+      showLocalToast("Drag to reorder. Release to drop.", "info");
     }, 260);
   }
 
@@ -768,7 +775,10 @@ export function TripHome() {
                   autoComplete="off"
                   placeholder="Search transactions"
                   aria-label="Search transactions"
-                  className="h-8 w-full rounded-pill bg-card pl-9 pr-9 !text-[13px] font-semibold text-ink shadow-[var(--shadow-card)] outline-none placeholder:font-medium placeholder:text-faint"
+                  // No `!` on the text size: the iOS guard in index.css forces
+                  // 16px under 640px, and a class-level !important here would
+                  // outrank it and make iOS zoom in on focus with no way back.
+                  className="h-8 w-full rounded-pill bg-card pl-9 pr-9 text-[13px] font-semibold text-ink shadow-[var(--shadow-card)] outline-none placeholder:font-medium placeholder:text-faint"
                 />
                 <button
                   type="button"
