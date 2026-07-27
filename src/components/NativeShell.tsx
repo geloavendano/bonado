@@ -60,7 +60,9 @@ export function NativeShell() {
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || !user) return;
-    void registerForPush(user.id);
+    void registerForPush(user.id, { requestPermission: false }).catch((error) => {
+      console.warn("Could not register device for push", error);
+    });
     const receivedListener = PushNotifications.addListener(
       "pushNotificationReceived",
       () => {
@@ -104,6 +106,13 @@ export function NativeShell() {
         // refresh loop must be restarted explicitly on resume.
         if (isActive) {
           void supabase.auth.startAutoRefresh();
+          if (user) {
+            void registerForPush(user.id, { requestPermission: false }).catch(
+              (error) => {
+                console.warn("Could not refresh push registration", error);
+              },
+            );
+          }
           void refreshVisibleData();
         } else {
           void supabase.auth.stopAutoRefresh();
@@ -150,7 +159,7 @@ export function NativeShell() {
     return () => {
       for (const listener of listeners) void listener.then((l) => l.remove());
     };
-  }, [navigate]);
+  }, [navigate, user]);
 
   if (!updateRequired) return null;
 

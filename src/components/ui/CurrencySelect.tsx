@@ -1,4 +1,5 @@
 import { ChevronDown } from "@/components/ui/ChevronDown";
+import type { CSSProperties } from "react";
 
 export interface PinnedCurrencyOption {
   /** Currency code, or "" for a per-row "Original" default. */
@@ -11,6 +12,9 @@ interface CurrencySelectProps {
   onChange: (value: string) => void;
   currencies: string[];
   disabled?: boolean;
+  className?: string;
+  selectClassName?: string;
+  selectStyle?: CSSProperties;
   /**
    * Options pinned above the full list (e.g. Original / Trip default /
    * Preferred), separated from it by a divider row.
@@ -30,6 +34,9 @@ export function CurrencySelect({
   onChange,
   currencies,
   disabled,
+  className,
+  selectClassName,
+  selectStyle,
   pinned,
   "aria-label": ariaLabel = "Display currency",
 }: CurrencySelectProps) {
@@ -38,7 +45,7 @@ export function CurrencySelect({
       all.findIndex((other) => other.value === option.value) === index,
   );
   return (
-    <div className="relative">
+    <div className={["relative", className].filter(Boolean).join(" ")}>
       <select
         value={value}
         disabled={disabled}
@@ -50,7 +57,13 @@ export function CurrencySelect({
               : next,
           );
         }}
-        className="appearance-none rounded-pill bg-card py-2 pl-3 pr-8 text-[13px] font-extrabold text-teal-dark shadow-[var(--shadow-card)] outline-none disabled:opacity-50"
+        className={[
+          "appearance-none rounded-pill bg-card py-2 pl-3 pr-8 text-[13px] font-extrabold text-teal-dark shadow-[var(--shadow-card)] outline-none disabled:opacity-50",
+          selectClassName,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={selectStyle}
         aria-label={ariaLabel}
       >
         {pinnedOptions.map((option) => {

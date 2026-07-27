@@ -24,7 +24,7 @@ interface NotificationRecord {
   entry_id: string | null;
   settlement_id: string | null;
   actor: { name: string } | null;
-  entry: { description: string } | null;
+  entry: { description: string; payee: string | null } | null;
   trip: { name: string } | null;
 }
 
@@ -83,11 +83,28 @@ function describe(notification: NotificationRecord): {
   body: string;
 } {
   const actor = notification.actor?.name ?? "Someone";
-  const expense = notification.entry?.description ?? "an expense";
+  const expense = notification.entry?.description?.trim() || "an expense";
+  const payee = notification.entry?.payee?.trim();
   const trip = notification.trip?.name ?? "your trip";
+  const expenseContext = [payee ? `Paid to ${payee}` : null, trip]
+    .filter(Boolean)
+    .join(" · ");
+
+  if (notification.kind === "expense_created") {
+    return {
+      title: `${actor} added ${expense}`,
+      body: expenseContext || trip,
+    };
+  }
+
+  if (notification.kind === "expense_edited") {
+    return {
+      title: `${actor} updated ${expense}`,
+      body: expenseContext || trip,
+    };
+  }
+
   const titles: Record<string, string> = {
-    expense_created: `${actor} added an expense`,
-    expense_edited: `${actor} updated an expense`,
     expense_deleted: `${actor} deleted an expense`,
     settlement_created: `${actor} recorded a settlement`,
     settlement_edited: `${actor} updated a settlement`,
@@ -176,7 +193,7 @@ Deno.serve(async (request) => {
     .select(`
       id, kind, user_id, trip_id, entry_id, settlement_id,
       actor:users!notifications_actor_id_fkey(name),
-      entry:entries(description),
+      entry:entries(description, payee),
       trip:trips(name)
     `)
     .eq("id", notification_id)

@@ -691,7 +691,7 @@ export function AddExpense() {
               type="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
-              className="w-full min-w-0"
+              className="mobile-date-time-field w-full min-w-0"
             />
           </div>
           <div className="flex min-w-0 flex-col gap-2">
@@ -700,7 +700,7 @@ export function AddExpense() {
               type="time"
               value={time}
               onChange={(event) => setTime(event.target.value)}
-              className="w-full min-w-0"
+              className="mobile-date-time-field w-full min-w-0"
             />
           </div>
         </div>

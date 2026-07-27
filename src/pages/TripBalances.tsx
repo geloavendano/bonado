@@ -386,6 +386,7 @@ export function TripBalances() {
                 Record settlement
               </Button>
             )}
+
           </>
         )}
         {(error || settlementError) && (

@@ -22,12 +22,35 @@ function systemPrefersDark() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
+function resolvedTheme(preference: ThemePreference): "light" | "dark" {
+  return preference === "dark" || (preference === "system" && systemPrefersDark())
+    ? "dark"
+    : "light";
+}
+
+function postNativeTheme(preference: ThemePreference) {
+  const message = {
+    type: "theme:update",
+    preference,
+    resolvedTheme: resolvedTheme(preference),
+  };
+
+  const post = () => {
+    window.webkit?.messageHandlers?.bonadoNativeTheme?.postMessage(message);
+  };
+
+  post();
+  window.requestAnimationFrame(post);
+  window.setTimeout(post, 250);
+}
+
 function applyResolvedTheme(preference: ThemePreference) {
   const root = document.documentElement;
-  const dark = preference === "dark" || (preference === "system" && systemPrefersDark());
+  const dark = resolvedTheme(preference) === "dark";
   root.classList.toggle("dark", dark);
   root.classList.toggle("light", preference === "light");
   root.style.colorScheme = dark ? "dark" : "light";
+  postNativeTheme(preference);
 }
 
 interface ThemeContextValue {
@@ -55,7 +78,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (preference !== "system") return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => applyResolvedTheme("system");
+    const handler = () => {
+      applyResolvedTheme("system");
+    };
     media.addEventListener("change", handler);
     return () => media.removeEventListener("change", handler);
   }, [preference]);

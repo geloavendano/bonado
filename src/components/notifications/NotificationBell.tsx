@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/Avatar";
@@ -9,6 +9,8 @@ import {
 import { formatMoney } from "@/lib/money";
 import { timeAgo } from "@/lib/timeAgo";
 import { useOverlayA11y } from "@/hooks/useOverlayA11y";
+import { useAuth } from "@/context/AuthContext";
+import { usePushPermission } from "@/hooks/usePushPermission";
 
 function BellIcon({ className }: { className?: string }) {
   return (
@@ -77,8 +79,16 @@ function describe(notification: NotificationItem): {
   }
 }
 
-export function NotificationBell() {
+export function NotificationBell({
+  buttonClassName,
+  nativeOpenTarget = false,
+}: {
+  buttonClassName?: string;
+  nativeOpenTarget?: boolean;
+} = {}) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const pushPermission = usePushPermission(user?.id);
   const {
     notifications,
     unreadCount,
@@ -92,6 +102,56 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useOverlayA11y<HTMLDivElement>(open, () => setOpen(false));
+
+  function openSheet() {
+    window.dispatchEvent(new CustomEvent("bonado:close-account-menu"));
+    setOpen(true);
+  }
+
+  function closeSheet() {
+    setOpen(false);
+  }
+
+  useEffect(() => {
+    window.webkit?.messageHandlers?.bonadoNativeTopControls?.postMessage({
+      type: "topControls:unread",
+      unreadCount,
+    });
+    window.webkit?.messageHandlers?.bonadoNativeDashboardControls?.postMessage({
+      type: "dashboardControls:unread",
+      unreadCount,
+    });
+  }, [unreadCount]);
+
+  useEffect(() => {
+    if (!nativeOpenTarget) return;
+
+    function openFromNative() {
+      openSheet();
+    }
+
+    function toggleFromNative() {
+      setOpen((isOpen) => {
+        if (!isOpen) {
+          window.dispatchEvent(new CustomEvent("bonado:close-account-menu"));
+        }
+        return !isOpen;
+      });
+    }
+
+    function closeFromNative() {
+      closeSheet();
+    }
+
+    window.addEventListener("bonado:open-notifications", openFromNative);
+    window.addEventListener("bonado:toggle-notifications", toggleFromNative);
+    window.addEventListener("bonado:close-notifications", closeFromNative);
+    return () => {
+      window.removeEventListener("bonado:open-notifications", openFromNative);
+      window.removeEventListener("bonado:toggle-notifications", toggleFromNative);
+      window.removeEventListener("bonado:close-notifications", closeFromNative);
+    };
+  }, [nativeOpenTarget]);
 
   function openNotification(notification: NotificationItem) {
     setOpen(false);
@@ -126,14 +186,23 @@ export function NotificationBell() {
   return (
     <div ref={containerRef} className="relative z-30">
       <button
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          if (open) {
+            closeSheet();
+          } else {
+            openSheet();
+          }
+        }}
         aria-label={
           unreadCount > 0
             ? `Notifications (${unreadCount} unread)`
             : "Notifications"
         }
         aria-expanded={open}
-        className="relative grid size-[38px] place-items-center rounded-full bg-card text-ink shadow-[var(--shadow-card)]"
+        className={
+          buttonClassName ??
+          "relative grid size-[38px] place-items-center rounded-full bg-card text-ink shadow-[var(--shadow-card)]"
+        }
       >
         <BellIcon className="size-[19px]" />
         {unreadCount > 0 && (
@@ -151,7 +220,7 @@ export function NotificationBell() {
               // consume the tap: closing on pointerdown let the follow-up
               // click land on whatever sat behind the backdrop
               event.stopPropagation();
-              setOpen(false);
+              closeSheet();
             }}
           />
           <div
@@ -174,6 +243,31 @@ export function NotificationBell() {
                 </button>
               )}
             </div>
+
+            {pushPermission.supported && !pushPermission.enabled && (
+              <div className="mb-2 rounded-[16px] bg-tile p-3">
+                <div className="text-[12.5px] font-bold text-ink">
+                  Get notified faster
+                </div>
+                <p className="mt-1 text-[11.5px] leading-snug text-secondary">
+                  {pushPermission.description}
+                </p>
+                <button
+                  onClick={() => void pushPermission.enable()}
+                  disabled={pushPermission.working || !user}
+                  className="mt-2 rounded-full bg-teal px-3.5 py-2 text-[11.5px] font-bold text-white disabled:opacity-50"
+                >
+                  {pushPermission.working
+                    ? "Opening…"
+                    : pushPermission.label}
+                </button>
+                {pushPermission.error && (
+                  <p className="mt-1.5 text-[10.5px] text-owe">
+                    {pushPermission.error}
+                  </p>
+                )}
+              </div>
+            )}
 
             {!loading && unreadCount === 0 && (
               <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">

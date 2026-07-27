@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { registerDataRefresh } from "@/lib/dataRefresh";
 import { useAuth } from "@/context/AuthContext";
@@ -164,6 +164,11 @@ async function hydrateNotifications(
 
 export function useNotifications() {
   const { user } = useAuth();
+  const channelInstanceId = useRef(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2),
+  );
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -215,7 +220,7 @@ export function useNotifications() {
     if (!user) return;
 
     const channel = supabase
-      .channel(`bonado:notifications:${user.id}`)
+      .channel(`bonado:notifications:${user.id}:${channelInstanceId.current}`)
       .on(
         "postgres_changes",
         {

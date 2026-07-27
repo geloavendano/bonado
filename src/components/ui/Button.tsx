@@ -9,10 +9,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-pill font-bold text-[15.5px] px-6 py-[15px] disabled:opacity-50 disabled:pointer-events-none active:opacity-90";
+  "inline-flex items-center justify-center gap-2 rounded-pill font-bold text-[15.5px] px-6 py-[15px] disabled:opacity-50 disabled:pointer-events-none active:opacity-90 transition-[transform,opacity,box-shadow,background-color] duration-200";
 
 export const buttonVariants: Record<ButtonVariant, string> = {
-  primary: "bg-teal text-white shadow-[var(--shadow-primary)]",
+  primary: "liquid-cta bg-teal text-white shadow-[var(--shadow-primary)]",
   outline: "bg-card text-teal border-[1.5px] border-teal",
   ghost: "bg-card text-secondary shadow-[var(--shadow-card)]",
 };

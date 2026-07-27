@@ -64,6 +64,25 @@ async function fileToDataUrl(file: File) {
   });
 }
 
+function timestampMinuteKey(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16);
+  date.setSeconds(0, 0);
+  return date.toISOString();
+}
+
+function shouldUpdateDisplayTimestamp(
+  previous: { date: string; created_at: string } | null | undefined,
+  nextDate: string,
+  nextCreatedAt: string,
+) {
+  if (!previous) return true;
+  return (
+    previous.date !== nextDate ||
+    timestampMinuteKey(previous.created_at) !== timestampMinuteKey(nextCreatedAt)
+  );
+}
+
 export function useCreateExpense() {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -222,6 +241,19 @@ export function useCreateExpense() {
       return false;
     }
 
+    const { data: previousTiming, error: previousTimingError } = await supabase
+      .from("entries")
+      .select("date, created_at")
+      .eq("id", entryId)
+      .maybeSingle()
+      .returns<{ date: string; created_at: string }>();
+
+    if (previousTimingError) {
+      setSubmitting(false);
+      setError(previousTimingError.message);
+      return false;
+    }
+
     const { error: replaceError } = await supabase.rpc("replace_expense_with_rate", {
       p_entry_id: entryId,
       p_trip_id: input.tripId,
@@ -264,16 +296,20 @@ export function useCreateExpense() {
       setError(replaceError.message);
       return false;
     }
-    const { error: timestampError } = await supabase.rpc("update_entry_display_timestamp", {
-      p_entry_id: entryId,
-      p_date: input.date,
-      p_created_at: input.createdAt,
-    });
-    if (timestampError) {
-      setSubmitting(false);
-      setError(timestampError.message);
-      return false;
+
+    if (shouldUpdateDisplayTimestamp(previousTiming, input.date, input.createdAt)) {
+      const { error: timestampError } = await supabase.rpc("update_entry_display_timestamp", {
+        p_entry_id: entryId,
+        p_date: input.date,
+        p_created_at: input.createdAt,
+      });
+      if (timestampError) {
+        setSubmitting(false);
+        setError(timestampError.message);
+        return false;
+      }
     }
+
     setSubmitting(false);
 
     invalidateExpense(entryId);

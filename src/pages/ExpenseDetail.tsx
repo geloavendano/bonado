@@ -82,6 +82,27 @@ function formatAuditPeople(value: unknown, currency: string) {
     .join(", ");
 }
 
+function formatAuditPaymentMethodValue(item: { method?: unknown; label?: unknown }) {
+  const method = typeof item.method === "string" ? item.method.trim() : "";
+  const label = typeof item.label === "string" ? item.label.trim() : "";
+
+  if (!method && !label) return "No payment method";
+  if (method && label && label !== method) return `${method} · ${label}`;
+  return method || label;
+}
+
+function formatAuditPaymentMethods(value: unknown) {
+  if (!Array.isArray(value) || value.length === 0) return "none";
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return "Member: No payment method";
+      const row = item as { name?: unknown; method?: unknown; label?: unknown };
+      const name = typeof row.name === "string" && row.name ? row.name : "Member";
+      return `${name}: ${formatAuditPaymentMethodValue(row)}`;
+    })
+    .join(", ");
+}
+
 function editChangeSummary(change: ExpenseEditLogChange, fallbackCurrency: string) {
   const currency = auditCurrency(change, fallbackCurrency);
   if (change.field === "timestamp") {
@@ -103,6 +124,7 @@ function editChangeSummary(change: ExpenseEditLogChange, fallbackCurrency: strin
     return `Edited category from ${formatAuditValue(change.from)} to ${formatAuditValue(change.to)}`;
   }
   if (change.field === "payers") return "Edited paid by";
+  if (change.field === "payment_methods") return "Edited payment method";
   if (change.field === "distribution") return "Edited expense distribution";
   if (change.field === "line_items") return "Edited line items";
   if (change.field === "adjustments") return "Edited tax/tip adjustments";
@@ -110,6 +132,12 @@ function editChangeSummary(change: ExpenseEditLogChange, fallbackCurrency: strin
 }
 
 function editChangeDetail(change: ExpenseEditLogChange, fallbackCurrency: string) {
+  if (change.field === "payment_methods") {
+    return {
+      from: formatAuditPaymentMethods(change.from),
+      to: formatAuditPaymentMethods(change.to),
+    };
+  }
   if (!["payers", "distribution"].includes(change.field)) return null;
   const currency = auditCurrency(change, fallbackCurrency);
   return {

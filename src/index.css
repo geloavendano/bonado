@@ -175,6 +175,21 @@ a:active {
   transform: scale(0.975);
 }
 
+.report-breakdown-toggle,
+.report-breakdown-toggle:active,
+.report-breakdown-toggle:focus,
+.report-breakdown-toggle:focus-visible {
+  outline: none;
+}
+
+.report-breakdown-toggle:active {
+  transform: none;
+}
+
+.report-breakdown-toggle:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(15, 143, 127, 0.18);
+}
+
 .motion-page {
   animation: page-enter var(--motion-slow) var(--ease-emphasized) both;
 }
@@ -259,6 +274,270 @@ a:active {
 
 .trip-bottom-nav {
   view-transition-name: trip-bottom-nav;
+}
+
+.liquid-nav {
+  --glass-shadow: rgba(31, 42, 39, 0.12);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.78), transparent 42%),
+    radial-gradient(circle at 88% 118%, rgba(15, 143, 127, 0.1), transparent 52%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.28));
+  box-shadow:
+    0 16px 38px var(--glass-shadow),
+    0 4px 12px rgba(31, 42, 39, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(28px) saturate(165%) brightness(1.03);
+  backdrop-filter: blur(28px) saturate(165%) brightness(1.03);
+}
+
+.liquid-nav::before,
+.liquid-fab::before,
+.liquid-cta::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.56), transparent 34%),
+    linear-gradient(290deg, rgba(255, 255, 255, 0.22), transparent 38%);
+  opacity: 0.76;
+  pointer-events: none;
+}
+
+.liquid-nav::after {
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  content: "";
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  pointer-events: none;
+}
+
+.liquid-nav-pill {
+  background:
+    radial-gradient(circle at 22% 8%, rgba(255, 255, 255, 0.9), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.26));
+  box-shadow:
+    0 8px 22px rgba(31, 42, 39, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+}
+
+.liquid-nav-item {
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.42);
+}
+
+.liquid-fab {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background:
+    radial-gradient(circle at 28% 14%, rgba(131, 235, 219, 0.72), transparent 42%),
+    linear-gradient(145deg, rgba(15, 143, 127, 0.82), rgba(8, 118, 103, 0.74));
+  box-shadow:
+    0 16px 34px rgba(15, 143, 127, 0.24),
+    0 5px 14px rgba(31, 42, 39, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -6px 18px rgba(0, 68, 56, 0.1);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  backdrop-filter: blur(22px) saturate(155%);
+}
+
+.liquid-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background:
+    radial-gradient(circle at 24% 8%, rgba(129, 231, 216, 0.7), transparent 42%),
+    radial-gradient(circle at 84% 118%, rgba(255, 255, 255, 0.16), transparent 42%),
+    linear-gradient(145deg, rgba(17, 162, 144, 0.8), rgba(8, 121, 106, 0.72));
+  box-shadow:
+    0 16px 38px rgba(15, 143, 127, 0.24),
+    0 6px 16px rgba(31, 42, 39, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -8px 20px rgba(0, 76, 63, 0.12);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  backdrop-filter: blur(22px) saturate(155%);
+}
+
+.liquid-cta::after {
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  content: "";
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+.liquid-cta:not(:disabled):hover {
+  box-shadow:
+    0 20px 48px rgba(15, 143, 127, 0.32),
+    0 8px 20px rgba(31, 42, 39, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -8px 20px rgba(0, 76, 63, 0.14);
+}
+
+.liquid-cta:not(:disabled):active {
+  transform: translateY(1px) scale(0.995);
+}
+
+:root.dark .liquid-nav {
+  border-color: rgba(255, 255, 255, 0.18);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.12), transparent 38%),
+    radial-gradient(circle at 86% 118%, rgba(255, 255, 255, 0.05), transparent 46%),
+    linear-gradient(145deg, rgba(37, 42, 44, 0.58), rgba(16, 18, 20, 0.5));
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.36),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
+:root.dark .liquid-nav::before {
+  opacity: 0.28;
+}
+
+:root.dark .liquid-nav::after {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+:root.dark .liquid-nav-pill {
+  background:
+    radial-gradient(circle at 22% 8%, rgba(255, 255, 255, 0.2), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    0 7px 18px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+:root.dark .liquid-nav-item {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.38);
+}
+
+:root.dark .liquid-fab {
+  border-color: rgba(111, 224, 201, 0.2);
+  background:
+    radial-gradient(circle at 28% 14%, rgba(111, 224, 201, 0.54), transparent 40%),
+    linear-gradient(145deg, rgba(20, 167, 148, 0.78), rgba(9, 120, 105, 0.72));
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.46),
+    0 0 0 1px rgba(111, 224, 201, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -6px 18px rgba(0, 68, 56, 0.2);
+}
+
+:root.dark .liquid-cta {
+  border-color: rgba(111, 224, 201, 0.2);
+  background:
+    radial-gradient(circle at 24% 8%, rgba(111, 224, 201, 0.48), transparent 40%),
+    radial-gradient(circle at 84% 118%, rgba(255, 255, 255, 0.07), transparent 42%),
+    linear-gradient(145deg, rgba(24, 170, 150, 0.72), rgba(7, 112, 98, 0.64));
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(111, 224, 201, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -8px 20px rgba(0, 68, 56, 0.24);
+}
+
+:root.dark .liquid-cta::before {
+  opacity: 0.38;
+}
+
+:root.dark .liquid-cta::after {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .liquid-nav {
+    border-color: rgba(255, 255, 255, 0.18);
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.12), transparent 38%),
+      radial-gradient(circle at 86% 118%, rgba(255, 255, 255, 0.05), transparent 46%),
+      linear-gradient(145deg, rgba(37, 42, 44, 0.58), rgba(16, 18, 20, 0.5));
+    box-shadow:
+      0 16px 38px rgba(0, 0, 0, 0.36),
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  :root:not(.light) .liquid-nav::before {
+    opacity: 0.28;
+  }
+
+  :root:not(.light) .liquid-nav::after {
+    border-color: rgba(255, 255, 255, 0.07);
+  }
+
+  :root:not(.light) .liquid-nav-pill {
+    background:
+      radial-gradient(circle at 22% 8%, rgba(255, 255, 255, 0.2), transparent 42%),
+      linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+    box-shadow:
+      0 7px 18px rgba(0, 0, 0, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  :root:not(.light) .liquid-nav-item {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.38);
+  }
+
+  :root:not(.light) .liquid-fab {
+    border-color: rgba(111, 224, 201, 0.2);
+    background:
+      radial-gradient(circle at 28% 14%, rgba(111, 224, 201, 0.54), transparent 40%),
+      linear-gradient(145deg, rgba(20, 167, 148, 0.78), rgba(9, 120, 105, 0.72));
+    box-shadow:
+      0 16px 34px rgba(0, 0, 0, 0.46),
+      0 0 0 1px rgba(111, 224, 201, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      inset 0 -6px 18px rgba(0, 68, 56, 0.2);
+  }
+
+  :root:not(.light) .liquid-cta {
+    border-color: rgba(111, 224, 201, 0.2);
+    background:
+      radial-gradient(circle at 24% 8%, rgba(111, 224, 201, 0.48), transparent 40%),
+      radial-gradient(circle at 84% 118%, rgba(255, 255, 255, 0.07), transparent 42%),
+      linear-gradient(145deg, rgba(24, 170, 150, 0.72), rgba(7, 112, 98, 0.64));
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.42),
+      0 0 0 1px rgba(111, 224, 201, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -8px 20px rgba(0, 68, 56, 0.24);
+  }
+
+  :root:not(.light) .liquid-cta::before {
+    opacity: 0.38;
+  }
+
+  :root:not(.light) .liquid-cta::after {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-nav {
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  :root.dark .liquid-nav {
+    background: rgba(30, 33, 36, 0.96);
+  }
 }
 
 .trip-top-nav {
@@ -419,6 +698,22 @@ a:active {
   background: repeating-linear-gradient(45deg, #efefee 0 10px, #e7e7e5 10px 20px);
 }
 
+.transaction-reorder-row,
+.transaction-reorder-row * {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.transaction-reorder-row {
+  touch-action: pan-y;
+}
+
+.transaction-reorder-row.is-reordering {
+  touch-action: none;
+}
+
 :root.dark .cover-placeholder {
   background: repeating-linear-gradient(45deg, #23262a 0 10px, #2a2d31 10px 20px);
 }
@@ -443,5 +738,27 @@ a:active {
     min-width: 0;
     max-width: 100%;
     -webkit-appearance: none;
+  }
+
+  input[type="time"],
+  .mobile-date-time-field {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="time"]::-webkit-date-and-time-value,
+  input[type="date"]::-webkit-date-and-time-value {
+    min-width: 0;
+    text-align: left;
+  }
+
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    margin-inline-start: 0;
   }
 }

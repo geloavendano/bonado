@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
+import clsx from "clsx";
+import { Capacitor } from "@capacitor/core";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { NativeTopControls } from "@/components/native/NativeTopControls";
 
 /**
  * Shared trip header for all three tabs (Entries/Balances/Reports) — same
@@ -17,13 +20,23 @@ export function TripTabHeader({
   title: string;
   subtitle?: string | null;
 }) {
+  const nativeTopControlsEnabled = Capacitor.getPlatform() === "ios";
+
   return (
-    <div className="trip-top-nav sticky top-0 z-20 flex min-h-[calc(56px+env(safe-area-inset-top))] items-center gap-3 border-b border-hairline bg-bg/95 px-6 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+    <div className="trip-top-nav sticky top-0 z-20 flex min-h-[calc(82px+env(safe-area-inset-top))] items-center gap-3 border-b border-hairline bg-bg/95 px-6 pb-4 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <NativeTopControls
+        settingsTo={`/trips/${tripId}/settings`}
+        tone="surface"
+      />
       <Link
         to="/"
         replace
         aria-label="Back to dashboard"
-        className="grid size-9 flex-none place-items-center rounded-full bg-card text-[15px] text-secondary shadow-[var(--shadow-card)]"
+        className={clsx(
+          "grid flex-none place-items-center rounded-full bg-card text-[15px] text-secondary shadow-[var(--shadow-card)]",
+          nativeTopControlsEnabled ? "size-11" : "size-9",
+          nativeTopControlsEnabled && "pointer-events-none opacity-0",
+        )}
       >
         ←
       </Link>
@@ -35,12 +48,20 @@ export function TripTabHeader({
           </div>
         )}
       </div>
-      <div className="flex flex-none items-center gap-2">
+      <div
+        className={clsx(
+          "flex flex-none items-center gap-2",
+          nativeTopControlsEnabled && "pointer-events-none opacity-0",
+        )}
+      >
         <NotificationBell />
         <Link
           to={`/trips/${tripId}/settings`}
           aria-label="Trip settings"
-          className="grid size-9 place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
+          className={clsx(
+            "grid place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]",
+            nativeTopControlsEnabled ? "size-11" : "size-9",
+          )}
         >
           ⚙︎
         </Link>

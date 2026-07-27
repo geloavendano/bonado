@@ -1,3 +1,7 @@
+import { useCallback, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useOverlayA11y } from "@/hooks/useOverlayA11y";
+
 interface ConfirmDialogProps {
   title: string;
   description?: string;
@@ -28,7 +32,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const close = useCallback(onCancel, [onCancel]);
   const dialogRef = useOverlayA11y<HTMLDivElement>(true, close);
-  return (
+  const dialog = (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-6"
       onClick={onCancel}
@@ -70,6 +74,7 @@ export function ConfirmDialog({
       </div>
     </div>
   );
+
+  if (typeof document === "undefined") return dialog;
+  return createPortal(dialog, document.body);
 }
-import { useCallback, type ReactNode } from "react";
-import { useOverlayA11y } from "@/hooks/useOverlayA11y";

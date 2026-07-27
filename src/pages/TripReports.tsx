@@ -204,8 +204,8 @@ export function TripReports() {
                     <button
                       onClick={() => toggleCategory(category.name)}
                       className={clsx(
-                        "grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-card py-3.5 text-left",
-                        expanded && "sticky top-[calc(56px+env(safe-area-inset-top))] z-10",
+                        "report-breakdown-toggle grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-card py-3.5 text-left",
+                        expanded && "sticky top-[calc(72px+env(safe-area-inset-top))] z-10",
                       )}
                       aria-expanded={expanded}
                     >
@@ -242,7 +242,7 @@ export function TripReports() {
                     </button>
 
                     {expanded && (
-                      <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] bg-tile/60 px-3">
+                      <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] border-0 bg-tile/60 px-3">
                         {category.transactions.map((entry, transactionIndex) => {
                           const userDisplay = convertEntryAmount(
                             entry.userAmount,
@@ -367,8 +367,8 @@ export function TripReports() {
                       <button
                         onClick={() => togglePayment(payment.key)}
                         className={clsx(
-                          "grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-card py-3.5 text-left",
-                          expanded && "sticky top-[calc(56px+env(safe-area-inset-top))] z-10",
+                          "report-breakdown-toggle grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-card py-3.5 text-left",
+                          expanded && "sticky top-[calc(72px+env(safe-area-inset-top))] z-10",
                         )}
                         aria-expanded={expanded}
                       >
@@ -395,7 +395,7 @@ export function TripReports() {
                       </button>
 
                       {expanded && (
-                        <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] bg-tile/60 px-3">
+                        <div className="motion-reveal mb-3 overflow-hidden rounded-[14px] border-0 bg-tile/60 px-3">
                           {payment.transactions.map((entry, transactionIndex) => {
                             const paymentDisplay = convertEntryAmount(
                               entry.amount,

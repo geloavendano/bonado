@@ -6,16 +6,18 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import clsx from "clsx";
+import { Capacitor } from "@capacitor/core";
 import { PageShell } from "@/components/layout/PageShell";
 import { CoverPhoto } from "@/components/ui/CoverPhoto";
 import { AvatarStack } from "@/components/ui/AvatarStack";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useTripLayout } from "@/components/trip/useTripLayout";
-import { TripTabHeader } from "@/components/trip/TripTabHeader";
 import { GuestBanner } from "@/components/trip/GuestBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useRecentEntries } from "@/hooks/useRecentEntries";
 import { formatMoney } from "@/lib/money";
 import { useAuth } from "@/context/AuthContext";
@@ -40,21 +42,23 @@ import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
 import { supabase } from "@/lib/supabase";
 import { prefetchExpenses } from "@/hooks/useExpense";
 import { prefetchSettlements } from "@/hooks/useSettlement";
+import { NativeTopControls } from "@/components/native/NativeTopControls";
 
 type HistoryFilter = "all" | "paid" | "created" | "involving";
 type DropPlacement = "before" | "after";
 
 const HISTORY_FILTERS: { value: HistoryFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "paid", label: "Paid by me" },
-  { value: "created", label: "Created by me" },
-  { value: "involving", label: "Involving me" },
+  { value: "paid", label: "Paid" },
+  { value: "created", label: "Created" },
+  { value: "involving", label: "Involves Me" },
 ];
 
 export function TripHome() {
   const routeMotion = useRouteMotion("forward");
   const trip = useTripLayout();
   const { user } = useAuth();
+  const nativeTopControlsEnabled = Capacitor.getPlatform() === "ios";
   const {
     entries,
     loading: entriesLoading,
@@ -70,6 +74,7 @@ export function TripHome() {
   const { rates, currencies, loading: ratesLoading } = useCurrencyRates(trip.default_currency);
   const { categories } = useCategories();
   const [copied, setCopied] = useState(false);
+  const [compactHeaderVisible, setCompactHeaderVisible] = useState(false);
   const [localToast, setLocalToast] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useTripDisplayCurrency({
     tripId: trip.id,
@@ -87,6 +92,11 @@ export function TripHome() {
   const dragPointerId = useRef<number | null>(null);
   const dragStart = useRef<{ key: string; x: number; y: number } | null>(null);
   const dragActive = useRef(false);
+  const dropPlacementRef = useRef<{
+    key: string;
+    position: DropPlacement;
+  } | null>(null);
+  const historyRowRefs = useRef(new Map<string, HTMLElement>());
   const suppressNextClick = useRef(false);
   const toastMessage = useRouteToast();
   const filteredEntries = useMemo(() => {
@@ -127,6 +137,12 @@ export function TripHome() {
       ? user.preferred_currency
       : trip.default_currency);
   const displayedBalance = yourBalance * (rates[balanceCurrency] ?? 1);
+  const balanceStatus =
+    yourBalance === 0 ? "Settled up" : yourBalance > 0 ? "You're owed" : "You owe";
+  const balanceAmount =
+    yourBalance === 0
+      ? formatMoney(0, balanceCurrency)
+      : formatMoney(Math.abs(displayedBalance), balanceCurrency);
 
   const inviteUrl = buildInviteUrl(trip.invite_link_token);
 
@@ -143,6 +159,27 @@ export function TripHome() {
         .map((entry) => entry.id),
     );
   }, [filteredEntries]);
+
+  useEffect(() => {
+    let frame = 0;
+
+    function updateHeaderVisibility() {
+      setCompactHeaderVisible(window.scrollY > 250);
+      frame = 0;
+    }
+
+    function onScroll() {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateHeaderVisibility);
+    }
+
+    updateHeaderVisibility();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   async function shareInvite() {
     const shareData = {
@@ -183,6 +220,11 @@ export function TripHome() {
 
   function historyKey(entry: (typeof entries)[number]) {
     return `${entry.type}:${entry.id}`;
+  }
+
+  function formatMemberReference(member?: { id: string; name: string } | null) {
+    if (!member) return "Member";
+    return member.id === user?.id ? "you" : member.name;
   }
 
   async function reorderTransaction(
@@ -228,32 +270,65 @@ export function TripHome() {
     }
   }
 
+  function setDropPlacementState(
+    next: {
+      key: string;
+      position: DropPlacement;
+    } | null,
+  ) {
+    dropPlacementRef.current = next;
+    setDropPlacement((current) =>
+      current?.key === next?.key && current?.position === next?.position ? current : next,
+    );
+  }
+
   function resetDragState() {
     clearLongPressTimer();
     dragPointerId.current = null;
     dragStart.current = null;
     dragActive.current = false;
     setDraggingHistoryId(null);
-    setDropPlacement(null);
+    setDropPlacementState(null);
   }
 
-  function updateDropPlacement(clientX: number, clientY: number) {
+  function resolveDropPlacement(clientY: number) {
     const activeKey = draggingHistoryId ?? dragStart.current?.key;
-    if (!activeKey) return;
-    const target = document
-      .elementFromPoint(clientX, clientY)
-      ?.closest<HTMLElement>("[data-history-drop-key]");
-    const key = target?.dataset.historyDropKey;
-    if (!target || !key || key === activeKey) {
-      setDropPlacement(null);
-      return;
+    if (!activeKey) return null;
+
+    let closest:
+      | {
+          key: string;
+          position: DropPlacement;
+          distance: number;
+        }
+      | null = null;
+
+    for (const entry of filteredEntries) {
+      const key = historyKey(entry);
+      if (key === activeKey) continue;
+
+      const node = historyRowRefs.current.get(key);
+      if (!node) continue;
+
+      const rect = node.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      const position: DropPlacement = clientY < midpoint ? "before" : "after";
+      const distance =
+        clientY >= rect.top && clientY <= rect.bottom
+          ? 0
+          : Math.min(Math.abs(clientY - rect.top), Math.abs(clientY - rect.bottom));
+
+      if (!closest || distance < closest.distance) {
+        closest = { key, position, distance };
+      }
     }
 
-    const rect = target.getBoundingClientRect();
-    const position: DropPlacement = clientY < rect.top + rect.height / 2 ? "before" : "after";
-    setDropPlacement((current) =>
-      current?.key === key && current.position === position ? current : { key, position },
-    );
+    if (!closest) return null;
+    return { key: closest.key, position: closest.position };
+  }
+
+  function updateDropPlacement(clientY: number) {
+    setDropPlacementState(resolveDropPlacement(clientY));
   }
 
   function startHistoryPress(event: ReactPointerEvent<HTMLElement>, key: string) {
@@ -266,7 +341,7 @@ export function TripHome() {
       dragActive.current = true;
       suppressNextClick.current = true;
       setDraggingHistoryId(key);
-      setDropPlacement(null);
+      setDropPlacementState(null);
       navigator.vibrate?.(10);
     }, 260);
   }
@@ -277,7 +352,7 @@ export function TripHome() {
     if (!start) return;
 
     const moved =
-      Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8;
+      Math.abs(event.clientX - start.x) > 16 || Math.abs(event.clientY - start.y) > 16;
     if (!dragActive.current && moved) {
       clearLongPressTimer();
       return;
@@ -285,7 +360,7 @@ export function TripHome() {
     if (!dragActive.current) return;
 
     event.preventDefault();
-    updateDropPlacement(event.clientX, event.clientY);
+    updateDropPlacement(event.clientY);
   }
 
   function finishHistoryPress(event: ReactPointerEvent<HTMLElement>) {
@@ -294,9 +369,10 @@ export function TripHome() {
     if (dragActive.current) {
       event.preventDefault();
       const activeKey = draggingHistoryId ?? dragStart.current?.key ?? null;
-      const target = entries.find((entry) => historyKey(entry) === dropPlacement?.key);
-      if (target && dropPlacement) {
-        void reorderTransaction(activeKey, target, dropPlacement.position);
+      const finalDropPlacement = resolveDropPlacement(event.clientY) ?? dropPlacementRef.current;
+      const target = entries.find((entry) => historyKey(entry) === finalDropPlacement?.key);
+      if (target && finalDropPlacement) {
+        void reorderTransaction(activeKey, target, finalDropPlacement.position);
       }
       window.setTimeout(() => {
         suppressNextClick.current = false;
@@ -322,6 +398,13 @@ export function TripHome() {
   function reorderProps(key: string) {
     return {
       "data-history-drop-key": key,
+      ref: (node: HTMLElement | null) => {
+        if (node) {
+          historyRowRefs.current.set(key, node);
+        } else {
+          historyRowRefs.current.delete(key);
+        }
+      },
       onContextMenu: (event: ReactMouseEvent<HTMLElement>) => event.preventDefault(),
       onPointerDown: (event: ReactPointerEvent<HTMLElement>) => startHistoryPress(event, key),
       onPointerMove: moveHistoryPress,
@@ -343,48 +426,155 @@ export function TripHome() {
   }
 
   return (
-    <PageShell padded={false} wide className={routeMotion}>
-      <TripTabHeader
-        tripId={trip.id}
-        title={trip.name}
-        subtitle={trip.location_name}
+    <>
+      <NativeTopControls
+        settingsTo={`/trips/${trip.id}/settings`}
+        tone={compactHeaderVisible ? "surface" : "photo"}
       />
-
-      <CoverPhoto
-        url={trip.cover_photo_url}
-        label={`trip cover — ${trip.location_name ?? trip.name}`}
-        className="h-[150px] w-full"
-      />
-
-      <div className="flex flex-col gap-3.5 px-6 pt-4 pb-24">
-        <GuestBanner />
-
-        <div className="flex items-center gap-2.5">
-          <Link to={`/trips/${trip.id}/settings`} aria-label="View members">
-            <AvatarStack people={trip.members} />
-          </Link>
-          <button
-            onClick={() => void shareInvite()}
-            className="ml-auto flex items-center gap-1.5 bg-card rounded-pill px-3.5 py-2 text-[13px] font-bold text-teal shadow-[var(--shadow-card)]"
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className={clsx(
+              "fixed inset-x-0 top-0 z-[95] flex min-h-[calc(72px+env(safe-area-inset-top))] items-center gap-3 border-b border-hairline bg-bg/96 px-6 pb-2 pt-[env(safe-area-inset-top)] shadow-[0_8px_24px_rgba(31,42,39,0.06)] backdrop-blur-xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0.9,0.18,1)]",
+              compactHeaderVisible
+                ? "pointer-events-auto translate-y-0 opacity-100"
+                : "pointer-events-none -translate-y-3 opacity-0",
+            )}
+            aria-hidden={!compactHeaderVisible}
           >
-            {copied ? "Copied ✓" : "🔗 Share invite"}
-          </button>
+            <Link
+              to="/"
+              replace
+              aria-label="Back to dashboard"
+              className={clsx(
+                "grid size-9 flex-none place-items-center rounded-full bg-card text-[15px] text-secondary shadow-[var(--shadow-card)]",
+                nativeTopControlsEnabled && "pointer-events-none opacity-0",
+              )}
+            >
+              ←
+            </Link>
+            <div className="flex min-w-0 flex-1 items-baseline justify-center gap-2 text-center">
+              <div className="min-w-0 truncate text-[16px] font-bold">{trip.name}</div>
+              {trip.location_name && (
+                <div className="min-w-0 truncate text-[14px] font-semibold text-secondary">
+                  {trip.location_name}
+                </div>
+              )}
+            </div>
+            <div
+              className={clsx(
+                "flex flex-none items-center gap-2",
+                nativeTopControlsEnabled && "pointer-events-none opacity-0",
+              )}
+            >
+              <NotificationBell />
+              <Link
+                to={`/trips/${trip.id}/settings`}
+                aria-label="Trip settings"
+                className="grid size-9 place-items-center rounded-full bg-card text-secondary shadow-[var(--shadow-card)]"
+              >
+                ⚙︎
+              </Link>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      <PageShell padded={false} wide className={routeMotion}>
+      <div className="relative -mt-px h-[300px] overflow-visible bg-bg">
+        <div className="absolute inset-0 overflow-hidden bg-tile">
+          <CoverPhoto
+            url={trip.cover_photo_url}
+            label={`trip cover — ${trip.location_name ?? trip.name}`}
+            className="h-full w-full object-cover object-center"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-black/10 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[calc(96px+env(safe-area-inset-top))] bg-gradient-to-b from-black/46 via-black/24 to-transparent backdrop-blur-[1.5px]" />
         </div>
+        <div className="pointer-events-none absolute inset-x-0 -bottom-16 z-10 h-56 bg-gradient-to-b from-transparent via-bg/92 to-bg" />
+
+        <div className="trip-top-nav absolute inset-x-0 top-0 z-20 flex min-h-[calc(72px+env(safe-area-inset-top))] items-center gap-3 px-6 pb-2 pt-[env(safe-area-inset-top)] text-white">
+          <Link
+            to="/"
+            replace
+            aria-label="Back to dashboard"
+            className={clsx(
+              "grid size-9 flex-none place-items-center rounded-full bg-white/86 text-[15px] text-[#1e2120] shadow-[0_8px_26px_rgba(0,0,0,0.16)] backdrop-blur-md",
+              nativeTopControlsEnabled && "pointer-events-none opacity-0",
+            )}
+          >
+            ←
+          </Link>
+          <div className="flex min-w-0 flex-1 items-baseline justify-center gap-3 text-center">
+            <div className="truncate text-[17px] font-extrabold drop-shadow-[0_1px_12px_rgba(0,0,0,0.42)]">
+              {trip.name}
+            </div>
+            {trip.location_name && (
+              <div className="truncate text-[15px] font-semibold text-white/88 drop-shadow-[0_1px_10px_rgba(0,0,0,0.42)]">
+                {trip.location_name}
+              </div>
+            )}
+          </div>
+          <div
+            className={clsx(
+              "flex flex-none items-center gap-2",
+              nativeTopControlsEnabled && "pointer-events-none opacity-0",
+            )}
+          >
+            <NotificationBell buttonClassName="relative grid size-9 place-items-center rounded-full bg-white/86 text-[#1e2120] shadow-[0_8px_26px_rgba(0,0,0,0.16)] backdrop-blur-md" />
+            <Link
+              to={`/trips/${trip.id}/settings`}
+              aria-label="Trip settings"
+              className="grid size-9 place-items-center rounded-full bg-white/86 text-[#747b77] shadow-[0_8px_26px_rgba(0,0,0,0.16)] backdrop-blur-md"
+            >
+              ⚙︎
+            </Link>
+          </div>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-8 z-20 px-6">
+          <div className="flex items-center gap-2">
+            <Link to={`/trips/${trip.id}/settings`} aria-label="View members">
+              <AvatarStack people={trip.members} size={31} />
+            </Link>
+            <button
+              onClick={() => void shareInvite()}
+              className="ml-auto flex h-9 items-center gap-1.5 rounded-pill bg-card/92 px-3 text-[12px] font-extrabold text-teal shadow-[0_10px_28px_rgba(31,42,39,0.13)] backdrop-blur-md"
+            >
+              {copied ? "Copied ✓" : "🔗 Invite"}
+            </button>
+            <CurrencySelect
+              value={displayCurrency}
+              onChange={setDisplayCurrency}
+              currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
+              disabled={ratesLoading}
+              pinned={[
+                { value: "", label: "Orig curr." },
+                { value: trip.default_currency, label: `Trip default · ${trip.default_currency}` },
+                ...(user ? [{ value: user.preferred_currency, label: `Preferred · ${user.preferred_currency}` }] : []),
+              ]}
+              aria-label="Transaction display currency"
+              className="max-w-[118px] shrink-0"
+              selectClassName="h-9 max-w-[118px] bg-card/92 py-0 pl-3 pr-7 !text-[12px] !font-extrabold leading-none backdrop-blur-md shadow-[0_10px_28px_rgba(31,42,39,0.13)]"
+              selectStyle={{ fontSize: 12 }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="relative z-20 flex flex-col gap-3.5 px-6 pt-0 pb-24">
+        <GuestBanner />
 
         <Link
           to={`/trips/${trip.id}/balances`}
-          className="bg-teal-tint rounded-[18px] px-[18px] py-[15px] flex items-center"
+          className="flex min-h-[86px] items-center rounded-[18px] bg-teal-tint px-[18px] py-[15px]"
         >
           <div>
             <div className="text-[11.5px] font-bold uppercase tracking-[0.09em] text-teal-dark/70">
-              Your balance
+              {balanceStatus}
             </div>
             <div className="text-[19px] font-extrabold text-teal-dark">
-              {yourBalance === 0
-                ? "Settled up"
-                : yourBalance > 0
-                  ? `You're owed ${formatMoney(displayedBalance, balanceCurrency)}`
-                  : `You owe ${formatMoney(-displayedBalance, balanceCurrency)}`}
+              {balanceAmount}
             </div>
           </div>
           <svg
@@ -401,39 +591,52 @@ export function TripHome() {
           </svg>
         </Link>
 
-        <div className="mt-0.5 flex items-center justify-between">
+        <div className="mt-0.5">
           <SectionLabel>Transaction history</SectionLabel>
-          {entries.length > 0 && (
-            <CurrencySelect
-              value={displayCurrency}
-              onChange={setDisplayCurrency}
-              currencies={currencies.length > 0 ? currencies : [trip.default_currency]}
-              disabled={ratesLoading}
-              pinned={[
-                { value: "", label: "Orig currency" },
-                { value: trip.default_currency, label: `Trip default · ${trip.default_currency}` },
-                ...(user ? [{ value: user.preferred_currency, label: `Preferred · ${user.preferred_currency}` }] : []),
-              ]}
-              aria-label="Transaction display currency"
-            />
-          )}
         </div>
 
         {entries.length > 0 && (
-          <div className="-mt-1 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-6 -mt-1 flex gap-1.5 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {HISTORY_FILTERS.map((filter) => (
               <button
                 key={filter.value}
                 type="button"
-                onClick={() => setHistoryFilter(filter.value)}
+                onClick={() => {
+                  setHistoryFilter(
+                    historyFilter === filter.value && filter.value !== "all"
+                      ? "all"
+                      : filter.value,
+                  );
+                }}
                 className={clsx(
-                  "shrink-0 rounded-pill px-3 py-1.5 text-[11.5px] font-extrabold transition",
+                  "flex h-8 shrink-0 items-center gap-1.5 rounded-pill px-3 text-[11px] font-extrabold transition",
                   historyFilter === filter.value
                     ? "bg-teal-tint text-teal-dark"
                     : "bg-card text-secondary shadow-[var(--shadow-card)]",
                 )}
               >
-                {filter.label}
+                <span>{filter.label}</span>
+                {historyFilter === filter.value && filter.value !== "all" && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Clear transaction filter"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setHistoryFilter("all");
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setHistoryFilter("all");
+                      }
+                    }}
+                    className="-mr-1 grid size-4 place-items-center rounded-full bg-teal-dark/10 text-[12px] leading-none"
+                  >
+                    ×
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -472,7 +675,7 @@ export function TripHome() {
 
               return (
                 <section key={date}>
-                  <div className="sticky top-[calc(56px+env(safe-area-inset-top))] z-10 -mx-1 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
+                  <div className="sticky top-[calc(72px+env(safe-area-inset-top))] z-10 -mx-1 bg-bg/95 px-1 py-2.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-secondary backdrop-blur-md">
                     {dateLabel}
                   </div>
                   <div className="overflow-hidden rounded-[18px] bg-card px-4 shadow-[var(--shadow-card)]">
@@ -498,9 +701,10 @@ export function TripHome() {
                       state={{ transition: "sheet" }}
                       {...reorderProps(entryKey)}
                       className={clsx(
-                        "flex select-none items-center gap-3 py-3.5 [-webkit-touch-callout:none] [-webkit-user-select:none]",
+                        "transaction-reorder-row flex select-none items-center gap-3 py-3.5 [-webkit-touch-callout:none] [-webkit-user-select:none]",
                         index < dateEntries.length - 1 && "border-b border-hairline",
-                        draggingHistoryId === entryKey && "scale-[0.99] bg-teal-tint/20 opacity-40",
+                        draggingHistoryId === entryKey &&
+                          "is-reordering scale-[0.99] bg-teal-tint/20 opacity-40",
                       )}
                     >
                       <div className="grid size-10 flex-none place-items-center rounded-[13px] bg-teal-tint text-teal-dark">
@@ -511,7 +715,7 @@ export function TripHome() {
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14.5px] font-bold">Settlement</div>
                         <div className="truncate text-[11.5px] text-secondary">
-                          {entry.from_user?.name ?? "Member"} paid {entry.to_user?.name ?? "Member"}
+                          {formatMemberReference(entry.from_user)} paid {formatMemberReference(entry.to_user)}
                         </div>
                       </div>
                       <div
@@ -570,7 +774,7 @@ export function TripHome() {
                 );
                 return member ? [member] : [];
               });
-              const payerNames = payers.map((payer) => payer.name).join(", ");
+              const payerNames = payers.map((payer) => formatMemberReference(payer)).join(", ");
               const unread = unreadEntryIds.has(entry.id);
               const pending = entry.sync_status === "pending";
               const categoryName =
@@ -638,18 +842,24 @@ export function TripHome() {
                     )}
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-[14px] font-extrabold">
-                      {shareDisplay.converted && (
-                        <span className="mr-0.5 text-faint" title={`Converted from ${entry.currency}`}>
-                          ≈
-                        </span>
-                      )}
-                      {formatMoney(shareDisplay.amount, shareDisplay.currency)}
-                    </div>
-                    {yourPaid > 0 && (
-                      <div className="text-[10.5px] font-semibold text-secondary">
-                        {formatMoney(paidDisplay.amount, paidDisplay.currency)}
-                      </div>
+                    {yourShare === 0 && yourPaid === 0 ? (
+                      <div className="text-[12.5px] font-extrabold text-faint">no share</div>
+                    ) : (
+                      <>
+                        <div className="text-[14px] font-extrabold">
+                          {shareDisplay.converted && (
+                            <span className="mr-0.5 text-faint" title={`Converted from ${entry.currency}`}>
+                              ≈
+                            </span>
+                          )}
+                          {formatMoney(shareDisplay.amount, shareDisplay.currency)}
+                        </div>
+                        {yourPaid > 0 && (
+                          <div className="text-[10.5px] font-semibold text-secondary">
+                            {formatMoney(paidDisplay.amount, paidDisplay.currency)}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   <span
@@ -679,8 +889,9 @@ export function TripHome() {
                     {...reorderProps(entryKey)}
                     className={clsx(
                       rowClass,
-                      "select-none [-webkit-touch-callout:none] [-webkit-user-select:none]",
-                      draggingHistoryId === entryKey && "scale-[0.99] bg-teal-tint/20 opacity-40",
+                      "transaction-reorder-row select-none [-webkit-touch-callout:none] [-webkit-user-select:none]",
+                      draggingHistoryId === entryKey &&
+                        "is-reordering scale-[0.99] bg-teal-tint/20 opacity-40",
                     )}
                   >
                     {rowContent}
@@ -716,5 +927,6 @@ export function TripHome() {
       </div>
       <Toast message={localToast ?? toastMessage} />
     </PageShell>
+    </>
   );
 }
