@@ -21,7 +21,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useRecentEntries } from "@/hooks/useRecentEntries";
 import { formatMoney } from "@/lib/money";
 import { useAuth } from "@/context/AuthContext";
-import { Toast } from "@/components/ui/Toast";
+import { Toast, type ToastTone } from "@/components/ui/Toast";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { useBalances } from "@/hooks/useBalances";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
@@ -44,6 +44,7 @@ import { prefetchExpenses } from "@/hooks/useExpense";
 import { prefetchSettlements } from "@/hooks/useSettlement";
 import { NativeTopControls } from "@/components/native/NativeTopControls";
 import { SearchIcon } from "@/components/ui/SearchIcon";
+import { CloseIcon } from "@/components/ui/CloseIcon";
 import { useTransactionSearch } from "@/hooks/useTransactionSearch";
 import { sumDayShares } from "@/lib/moneyMath";
 
@@ -78,7 +79,7 @@ export function TripHome() {
   const { categories } = useCategories();
   const [copied, setCopied] = useState(false);
   const [compactHeaderVisible, setCompactHeaderVisible] = useState(false);
-  const [localToast, setLocalToast] = useState<string | null>(null);
+  const [localToast, setLocalToast] = useState<{ message: string; tone: ToastTone } | null>(null);
   const [displayCurrency, setDisplayCurrency] = useTripDisplayCurrency({
     tripId: trip.id,
     defaultCurrency: "",
@@ -107,6 +108,8 @@ export function TripHome() {
     position: DropPlacement;
   } | null>(null);
   const historyRowRefs = useRef(new Map<string, HTMLElement>());
+  const blockedHintTimer = useRef<number | null>(null);
+  const blockedHintStart = useRef<{ x: number; y: number } | null>(null);
   const suppressNextClick = useRef(false);
   const toastMessage = useRouteToast();
   // Search replaces the paginated feed; the filter chips then narrow whichever
@@ -159,6 +162,18 @@ export function TripHome() {
       : formatMoney(Math.abs(displayedBalance), balanceCurrency);
 
   const inviteUrl = buildInviteUrl(trip.invite_link_token);
+
+  // `touch-action` is locked in by the browser when a gesture starts, so the
+  // row's `.is-reordering { touch-action: none }` arrives too late — the finger
+  // is already committed to panning by the time the long-press fires, and the
+  // drag just scrolls the page. Only a non-passive touchmove listener can
+  // cancel an in-flight scroll, so attach one for the duration of the drag.
+  useEffect(() => {
+    if (!draggingHistoryId) return;
+    const blockScroll = (event: TouchEvent) => event.preventDefault();
+    document.addEventListener("touchmove", blockScroll, { passive: false });
+    return () => document.removeEventListener("touchmove", blockScroll);
+  }, [draggingHistoryId]);
 
   useEffect(() => {
     if (!searchOpen) {
@@ -218,8 +233,8 @@ export function TripHome() {
     }
   }
 
-  function showLocalToast(message: string) {
-    setLocalToast(message);
+  function showLocalToast(message: string, tone: ToastTone = "success") {
+    setLocalToast({ message, tone });
     window.setTimeout(() => setLocalToast(null), 2400);
   }
 
@@ -419,11 +434,53 @@ export function TripHome() {
     suppressNextClick.current = false;
   }
 
+  function clearBlockedHintTimer() {
+    if (blockedHintTimer.current === null) return;
+    window.clearTimeout(blockedHintTimer.current);
+    blockedHintTimer.current = null;
+  }
+
+  function cancelBlockedHint() {
+    clearBlockedHintTimer();
+    blockedHintStart.current = null;
+  }
+
   function reorderProps(key: string) {
     // Reordering positions an item ±1 minute from its *visible* neighbour, which
     // is meaningless when rows are hidden — the real neighbour may be filtered
-    // out. Disable while searching or filtering rather than write a bogus order.
-    if (!reorderEnabled) return {};
+    // out. Disable while searching or filtering rather than write a bogus order,
+    // but still detect the long press so we can say why nothing happened.
+    if (!reorderEnabled) {
+      return {
+        onContextMenu: (event: ReactMouseEvent<HTMLElement>) => event.preventDefault(),
+        onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+          blockedHintStart.current = { x: event.clientX, y: event.clientY };
+          clearBlockedHintTimer();
+          blockedHintTimer.current = window.setTimeout(() => {
+            showLocalToast(
+              search.active
+                ? "Clear the search to reorder transactions."
+                : "Clear the filter to reorder transactions.",
+              "info",
+            );
+          }, 260);
+        },
+        onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+          const start = blockedHintStart.current;
+          if (!start) return;
+          // A scroll shouldn't trigger the hint — only a deliberate hold.
+          if (
+            Math.abs(event.clientX - start.x) > 16 ||
+            Math.abs(event.clientY - start.y) > 16
+          ) {
+            cancelBlockedHint();
+          }
+        },
+        onPointerUp: cancelBlockedHint,
+        onPointerCancel: cancelBlockedHint,
+        draggable: false,
+      };
+    }
     return {
       "data-history-drop-key": key,
       ref: (node: HTMLElement | null) => {
@@ -670,9 +727,9 @@ export function TripHome() {
                         setHistoryFilter("all");
                       }
                     }}
-                    className="-mr-1 grid size-4 place-items-center rounded-full bg-teal-dark/10 text-[12px] leading-none"
+                    className="-mr-1 grid size-4 place-items-center rounded-full bg-teal-dark/10"
                   >
-                    ×
+                    <CloseIcon />
                   </span>
                 )}
               </button>
@@ -724,9 +781,9 @@ export function TripHome() {
                     }
                     setSearchOpen(false);
                   }}
-                  className="absolute right-2.5 grid size-5 place-items-center rounded-full text-[13px] leading-none text-secondary"
+                  className="absolute right-2.5 grid size-5 place-items-center rounded-full text-secondary"
                 >
-                  ×
+                  <CloseIcon className="size-[11px]" />
                 </button>
               </div>
             </div>
@@ -750,7 +807,7 @@ export function TripHome() {
                 className="flex items-center gap-1 rounded-pill bg-teal-tint px-2 py-0.5 text-[11px] font-extrabold text-teal-dark"
               >
                 {HISTORY_FILTERS.find((filter) => filter.value === historyFilter)?.label}
-                <span aria-hidden="true">×</span>
+                <CloseIcon className="size-[9px]" />
                 <span className="sr-only">Clear filter</span>
               </button>
             )}
@@ -1069,7 +1126,7 @@ export function TripHome() {
           </div>
         )}
       </div>
-      <Toast message={localToast ?? toastMessage} />
+      <Toast message={localToast?.message ?? toastMessage} tone={localToast?.tone ?? "success"} />
     </PageShell>
     </>
   );
