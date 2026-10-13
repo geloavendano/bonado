@@ -262,11 +262,18 @@ a:active {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.motion-page-forward { animation: page-forward 240ms var(--ease-standard) both; }
-.motion-tab-left { animation: tab-from-right 300ms var(--ease-standard) both; }
-.motion-tab-right { animation: tab-from-left 300ms var(--ease-standard) both; }
+/*
+ * `backwards`, not `both`: these animations end on translate(0), and a lingering
+ * transform — even the identity — makes the page the containing block for every
+ * `position: fixed` descendant. Sticky action bars and toasts then pin to the
+ * bottom of the *page* instead of the screen, which hides Add expense below the
+ * fold on long forms. Dropping the end state is visually identical.
+ */
+.motion-page-forward { animation: page-forward 240ms var(--ease-standard) backwards; }
+.motion-tab-left { animation: tab-from-right 300ms var(--ease-standard) backwards; }
+.motion-tab-right { animation: tab-from-left 300ms var(--ease-standard) backwards; }
 .motion-tab-view { animation: none; }
-.motion-sheet-up { animation: sheet-up 260ms var(--ease-standard) both; }
+.motion-sheet-up { animation: sheet-up 260ms var(--ease-standard) backwards; }
 
 .trip-pane {
   view-transition-name: trip-pane;
