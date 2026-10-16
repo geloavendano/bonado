@@ -8,6 +8,8 @@ interface SettlementInput {
   fromUserId: string;
   toUserId: string;
   amount: number;
+  currency: string;
+  rates: Record<string, number>;
   date: string;
   paymentMethod: string;
   paymentLabel: string;
@@ -20,11 +22,13 @@ export function useRecordSettlement() {
   async function recordSettlement(input: SettlementInput) {
     setSaving(true);
     setError(null);
-    const { error: settlementError } = await supabase.rpc("record_settlement", {
+    const { error: settlementError } = await supabase.rpc("record_settlement_in_currency", {
       p_trip_id: input.tripId,
       p_from_user_id: input.fromUserId,
       p_to_user_id: input.toUserId,
       p_amount: input.amount,
+      p_currency: input.currency,
+      p_rates: input.rates,
       p_date: input.date,
       p_payment_method: input.paymentMethod,
       p_payment_label: input.paymentLabel,

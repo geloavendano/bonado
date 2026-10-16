@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 export interface BalanceRow {
   user_id: string;
   balance: number;
+  currency_balances: Record<string, number>;
   has_estimated_rates: boolean;
   has_activity: boolean;
 }
@@ -18,7 +19,7 @@ export function getCachedBalances(tripId: string) {
 }
 
 export async function fetchBalances(tripId: string) {
-  const { data, error } = await supabase.rpc("get_trip_balances", {
+  const { data, error } = await supabase.rpc("get_trip_balances_v2", {
     p_trip_id: tripId,
   });
   if (error) throw error;

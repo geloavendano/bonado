@@ -18,7 +18,7 @@ export const ENTRY_SELECT = `id, description, date, created_at, created_by, last
              line_items(line_item_shares(user_id, owed_amount)),
              adjustments(adjustment_shares(user_id, owed_amount))`;
 
-export const SETTLEMENT_SELECT = `id, date, created_at, created_by, amount, from_user_id, to_user_id,
+export const SETTLEMENT_SELECT = `id, date, created_at, created_by, amount, currency, exchange_rate_to_trip_default, from_user_id, to_user_id,
              from_user:users!settlements_from_user_id_fkey(id, name),
              to_user:users!settlements_to_user_id_fkey(id, name)`;
 
@@ -94,6 +94,8 @@ export interface RecentSettlement {
   created_at: string;
   created_by: string | null;
   amount: number;
+  currency: string;
+  exchange_rate_to_trip_default: number;
   from_user_id: string;
   to_user_id: string;
   from_user: { id: string; name: string } | null;

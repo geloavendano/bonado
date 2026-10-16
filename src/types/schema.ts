@@ -145,6 +145,9 @@ export interface Settlement {
   from_user_id: string;
   to_user_id: string;
   amount: number;
+  currency: string;
+  exchange_rate_to_trip_default: number;
+  allocations: { currency: string; amount: number; rate_to_payment: number }[] | null;
   date: string;
   created_by: string;
   payment_account_id: string | null;

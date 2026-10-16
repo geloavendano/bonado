@@ -155,8 +155,9 @@ export function TripHome() {
       ? user.preferred_currency
       : trip.default_currency);
   const displayedBalance = yourBalance * (rates[balanceCurrency] ?? 1);
+  const nativeBalances = balances.find((balance) => balance.user_id === user?.id)?.currency_balances ?? trip.yourCurrencyBalances;
   const balanceStatus =
-    yourBalance === 0 ? "Settled up" : yourBalance > 0 ? "You're owed" : "You owe";
+    yourBalance === 0 ? (Object.keys(nativeBalances).length > 0 ? "Balances in multiple currencies" : "Settled up") : yourBalance > 0 ? "You're owed" : "You owe";
   const balanceAmount =
     yourBalance === 0
       ? formatMoney(0, balanceCurrency)
@@ -890,8 +891,8 @@ export function TripHome() {
                 const isReceiver = entry.to_user_id === user?.id;
                 const settlementDisplay = convertEntryAmount(
                   entry.amount,
-                  trip.default_currency,
-                  1,
+                  entry.currency,
+                  entry.exchange_rate_to_trip_default,
                   displayCurrency,
                   trip.default_currency,
                   rates,
@@ -930,7 +931,7 @@ export function TripHome() {
                         )}
                       >
                         {settlementDisplay.converted && (
-                          <span className="mr-0.5 text-faint" title={`Converted from ${trip.default_currency}`}>
+                          <span className="mr-0.5 text-faint" title={`Converted from ${entry.currency}`}>
                             ≈
                           </span>
                         )}

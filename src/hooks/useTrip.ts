@@ -18,6 +18,7 @@ export interface TripWithMembers extends Trip {
   isOwner: boolean;
   /** Positive = you're owed; negative = you owe. Wired up once the expenses/balances phase lands. */
   yourBalance: number;
+  yourCurrencyBalances: Record<string, number>;
 }
 
 interface TripRow extends Trip {
@@ -71,6 +72,7 @@ export function useTrip(tripId: string | undefined) {
         m.user ? [{ ...m.user, role: m.role }] : [],
       ),
       isOwner: memberships.some((m) => m.user?.id === user?.id && m.role === "owner"),
+      yourCurrencyBalances: balanceRows.find((balance) => balance.user_id === user?.id)?.currency_balances ?? {},
       yourBalance:
         balanceRows.find((balance) => balance.user_id === user?.id)?.balance ?? 0,
     };

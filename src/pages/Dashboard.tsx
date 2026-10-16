@@ -53,6 +53,9 @@ function BalanceStatus({ trip, displayCurrency }: { trip: TripWithMembers; displ
   const { rates } = useCurrencyRates(trip.default_currency);
   const currency = rates[displayCurrency] ? displayCurrency : trip.default_currency;
   const amount = trip.yourBalance * (rates[currency] ?? 1);
+  if (trip.yourBalance === 0 && Object.keys(trip.yourCurrencyBalances).length > 0) {
+    return <span className="text-[13px] font-semibold text-secondary">Balances in multiple currencies</span>;
+  }
   if (trip.yourBalance === 0) {
     return <span className="text-[13px] font-semibold text-faint">Settled ✓</span>;
   }
@@ -90,7 +93,7 @@ function CurrentTripCard({ trip, displayCurrency }: { trip: TripWithMembers; dis
             </div>
             <Pill tone={trip.yourBalance < 0 ? "danger" : "teal"}>
               {trip.yourBalance === 0
-                ? "Settled up"
+                ? (Object.keys(trip.yourCurrencyBalances).length > 0 ? "Balances in multiple currencies" : "Settled up")
                 : trip.yourBalance > 0
                   ? `You're owed ${formatMoney(amount, currency)}`
                   : `You owe ${formatMoney(-amount, currency)}`}

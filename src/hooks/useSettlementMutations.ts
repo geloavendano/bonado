@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { invalidateRecentEntries } from "@/hooks/useRecentEntries";
+import { invalidateSettlement } from "@/hooks/useSettlement";
 import { invalidateBalances } from "@/lib/balanceData";
 
 export function useSettlementMutations() {
@@ -20,6 +21,7 @@ export function useSettlementMutations() {
       return false;
     }
 
+    invalidateSettlement(settlementId);
     invalidateRecentEntries(tripId);
     invalidateBalances(tripId);
     return true;

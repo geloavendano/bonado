@@ -10,6 +10,7 @@ export function BalanceRail({ trip }: { trip: TripWithMembers }) {
   const { user } = useAuth();
   const { balances } = useBalances(trip.id);
   const yourBalance = balances.find((balance) => balance.user_id === user?.id)?.balance ?? 0;
+  const nativeBalances = balances.find((balance) => balance.user_id === user?.id)?.currency_balances ?? trip.yourCurrencyBalances;
   const others = trip.members
     .filter((member) => member.id !== user?.id)
     .map((member) => ({
@@ -25,7 +26,7 @@ export function BalanceRail({ trip }: { trip: TripWithMembers }) {
       <div className="rounded-[16px] bg-teal-tint px-4 py-4 text-center">
         <div className="text-[19px] font-extrabold text-teal-dark">
           {yourBalance === 0
-            ? "Settled up"
+            ? (Object.keys(nativeBalances).length > 0 ? "Balances in multiple currencies" : "Settled up")
             : yourBalance > 0
               ? `+${formatMoney(yourBalance, trip.default_currency)}`
               : `−${formatMoney(-yourBalance, trip.default_currency)}`}

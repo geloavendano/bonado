@@ -78,7 +78,7 @@ export function SettlementDetail() {
             Settlement
           </div>
           <div className="mt-2 text-[34px] font-extrabold tracking-[-1px]">
-            {formatMoney(settlement.amount, trip.default_currency)}
+            {formatMoney(settlement.amount, settlement.currency)}
           </div>
           <div className="mt-1 text-[12.5px] text-secondary">
             {new Date(`${settlement.date}T00:00:00`).toLocaleDateString(undefined, {
@@ -103,6 +103,17 @@ export function SettlementDetail() {
         </div>
 
         <div className="flex min-w-0 flex-col gap-3.5">
+        {settlement.allocations && settlement.allocations.length > 0 && (
+          <div className="rounded-[18px] bg-card p-4 text-[12.5px] shadow-[var(--shadow-card)]">
+            <div className="mb-2 font-bold text-secondary">Applied to original balances</div>
+            {settlement.allocations.map((allocation, index) => (
+              <div key={`${allocation.currency}-${index}`}>
+                {Number(allocation.amount).toFixed(2)} {allocation.currency}
+              </div>
+            ))}
+          </div>
+        )}
+
         {settlement.payment_account && (
           <div className="rounded-[16px] bg-card px-4 py-3 shadow-[var(--shadow-card)]">
             <div className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-secondary">Payment method</div>

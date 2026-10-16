@@ -10,6 +10,9 @@ import { ChevronDown } from "@/components/ui/ChevronDown";
 import { useTripLayout } from "@/components/trip/useTripLayout";
 import { useSettlement } from "@/hooks/useSettlement";
 import { useUpdateSettlement } from "@/hooks/useUpdateSettlement";
+import { CurrencySelect } from "@/components/ui/CurrencySelect";
+import { useCurrencyRates } from "@/hooks/useCurrencyRates";
+import { settlementRates } from "@/lib/settlementMath";
 import { useMobileFormFlow } from "@/hooks/useMobileFormFlow";
 
 export function EditSettlement() {
@@ -24,6 +27,8 @@ export function EditSettlement() {
   const [fromUserId, setFromUserId] = useState("");
   const [toUserId, setToUserId] = useState("");
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState(trip.default_currency);
+  const { rates, currencies } = useCurrencyRates(trip.default_currency);
   const [date, setDate] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("");
   const [paymentLabel, setPaymentLabel] = useState("");
@@ -33,6 +38,7 @@ export function EditSettlement() {
     setFromUserId(settlement.from_user_id);
     setToUserId(settlement.to_user_id);
     setAmount(String(settlement.amount));
+    setCurrency(settlement.currency);
     setDate(settlement.date);
     setPaymentMethod(settlement.payment_account?.method ?? "");
     setPaymentLabel(settlement.payment_account?.label ?? "");
@@ -50,7 +56,7 @@ export function EditSettlement() {
     return <Navigate to={tripId ? `/trips/${tripId}` : "/"} replace />;
   }
 
-  const valid = Number(amount) > 0 && fromUserId && toUserId && fromUserId !== toUserId;
+  const valid = Number.isFinite(Number(amount)) && Number(amount) > 0 && fromUserId && toUserId && fromUserId !== toUserId;
 
   return (
     <PageShell>
@@ -80,7 +86,7 @@ export function EditSettlement() {
           ))}
         </div>
         <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-[var(--shadow-card)]">
-          <span className="text-[12px] font-bold text-secondary">{trip.default_currency}</span>
+          <CurrencySelect value={currency} onChange={setCurrency} currencies={[...new Set([currency, ...currencies])]} aria-label="Settlement currency" />
           <input
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
@@ -111,6 +117,8 @@ export function EditSettlement() {
               fromUserId,
               toUserId,
               amount: Number(amount),
+              currency,
+              rates: settlementRates(rates, trip.default_currency),
               date,
               paymentMethod,
               paymentLabel,

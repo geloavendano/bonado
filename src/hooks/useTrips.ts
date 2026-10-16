@@ -11,6 +11,7 @@ export interface TripWithMembers extends Trip {
   members: { id: string; name: string; avatar_url: string | null }[];
   /** Positive = you're owed; negative = you owe. Wired up once the expenses/balances phase lands. */
   yourBalance: number;
+  yourCurrencyBalances: Record<string, number>;
 }
 
 interface TripRow extends Trip {
@@ -57,6 +58,7 @@ export function useTrips() {
       const nextTrips = rows.map(({ memberships, ...trip }, index) => ({
           ...trip,
           members: memberships.flatMap((m) => (m.user ? [m.user] : [])),
+          yourCurrencyBalances: balanceRows[index].find((balance) => balance.user_id === user?.id)?.currency_balances ?? {},
           yourBalance:
             balanceRows[index].find((balance) => balance.user_id === user?.id)?.balance ?? 0,
         }));
@@ -99,6 +101,7 @@ export function useTrips() {
       ...rows.map(({ memberships, ...trip }, index) => ({
         ...trip,
         members: memberships.flatMap((m) => (m.user ? [m.user] : [])),
+        yourCurrencyBalances: balanceRows[index].find((balance) => balance.user_id === user?.id)?.currency_balances ?? {},
         yourBalance:
           balanceRows[index].find((balance) => balance.user_id === user?.id)?.balance ?? 0,
       })),

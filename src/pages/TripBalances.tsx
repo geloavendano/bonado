@@ -25,10 +25,9 @@ import { useRouteMotion } from "@/hooks/useRouteMotion";
 import { useTripDisplayCurrency } from "@/hooks/useTripDisplayCurrency";
 import { usePaymentAccounts } from "@/hooks/usePaymentAccounts";
 import { copyTextToClipboard } from "@/lib/clipboard";
-import {
-  buildSettlementSuggestions,
-  type SuggestedSettlement,
-} from "@/lib/moneyMath";
+import type { SuggestedSettlement } from "@/lib/moneyMath";
+
+import { buildCurrencySuggestions, pairBalances, settlementRates, totalInCurrency } from "@/lib/settlementMath";
 
 function todayForInput() {
   const now = new Date();
@@ -104,29 +103,18 @@ export function TripBalances() {
       })),
     [balances, trip.members],
   );
-  const suggestions = useMemo(() => buildSettlementSuggestions(balances), [balances]);
+  const suggestions = useMemo(
+    () => buildCurrencySuggestions(balances, trip.default_currency, rates),
+    [balances, trip.default_currency, rates],
+  );
   const yourBalance =
     balances.find((balance) => balance.user_id === user?.id)?.balance ?? 0;
   const hasActivity = balances.some((balance) => balance.has_activity);
   const hasEstimatedRates = balances.some((balance) => balance.has_estimated_rates);
   const isSettled =
-    hasActivity && balances.every((balance) => Math.abs(balance.balance) < 0.005);
-
-  useEffect(() => {
-    if (!sheetOpen) return;
-    setSettlementCurrency(trip.default_currency);
-    const first = suggestions[0];
-    if (first) {
-      setFromUserId(first.fromUserId);
-      setToUserId(first.toUserId);
-      setAmount(String(first.amount));
-    } else {
-      setFromUserId((current) => current || user?.id || trip.members[0]?.id || "");
-      setToUserId((current) =>
-        current || trip.members.find((member) => member.id !== user?.id)?.id || "",
-      );
-    }
-  }, [sheetOpen, suggestions, trip.members, user?.id, trip.default_currency]);
+    hasActivity && balances.every((balance) =>
+      Object.values(balance.currency_balances).every((amount) => Math.abs(amount) < 0.005),
+    );
 
   useEffect(() => {
     if (fromUserId && fromUserId === toUserId) {
@@ -148,12 +136,11 @@ export function TripBalances() {
     return () => window.clearTimeout(timer);
   }, [copiedFieldKey]);
 
-  function openSuggestion(suggestion?: SuggestedSettlement) {
-    if (suggestion) {
-      setFromUserId(suggestion.fromUserId);
-      setToUserId(suggestion.toUserId);
-      setAmount(String(suggestion.amount));
-    }
+  function openSuggestion(suggestion: SuggestedSettlement | undefined = suggestions[0]) {
+    setSettlementCurrency(trip.default_currency);
+    setFromUserId(suggestion?.fromUserId ?? user?.id ?? trip.members[0]?.id ?? "");
+    setToUserId(suggestion?.toUserId ?? trip.members.find((member) => member.id !== user?.id)?.id ?? "");
+    setAmount(suggestion ? String(suggestion.amount) : "");
     setSheetOpen(true);
   }
 
@@ -163,6 +150,8 @@ export function TripBalances() {
       : rates[settlementCurrency]
         ? 1 / rates[settlementCurrency]
         : 0;
+  const outstanding = pairBalances(balances, fromUserId, toUserId);
+  const settleAllAmount = totalInCurrency(outstanding, settlementCurrency, trip.default_currency, rates);
   const convertedSettlementAmount = Number(amount) * settlementRate;
   const settlementRateFor = (currency: string) =>
     currency === trip.default_currency ? 1 : rates[currency] ? 1 / rates[currency] : 0;
@@ -194,7 +183,7 @@ export function TripBalances() {
       !fromUserId ||
       !toUserId ||
       fromUserId === toUserId ||
-      numericAmount <= 0 ||
+      !Number.isFinite(numericAmount) || numericAmount <= 0 ||
       settlementRate <= 0
     ) {
       return;
@@ -203,7 +192,9 @@ export function TripBalances() {
       tripId: trip.id,
       fromUserId,
       toUserId,
-      amount: Math.round(numericAmount * settlementRate * 100) / 100,
+      amount: numericAmount,
+      currency: settlementCurrency,
+      rates: settlementRates(rates, trip.default_currency),
       date,
       paymentMethod,
       paymentLabel,
@@ -336,6 +327,9 @@ export function TripBalances() {
                     />
                     <div className="min-w-0 flex-1 truncate text-[14px] font-semibold">
                       {member.name}
+                      <div className="mt-1 text-[11px] font-normal text-secondary">
+                        {Object.entries(balances.find((row) => row.user_id === member.id)?.currency_balances ?? {}).map(([currency, value]) => `${Number(value).toFixed(2)} ${currency}`).join(" · ")}
+                      </div>
                     </div>
                     <div
                       className={clsx(
@@ -568,7 +562,7 @@ export function TripBalances() {
                     aria-label="Settlement currency"
                     className="appearance-none bg-transparent py-2 pr-4 text-[12px] font-bold text-secondary outline-none"
                   >
-                    {(currencies.length > 0 ? currencies : [trip.default_currency]).map((currency) => (
+                    {[...new Set([settlementCurrency, ...currencies, ...Object.keys(outstanding)])].sort().map((currency) => (
                       <option key={currency} value={currency}>
                         {currency}
                       </option>
@@ -584,10 +578,19 @@ export function TripBalances() {
                   className="min-w-0 flex-1 bg-transparent text-right text-[24px] font-extrabold outline-none"
                 />
               </div>
+              {Object.keys(outstanding).length > 0 && (
+                <div className="text-[12px] text-secondary">
+                  <p>Remaining: {Object.entries(outstanding).map(([currency, value]) => `${value.toFixed(2)} ${currency}`).join(" + ")}</p>
+                  <button type="button" className="mt-2 font-bold text-teal-dark" disabled={settleAllAmount === null} onClick={() => settleAllAmount !== null && setAmount(settleAllAmount.toFixed(2))}>
+                    Settle all{settleAllAmount === null ? " · waiting for rates" : ` · ${settleAllAmount.toFixed(2)} ${settlementCurrency}`}
+                  </button>
+                  <p className="mt-1">Payments clear the same currency first, then the other balances at the quoted rates.</p>
+                </div>
+              )}
               {settlementCurrency !== trip.default_currency && (
                 <p className="-mt-2 text-right text-[11px] text-faint">
                   {settlementRate > 0
-                    ? `≈ ${formatMoney(convertedSettlementAmount, trip.default_currency)} — settlements are recorded in ${trip.default_currency}`
+                    ? `≈ ${formatMoney(convertedSettlementAmount, trip.default_currency)} · Recorded in ${settlementCurrency}`
                     : "Loading exchange rate…"}
                 </p>
               )}

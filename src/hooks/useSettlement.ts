@@ -8,6 +8,9 @@ export interface SettlementDetail {
   from_user_id: string;
   to_user_id: string;
   amount: number;
+  currency: string;
+  exchange_rate_to_trip_default: number;
+  allocations: { currency: string; amount: number; rate_to_payment: number }[] | null;
   date: string;
   created_at: string;
   updated_at: string | null;
@@ -21,10 +24,13 @@ export interface SettlementDetail {
 }
 
 const settlementCache = new Map<string, SettlementDetail>();
+export function invalidateSettlement(settlementId: string) {
+  settlementCache.delete(settlementId);
+}
 const settlementPrefetching = new Set<string>();
 
 const SETTLEMENT_DETAIL_SELECT = `
-  id, trip_id, from_user_id, to_user_id, amount, date, created_at, updated_at,
+  id, trip_id, from_user_id, to_user_id, amount, currency, exchange_rate_to_trip_default, allocations, date, created_at, updated_at,
   from_user:users!settlements_from_user_id_fkey(id, name, avatar_url),
   to_user:users!settlements_to_user_id_fkey(id, name, avatar_url),
   payment_account:payment_accounts(id, method, label)
