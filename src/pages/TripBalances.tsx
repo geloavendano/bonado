@@ -1,3 +1,4 @@
+import { AmountInput } from "@/components/ui/AmountInput";
 import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { PageShell } from "@/components/layout/PageShell";
@@ -14,7 +15,7 @@ import { useTripLayout } from "@/components/trip/useTripLayout";
 import { useBalances } from "@/hooks/useBalances";
 import { useRecordSettlement } from "@/hooks/useRecordSettlement";
 import { useAuth } from "@/context/AuthContext";
-import { formatMoney, formatSignedMoney } from "@/lib/money";
+import { formatAmount, formatMoney, formatSignedMoney } from "@/lib/money";
 import { TripTabHeader } from "@/components/trip/TripTabHeader";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { createPortal } from "react-dom";
@@ -328,7 +329,7 @@ export function TripBalances() {
                     <div className="min-w-0 flex-1 truncate text-[14px] font-semibold">
                       {member.name}
                       <div className="mt-1 text-[11px] font-normal text-secondary">
-                        {Object.entries(balances.find((row) => row.user_id === member.id)?.currency_balances ?? {}).map(([currency, value]) => `${Number(value).toFixed(2)} ${currency}`).join(" · ")}
+                        {Object.entries(balances.find((row) => row.user_id === member.id)?.currency_balances ?? {}).map(([currency, value]) => `${formatAmount(Number(value))} ${currency}`).join(" · ")}
                       </div>
                     </div>
                     <div
@@ -570,9 +571,9 @@ export function TripBalances() {
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[10px] text-secondary" />
                 </div>
-                <input
+                <AmountInput
                   value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
+                  onValueChange={(nextValue) => setAmount(nextValue)}
                   inputMode="decimal"
                   placeholder="0.00"
                   className="min-w-0 flex-1 bg-transparent text-right text-[24px] font-extrabold outline-none"
@@ -580,9 +581,9 @@ export function TripBalances() {
               </div>
               {Object.keys(outstanding).length > 0 && (
                 <div className="text-[12px] text-secondary">
-                  <p>Remaining: {Object.entries(outstanding).map(([currency, value]) => `${value.toFixed(2)} ${currency}`).join(" + ")}</p>
+                  <p>Remaining: {Object.entries(outstanding).map(([currency, value]) => `${formatAmount(value)} ${currency}`).join(" + ")}</p>
                   <button type="button" className="mt-2 font-bold text-teal-dark" disabled={settleAllAmount === null} onClick={() => settleAllAmount !== null && setAmount(settleAllAmount.toFixed(2))}>
-                    Settle all{settleAllAmount === null ? " · waiting for rates" : ` · ${settleAllAmount.toFixed(2)} ${settlementCurrency}`}
+                    Settle all{settleAllAmount === null ? " · waiting for rates" : ` · ${formatAmount(settleAllAmount)} ${settlementCurrency}`}
                   </button>
                   <p className="mt-1">Payments clear the same currency first, then the other balances at the quoted rates.</p>
                 </div>

@@ -1,3 +1,4 @@
+import { AmountInput } from "@/components/ui/AmountInput";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
@@ -87,9 +88,9 @@ export function EditSettlement() {
         </div>
         <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-[var(--shadow-card)]">
           <CurrencySelect value={currency} onChange={setCurrency} currencies={[...new Set([currency, ...currencies])]} aria-label="Settlement currency" />
-          <input
+          <AmountInput
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
+            onValueChange={(nextValue) => setAmount(nextValue)}
             inputMode="decimal"
             enterKeyHint="done"
             className="min-w-0 flex-1 bg-transparent text-right !text-[24px] font-extrabold outline-none"

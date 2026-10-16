@@ -1,3 +1,4 @@
+import { AmountInput } from "@/components/ui/AmountInput";
 import { useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
@@ -174,9 +175,9 @@ export function ItemEditorSheet({
           />
           <div className="flex items-center rounded-[18px] bg-card px-4 py-2 shadow-[var(--shadow-card)]">
             <span className="text-[12px] font-bold text-secondary">{currency}</span>
-            <input
+            <AmountInput
               value={amount}
-              onChange={(event) => setAmount(event.target.value)}
+              onValueChange={(nextValue) => setAmount(nextValue)}
               inputMode="decimal"
               enterKeyHint="done"
               placeholder="0.00"
@@ -243,12 +244,12 @@ export function ItemEditorSheet({
                     </span>
                   ) : (
                     <div className="flex w-[92px] items-center rounded-xl bg-tile px-2.5 py-2">
-                      <input
+                      <AmountInput
                         value={values[member.id] ?? ""}
-                        onChange={(event) =>
+                        onValueChange={(nextValue) =>
                           setValues((current) => ({
                             ...current,
-                            [member.id]: event.target.value,
+                            [member.id]: nextValue,
                           }))
                         }
                         inputMode="decimal"

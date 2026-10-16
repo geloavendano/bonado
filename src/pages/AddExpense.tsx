@@ -1,3 +1,4 @@
+import { AmountInput } from "@/components/ui/AmountInput";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import clsx from "clsx";
@@ -648,9 +649,9 @@ export function AddExpense() {
             </select>
             <ChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-secondary" />
           </div>
-          <input
+          <AmountInput
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
+            onValueChange={(nextValue) => setAmount(nextValue)}
             inputMode="decimal"
             placeholder="0.00"
             aria-label="Expense amount"
@@ -830,12 +831,12 @@ export function AddExpense() {
                         }
                       />
                       <div className="ml-auto flex w-[92px] flex-none items-center rounded-xl bg-tile px-2.5 py-2">
-                        <input
+                        <AmountInput
                           value={payerAmounts[member.id] ?? ""}
-                          onChange={(event) =>
+                          onValueChange={(nextValue) =>
                             setPayerAmounts((current) => ({
                               ...current,
-                              [member.id]: event.target.value,
+                              [member.id]: nextValue,
                             }))
                           }
                           inputMode="decimal"
@@ -1002,9 +1003,9 @@ export function AddExpense() {
                   <span className="w-10 text-[13.5px] font-bold">{adjustment.label}</span>
                   <div className="flex min-w-0 flex-1 items-center rounded-xl bg-tile px-3 py-2">
                     <span className="text-[11px] font-bold text-secondary">{currency}</span>
-                    <input
+                    <AmountInput
                       value={adjustment.value}
-                      onChange={(event) => adjustment.setValue(event.target.value)}
+                      onValueChange={(nextValue) => adjustment.setValue(nextValue)}
                       inputMode="decimal"
                       placeholder="0.00"
                       className="min-w-0 flex-1 bg-transparent text-right text-[13px] font-bold outline-none"
@@ -1093,12 +1094,12 @@ export function AddExpense() {
                           {currency}
                         </span>
                       )}
-                      <input
+                      <AmountInput
                         value={splitValues[member.id] ?? ""}
-                        onChange={(event) =>
+                        onValueChange={(nextValue) =>
                           setSplitValues((current) => ({
                             ...current,
-                            [member.id]: event.target.value,
+                            [member.id]: nextValue,
                           }))
                         }
                         inputMode="decimal"

@@ -8,7 +8,7 @@ import { Toast } from "@/components/ui/Toast";
 import { useSettlement } from "@/hooks/useSettlement";
 import { useRouteToast } from "@/hooks/useRouteToast";
 import { useTripLayout } from "@/components/trip/useTripLayout";
-import { formatMoney } from "@/lib/money";
+import { formatAmount, formatMoney } from "@/lib/money";
 import { markTransactionNotificationsRead } from "@/lib/notificationReadState";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -108,7 +108,7 @@ export function SettlementDetail() {
             <div className="mb-2 font-bold text-secondary">Applied to original balances</div>
             {settlement.allocations.map((allocation, index) => (
               <div key={`${allocation.currency}-${index}`}>
-                {Number(allocation.amount).toFixed(2)} {allocation.currency}
+                {formatAmount(Number(allocation.amount))} {allocation.currency}
               </div>
             ))}
           </div>
