@@ -110,7 +110,7 @@ export function StickyActionBar({
     >
       <div
         className={clsx(
-          "mx-auto w-full max-w-[430px] px-6 landscape:max-w-[min(720px,calc(100vw-48px))] landscape:px-0",
+          "mx-auto w-full max-w-[960px] px-6 lg:max-w-[880px]",
           floating ? "pt-0" : fade ? "pt-8" : "pt-3",
         )}
         style={{

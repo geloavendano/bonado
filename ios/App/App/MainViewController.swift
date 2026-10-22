@@ -53,12 +53,16 @@ class MainViewController: CAPBridgeViewController, WKScriptMessageHandler, Bonad
         nativeTripNavView.alpha = 0
         view.addSubview(nativeTripNavView)
 
+        let preferredWidth = nativeTripNavView.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor, constant: -40)
+        preferredWidth.priority = .defaultHigh
+        preferredWidth.isActive = true
+
         NSLayoutConstraint.activate([
             nativeTripNavView.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             nativeTripNavView.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
             nativeTripNavView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             nativeTripNavView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
-            nativeTripNavView.widthAnchor.constraint(lessThanOrEqualToConstant: 430),
+            nativeTripNavView.widthAnchor.constraint(lessThanOrEqualToConstant: 640),
         ])
     }
 
@@ -84,12 +88,16 @@ class MainViewController: CAPBridgeViewController, WKScriptMessageHandler, Bonad
         nativeActionButtonView.alpha = 0
         view.addSubview(nativeActionButtonView)
 
+        let preferredWidth = nativeActionButtonView.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor, constant: -40)
+        preferredWidth.priority = .defaultHigh
+        preferredWidth.isActive = true
+
         NSLayoutConstraint.activate([
             nativeActionButtonView.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             nativeActionButtonView.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
             nativeActionButtonView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             nativeActionButtonView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
-            nativeActionButtonView.widthAnchor.constraint(lessThanOrEqualToConstant: 430),
+            nativeActionButtonView.widthAnchor.constraint(lessThanOrEqualToConstant: 880),
             nativeActionButtonView.heightAnchor.constraint(equalToConstant: 58),
         ])
     }
@@ -1133,8 +1141,8 @@ final class BonadoNativeTripNavView: UIView {
             rootStack.bottomAnchor.constraint(equalTo: bottomAnchor),
 
             navEffectView.heightAnchor.constraint(equalToConstant: 68),
-            navEffectView.widthAnchor.constraint(greaterThanOrEqualToConstant: 260),
-            navEffectView.widthAnchor.constraint(lessThanOrEqualToConstant: 354),
+            navEffectView.widthAnchor.constraint(greaterThanOrEqualToConstant: 210),
+            navEffectView.widthAnchor.constraint(lessThanOrEqualToConstant: 570),
 
             addButton.widthAnchor.constraint(equalToConstant: 58),
             addButton.heightAnchor.constraint(equalToConstant: 58),

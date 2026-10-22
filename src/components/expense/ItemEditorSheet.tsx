@@ -152,7 +152,7 @@ export function ItemEditorSheet({
         aria-modal="true"
         aria-label={initial ? "Edit item" : "Add item"}
         onClick={(event) => event.stopPropagation()}
-        className="motion-reveal max-h-full w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
+        className="motion-reveal max-h-full w-full max-w-[640px] overflow-y-auto overscroll-contain rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-pill bg-faint-2/60" />
         <div className="mb-4 flex items-center justify-between">

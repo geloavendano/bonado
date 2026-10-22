@@ -159,8 +159,9 @@ export function TripNav({ tripId }: { tripId: string }) {
         hidden ? "translate-y-[calc(100%+28px)]" : "translate-y-0",
       )}
     >
+      <div className="mx-auto w-full lg:max-w-[1440px] lg:pl-[220px] lg:pr-[260px]">
       <div
-        className="mx-auto flex w-full max-w-[430px] items-center gap-3 px-6"
+        className="mx-auto flex w-full items-center gap-3 px-6 lg:max-w-[640px]"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}
         >
         <nav
@@ -231,6 +232,7 @@ export function TripNav({ tripId }: { tripId: string }) {
             <path d="M12 5v14M5 12h14" />
           </svg>
         </Link>
+      </div>
       </div>
     </div>
   );

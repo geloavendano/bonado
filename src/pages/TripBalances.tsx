@@ -398,7 +398,7 @@ export function TripBalances() {
           <div
             ref={settlementSheetRef}
             tabIndex={-1}
-            className="motion-reveal max-h-[88dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
+            className="motion-reveal max-h-[88dvh] w-full max-w-[640px] overflow-y-auto rounded-t-[26px] bg-bg px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-sheet)]"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"

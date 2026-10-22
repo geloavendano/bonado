@@ -11,7 +11,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       <div
         role="status"
         aria-label="Loading Bonado"
-        className="motion-page mx-auto flex min-h-dvh max-w-[430px] flex-col gap-4 bg-bg px-6 pt-8"
+        className="motion-page mx-auto flex min-h-dvh w-full max-w-[960px] flex-col gap-4 bg-bg px-6 pt-8"
       >
         <div className="flex items-center justify-between">
           <Skeleton className="h-6 w-24" />
